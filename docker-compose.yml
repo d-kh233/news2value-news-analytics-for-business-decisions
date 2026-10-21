@@ -25,6 +25,9 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
+    volumes:
+      # моковые данные API (пока нет БД); путь /data/mocks ищет app/services/mock_store.py
+      - ./data/mocks:/data/mocks:ro
 
 volumes:
   pgdata:
