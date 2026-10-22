@@ -43,15 +43,16 @@ _load_dotenv()
 T = TypeVar("T", bound=BaseModel)
 CompleteFn = Callable[..., str]
 
-# ---------- Модели: имена берутся из окружения, точные id уточнить у организаторов ----------
+# ---------- Модели (id из чата организаторов 22.10). Цена, руб. за 1М токенов вход/выход:
+# gemma 4,48/23 · glm 5,10/17 · deepseek 10/21 · qwen3.6 5,33/74 · kimi 51/270 (не использовать) ----------
 
 MODELS = {
     # дешёвые: классификация, извлечение, релевантность
-    "fast": os.getenv("LLM_MODEL_FAST", "gemma-4-26b-a4b"),
+    "fast": os.getenv("LLM_MODEL_FAST", "google/gemma-4-26b-a4b-it"),
     # интерпретация, самопроверка
-    "smart": os.getenv("LLM_MODEL_SMART", "glm-5.3-flash"),
+    "smart": os.getenv("LLM_MODEL_SMART", "z-ai/glm-5.3-flash"),
     # поиск взаимосвязей, длинный контекст
-    "research": os.getenv("LLM_MODEL_RESEARCH", "deepseek-v4.1-flash"),
+    "research": os.getenv("LLM_MODEL_RESEARCH", "deepseek/deepseek-v4.1-flash"),
 }
 
 
