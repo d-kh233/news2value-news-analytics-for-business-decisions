@@ -112,3 +112,52 @@ class TestOkved(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBackendAdapter(unittest.TestCase):
+    def test_maps_to_backend_schema(self):
+        from llm.backend_adapter import to_backend_insight
+        ins = Insight.model_validate({
+            "news_id": "N:1", "company_id": "U_2", "headline": "Деньги остаются дорогими дольше",
+            "impact_type": "risk", "importance": "high", "confidence": "medium",
+            "what_happened": [{"text": "ЦБ сохранил ставку 14%.", "origin": "fact", "source_ids": ["N:1"]}],
+            "why_it_matters": [{"text": "У компании кредит, рефинансирование не подешевеет.", "origin": "ai",
+                                "source_ids": ["F:CL_PRODUCT_LOA_MARK"]}],
+            "consequences": [{"text": "Процентные расходы не снизятся", "kind": "risk", "level": "medium",
+                              "horizon": "short", "origin": "ai"}],
+            "actions": [{"text": "Проверить график погашения", "type": "action"}],
+            "bank_view": [{"text": "Банк ждёт паузы до конца года.", "origin": "bank", "source_ids": ["A:key_rate:2"]}],
+            "company_features_used": ["F:MAINOKVED_CODE"],
+        })
+        docs = {"N:1": {"title": "ЦБ сохранил ставку", "url": "https://x", "published_at": "2026-09-11T10:00:00Z",
+                        "source_kind": "external"},
+                "A:key_rate:2": {"title": "Ключевая ставка ЦБ РФ", "url": "https://y",
+                                 "published_at": "2026-09-12T10:00:00Z", "source_kind": "bank_analytics"}}
+        out = to_backend_insight(ins, "i-1", docs.get, relevance_score=90)
+        self.assertEqual(out["type"], "risk")
+        self.assertEqual({s["source_kind"] for s in out["sources"]}, {"external", "bank_analytics"})
+        self.assertIn("Позиция банка", out["impact_on_company"])
+        self.assertEqual(out["used_profile_fields"], ["F:CL_PRODUCT_LOA_MARK", "F:MAINOKVED_CODE"])
+        # копия схемы бэкенда (feat/backend, app/schemas/insight.py)
+        from typing import Literal
+        from pydantic import AwareDatetime, BaseModel, Field
+
+        class Source(BaseModel):
+            title: str
+            url: str
+            published_at: AwareDatetime
+            source_kind: Literal["external", "bank_analytics"]
+
+        class BackendInsight(BaseModel):
+            id: str
+            company_id: str
+            title: str
+            summary: str
+            type: Literal["risk", "opportunity", "event"]
+            importance: int = Field(ge=0, le=100)
+            impact_on_company: str
+            recommended_action: str
+            sources: list[Source]
+            created_at: AwareDatetime
+
+        BackendInsight.model_validate(out)
