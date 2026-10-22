@@ -247,3 +247,14 @@ class TestAnalystMap(unittest.TestCase):
         self.assertEqual(macro_impact(up, {"MAINOKVED_CODE": "01.11"})["sign"], "risk")
         sanc = [{"factor": "sanctions_trade", "direction": "up", "strength": "medium"}]
         self.assertEqual(macro_impact(sanc, {"MAINOKVED_CODE": "06.10"})["sign"], "risk")
+
+
+class TestDedupMoves(unittest.TestCase):
+    def test_one_move_per_factor(self):
+        ans = dict(EXAMPLES[1]["answer"])
+        ans["factor_moves"] = ans["factor_moves"] + [
+            {"factor": "metals", "direction": "up", "strength": "high", "evidence": "дефицит"}]
+        fake = FakeLLM([json.dumps(ans, ensure_ascii=False)])
+        ev = extract_event({"id": "m1", "title": "медь", "text": "медь дорожает x"}, complete=fake, model="fake3")
+        self.assertEqual(len(ev.factor_moves), 1)
+        self.assertEqual(ev.factor_moves[0].strength.value, "high")
