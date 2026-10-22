@@ -1,0 +1,248 @@
+{
+  "$defs": {
+    "Action": {
+      "properties": {
+        "text": {
+          "description": "Конкретное направление действий или вопрос для анализа",
+          "title": "Text",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "action",
+            "question",
+            "scenario"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "bank_product": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Общая категория продукта банка, если уместно ('кредитование', 'хеджирование валютного риска'). Без условий и ставок.",
+          "title": "Bank Product"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "type"
+      ],
+      "title": "Action",
+      "type": "object"
+    },
+    "Consequence": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "risk",
+            "opportunity",
+            "factor"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "level": {
+          "$ref": "#/$defs/Level"
+        },
+        "horizon": {
+          "$ref": "#/$defs/Horizon"
+        },
+        "origin": {
+          "$ref": "#/$defs/Origin"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "kind",
+        "level",
+        "horizon",
+        "origin"
+      ],
+      "title": "Consequence",
+      "type": "object"
+    },
+    "Horizon": {
+      "enum": [
+        "immediate",
+        "short",
+        "medium",
+        "long"
+      ],
+      "title": "Horizon",
+      "type": "string"
+    },
+    "ImpactType": {
+      "enum": [
+        "risk",
+        "opportunity",
+        "mixed",
+        "neutral"
+      ],
+      "title": "ImpactType",
+      "type": "string"
+    },
+    "Level": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "Origin": {
+      "enum": [
+        "fact",
+        "bank",
+        "ai"
+      ],
+      "title": "Origin",
+      "type": "string"
+    },
+    "Statement": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "origin": {
+          "$ref": "#/$defs/Origin"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "origin"
+      ],
+      "title": "Statement",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "news_id": {
+      "title": "News Id",
+      "type": "string"
+    },
+    "company_id": {
+      "title": "Company Id",
+      "type": "string"
+    },
+    "headline": {
+      "description": "Заголовок-вывод для руководителя, до 14 слов, не пересказ новости",
+      "title": "Headline",
+      "type": "string"
+    },
+    "impact_type": {
+      "$ref": "#/$defs/ImpactType"
+    },
+    "importance": {
+      "$ref": "#/$defs/Level"
+    },
+    "confidence": {
+      "$ref": "#/$defs/Level"
+    },
+    "what_happened": {
+      "description": "01 Что произошло",
+      "items": {
+        "$ref": "#/$defs/Statement"
+      },
+      "minItems": 1,
+      "title": "What Happened",
+      "type": "array"
+    },
+    "why_it_matters": {
+      "description": "02 Почему это важно для этой компании",
+      "items": {
+        "$ref": "#/$defs/Statement"
+      },
+      "minItems": 1,
+      "title": "Why It Matters",
+      "type": "array"
+    },
+    "consequences": {
+      "description": "03 Какие последствия возможны",
+      "items": {
+        "$ref": "#/$defs/Consequence"
+      },
+      "minItems": 1,
+      "title": "Consequences",
+      "type": "array"
+    },
+    "actions": {
+      "description": "04 Какие действия могут быть релевантны",
+      "items": {
+        "$ref": "#/$defs/Action"
+      },
+      "title": "Actions",
+      "type": "array"
+    },
+    "bank_view": {
+      "description": "05 Как это оценивает банк (только origin=bank)",
+      "items": {
+        "$ref": "#/$defs/Statement"
+      },
+      "title": "Bank View",
+      "type": "array"
+    },
+    "company_features_used": {
+      "description": "06 Признаки компании, повлиявшие на вывод (F:/P:/G:)",
+      "items": {
+        "type": "string"
+      },
+      "title": "Company Features Used",
+      "type": "array"
+    },
+    "data_gaps": {
+      "description": "Чего не хватило для уверенного вывода",
+      "items": {
+        "type": "string"
+      },
+      "title": "Data Gaps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "news_id",
+    "company_id",
+    "headline",
+    "impact_type",
+    "importance",
+    "confidence",
+    "what_happened",
+    "why_it_matters",
+    "consequences"
+  ],
+  "title": "Insight",
+  "type": "object"
+}

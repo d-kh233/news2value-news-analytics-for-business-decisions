@@ -1,0 +1,75 @@
+{
+  "$defs": {
+    "DigestItem": {
+      "properties": {
+        "news_id": {
+          "title": "News Id",
+          "type": "string"
+        },
+        "line": {
+          "description": "Одна строка: вывод для компании",
+          "title": "Line",
+          "type": "string"
+        },
+        "impact_type": {
+          "$ref": "#/$defs/ImpactType"
+        },
+        "importance": {
+          "$ref": "#/$defs/Level"
+        }
+      },
+      "required": [
+        "news_id",
+        "line",
+        "impact_type",
+        "importance"
+      ],
+      "title": "DigestItem",
+      "type": "object"
+    },
+    "ImpactType": {
+      "enum": [
+        "risk",
+        "opportunity",
+        "mixed",
+        "neutral"
+      ],
+      "title": "ImpactType",
+      "type": "string"
+    },
+    "Level": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "Level",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "overview": {
+      "description": "2–3 предложения: главное за период для этой компании",
+      "title": "Overview",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/DigestItem"
+      },
+      "title": "Items",
+      "type": "array"
+    }
+  },
+  "required": [
+    "title",
+    "overview",
+    "items"
+  ],
+  "title": "Digest",
+  "type": "object"
+}

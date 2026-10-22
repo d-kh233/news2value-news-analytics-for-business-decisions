@@ -1,0 +1,327 @@
+{
+  "$defs": {
+    "Direction": {
+      "enum": [
+        "up",
+        "down",
+        "unchanged",
+        "uncertain"
+      ],
+      "title": "Direction",
+      "type": "string"
+    },
+    "EventType": {
+      "enum": [
+        "monetary_policy",
+        "inflation",
+        "fx",
+        "commodities",
+        "regulation",
+        "sanctions",
+        "trade",
+        "macro",
+        "debt_market",
+        "industry",
+        "counterparty",
+        "corporate",
+        "other"
+      ],
+      "title": "EventType",
+      "type": "string"
+    },
+    "Fact": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "confirmed": {
+          "description": "true — прямо сказано в источнике; false — предположение/прогноз из текста",
+          "title": "Confirmed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "text",
+        "confirmed"
+      ],
+      "title": "Fact",
+      "type": "object"
+    },
+    "Factor": {
+      "description": "Макрофакторы. Совпадают с колонками карты ОКВЭД (okved/okved_sensitivity.csv),\nчтобы ранжирование могло считать: сила движения фактора × чувствительность отрасли.",
+      "enum": [
+        "key_rate",
+        "usd_rub",
+        "oil_gas",
+        "metals",
+        "agri",
+        "gold",
+        "inflation",
+        "consumer_demand",
+        "labor_market",
+        "sanctions_trade"
+      ],
+      "title": "Factor",
+      "type": "string"
+    },
+    "FactorMove": {
+      "properties": {
+        "factor": {
+          "$ref": "#/$defs/Factor"
+        },
+        "direction": {
+          "$ref": "#/$defs/Direction"
+        },
+        "strength": {
+          "$ref": "#/$defs/Level",
+          "description": "Насколько сильное движение / сигнал"
+        },
+        "evidence": {
+          "description": "Короткая цитата или пересказ места в тексте, на котором основан вывод",
+          "title": "Evidence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "factor",
+        "direction",
+        "strength",
+        "evidence"
+      ],
+      "title": "FactorMove",
+      "type": "object"
+    },
+    "KeyNumber": {
+      "properties": {
+        "name": {
+          "description": "Что за показатель: 'ключевая ставка', 'инфляция г/г', 'цена Brent'",
+          "title": "Name",
+          "type": "string"
+        },
+        "value": {
+          "description": "Значение как в тексте: '14', '7,9', '−3,5'",
+          "title": "Value",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "'%', '% г/г', 'руб.', 'долл./барр.', 'млрд руб.'",
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "title": "KeyNumber",
+      "type": "object"
+    },
+    "Level": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "Level",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "event_type": {
+      "$ref": "#/$defs/EventType"
+    },
+    "title": {
+      "description": "Короткий нейтральный заголовок события, до 12 слов",
+      "title": "Title",
+      "type": "string"
+    },
+    "summary": {
+      "description": "1–2 предложения: что произошло",
+      "title": "Summary",
+      "type": "string"
+    },
+    "facts": {
+      "items": {
+        "$ref": "#/$defs/Fact"
+      },
+      "title": "Facts",
+      "type": "array"
+    },
+    "actors": {
+      "description": "Организации, регуляторы, страны",
+      "items": {
+        "type": "string"
+      },
+      "title": "Actors",
+      "type": "array"
+    },
+    "industries": {
+      "description": "Затронутые отрасли простыми словами",
+      "items": {
+        "type": "string"
+      },
+      "title": "Industries",
+      "type": "array"
+    },
+    "okved_hints": {
+      "description": "Коды ОКВЭД (2 знака), если очевидны",
+      "items": {
+        "type": "string"
+      },
+      "title": "Okved Hints",
+      "type": "array"
+    },
+    "regions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Regions",
+      "type": "array"
+    },
+    "countries": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Countries",
+      "type": "array"
+    },
+    "instruments": {
+      "description": "Ставка, курс, товар, индекс: 'ключевая ставка', 'USD/RUB', 'медь'",
+      "items": {
+        "type": "string"
+      },
+      "title": "Instruments",
+      "type": "array"
+    },
+    "key_numbers": {
+      "items": {
+        "$ref": "#/$defs/KeyNumber"
+      },
+      "title": "Key Numbers",
+      "type": "array"
+    },
+    "factor_moves": {
+      "items": {
+        "$ref": "#/$defs/FactorMove"
+      },
+      "title": "Factor Moves",
+      "type": "array"
+    },
+    "event_date": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "YYYY-MM-DD, если указано",
+      "title": "Event Date"
+    },
+    "is_noise": {
+      "default": false,
+      "description": "true — реклама, мусор, нет события",
+      "title": "Is Noise",
+      "type": "boolean"
+    },
+    "quality_flags": {
+      "description": "Проблемы с исходным текстом (для ограничения 05 кейса)",
+      "items": {
+        "enum": [
+          "truncated",
+          "no_date",
+          "no_source",
+          "ambiguous",
+          "opinion_only",
+          "duplicate_like"
+        ],
+        "type": "string"
+      },
+      "title": "Quality Flags",
+      "type": "array"
+    },
+    "news_id": {
+      "title": "News Id",
+      "type": "string"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source"
+    },
+    "url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Url"
+    },
+    "published_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Published At"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    },
+    "prompt_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Prompt Version"
+    }
+  },
+  "required": [
+    "event_type",
+    "title",
+    "summary",
+    "news_id"
+  ],
+  "title": "EventExtraction",
+  "type": "object"
+}

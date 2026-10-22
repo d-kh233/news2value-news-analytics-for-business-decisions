@@ -1,0 +1,68 @@
+{
+  "$defs": {
+    "Origin": {
+      "enum": [
+        "fact",
+        "bank",
+        "ai"
+      ],
+      "title": "Origin",
+      "type": "string"
+    },
+    "Statement": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "origin": {
+          "$ref": "#/$defs/Origin"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "origin"
+      ],
+      "title": "Statement",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "answer": {
+      "title": "Answer",
+      "type": "string"
+    },
+    "statements": {
+      "items": {
+        "$ref": "#/$defs/Statement"
+      },
+      "title": "Statements",
+      "type": "array"
+    },
+    "out_of_scope": {
+      "default": false,
+      "title": "Out Of Scope",
+      "type": "boolean"
+    },
+    "suggested_questions": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3,
+      "title": "Suggested Questions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "answer"
+  ],
+  "title": "ChatAnswer",
+  "type": "object"
+}
