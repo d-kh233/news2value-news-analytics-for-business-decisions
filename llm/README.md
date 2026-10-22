@@ -17,6 +17,22 @@
 | `okved/build_okved_map_glm.py` | Прогон карты через GLM и список расхождений с черновиком для аналитика | я + тимлид, когда есть ключ |
 | `tests/test_offline.py` | 11 тестов без обращения к API | — |
 
+## Интерпретация (generate_insight) — черновик v0
+
+```python
+from llm.insight import generate_insight
+out = generate_insight(news, company_row, bank_chunks=chunks, counterparties=cps, role="cfo",
+                       relevance_score=score, resolve_source=resolve, complete=gateway_complete)
+```
+
+- `company_row` — строка из таблицы `companies` (ключи как в CSV, регистр любой) или профиль с `manual_data`.
+- `bank_chunks` — найденные фрагменты аналитики банка `[{id: "A:doc:chunk", title, date, published_at, url, text}]`.
+- `counterparties` — топ контрагентов `[{id, direction, okved_name, share_pct}]` (необязательно).
+- `role` — owner / ceo / cfo / treasurer / accountant / procurement: меняет акценты, факты те же.
+- Возвращает dict ровно по схеме backend `Insight` + необязательные `details`, `used_profile_fields`, `prompt_version`, `generated_by`, `role`.
+- Модель видит список допустимых id источников. Если сослалась на несуществующий или не связала вывод с признаками компании — ей показывают ошибку и просят исправить.
+- Промпт: `prompts/insight.system.md`. Версия: `PROMPT_VERSION` в `backend_adapter.py`.
+
 ## Как встроить в бэкенд (Даша)
 
 ```python
@@ -44,7 +60,7 @@ ev = extract_event(news_dict, complete=gateway_complete)  # gateway_complete —
 
 ## Ключ
 
-Только в `.env` в корне репозитория (он в `.gitignore`). Переменные: `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL_FAST`, `LLM_MODEL_SMART`, `LLM_MODEL_RESEARCH`, `LLM_JSON_MODE`, `LLM_CACHE_DIR` — добавить их в общий `.env.example` бэкенда. Точные id моделей и адрес API — из письма организаторов. Перед первым прогоном проверить, поддерживает ли API `response_format`; если нет — `LLM_JSON_MODE=0`.
+Только в `.env` (шаблон — `.env.example`). Точные id моделей и адрес API — из письма организаторов. Перед первым прогоном проверить, поддерживает ли API `response_format`; если нет — `LLM_JSON_MODE=0`.
 
 ## Проверка
 

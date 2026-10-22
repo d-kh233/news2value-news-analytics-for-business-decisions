@@ -161,3 +161,61 @@ class TestBackendAdapter(unittest.TestCase):
             created_at: AwareDatetime
 
         BackendInsight.model_validate(out)
+
+
+COMPANY = {  # как строка из таблицы companies бэкенда (ключи в нижнем регистре)
+    "synthetic_u": "U_2", "mainokved_code": "46.34.2", "mainokved_name": "Торговля оптовая напитками",
+    "revenue_company": 5000000.0, "region": "Москва", "cl_product_loa_mark": True,
+    "cl_product_dep_mark": False, "fts_flag": True, "fts_country_name": "КИТАЙ, ТУРЦИЯ", "group_id": "group_1_sb",
+}
+GOOD_INSIGHT = {
+    "news_id": "N:42", "company_id": "U_2", "headline": "Кредит не подешевеет, а импорт напитков дорожает",
+    "impact_type": "risk", "importance": "high", "confidence": "medium",
+    "what_happened": [{"text": "Банк России сохранил ставку 14%.", "origin": "fact", "source_ids": ["N:42"]}],
+    "why_it_matters": [{"text": "У вас есть кредитные продукты.", "origin": "ai",
+                        "source_ids": ["F:CL_PRODUCT_LOA_MARK", "N:42"]}],
+    "consequences": [{"text": "Процентные расходы останутся высокими", "kind": "risk", "level": "medium",
+                      "horizon": "short", "origin": "bank", "source_ids": ["A:key_rate:1"]}],
+    "actions": [{"text": "Сравнить фиксированную и плавающую ставку по действующему кредиту", "type": "question"}],
+    "bank_view": [{"text": "Банк ожидает паузы в снижении ставки.", "origin": "bank", "source_ids": ["A:key_rate:1"]}],
+    "company_features_used": ["F:CL_PRODUCT_LOA_MARK", "F:FTS_FLAG"],
+}
+BANK = [{"id": "A:key_rate:1", "title": "Ключевая ставка ЦБ РФ: ставка без изменения на 14,0%",
+         "date": "2026-09-12", "published_at": "2026-09-12T09:00:00Z", "text": "Ожидаем паузы."}]
+
+
+class TestInsight(unittest.TestCase):
+    def _event(self):
+        from llm.schemas import EventExtraction
+        return EventExtraction(**EXAMPLES[0]["answer"], news_id="42")
+
+    def test_context_has_company_and_ids(self):
+        from llm.insight import build_context
+        msg, allowed, impact = build_context(self._event(), "текст", COMPANY, bank_chunks=BANK, role="cfo")
+        self.assertIn("[F:CL_PRODUCT_LOA_MARK] Есть кредитные продукты", msg)
+        self.assertIn("[F:FTS_COUNTRY_NAME] Страны ВЭД по данным ФТС: КИТАЙ, ТУРЦИЯ", msg)
+        self.assertIn("G:group_1_sb", allowed)
+        self.assertIn("A:key_rate:1", allowed)
+        self.assertIn("Финансовый директор", msg)
+        self.assertGreater(impact["score"], 0)
+
+    def test_invented_source_triggers_repair(self):
+        from llm.insight import interpret
+        bad = dict(GOOD_INSIGHT, bank_view=[{"text": "x", "origin": "bank", "source_ids": ["A:invented:9"]}])
+        fake = FakeLLM([json.dumps(bad, ensure_ascii=False), json.dumps(GOOD_INSIGHT, ensure_ascii=False)])
+        ins, _ = interpret(self._event(), "текст", COMPANY, bank_chunks=BANK, complete=fake, model="fake")
+        self.assertEqual(len(fake.calls), 2)
+        self.assertIn("несуществующие источники", fake.calls[1][-1]["content"])
+
+    def test_generate_insight_end_to_end(self):
+        from llm.insight import generate_insight
+        news = {"id": "42", "title": "ЦБ сохранил ставку", "text": "Банк России сохранил ставку 14%.",
+                "source": "test", "url": "https://cbr.example", "published_at": "2026-09-11T10:00:00Z"}
+        fake = FakeLLM([json.dumps(EXAMPLES[0]["answer"], ensure_ascii=False),
+                        json.dumps(GOOD_INSIGHT, ensure_ascii=False)])
+        trace = []
+        out = generate_insight(news, COMPANY, bank_chunks=BANK, role="cfo", complete=fake, trace=trace)
+        self.assertEqual(out["company_id"], "U_2")
+        self.assertEqual(len(out["sources"]), 2)
+        self.assertEqual(out["role"], "cfo")
+        self.assertTrue(any(t.get("step") == "interpret" for t in trace))

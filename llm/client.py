@@ -139,10 +139,13 @@ class LLMCallError(RuntimeError):
 
 
 def call_json(schema: Type[T], messages: list[dict], model: str, complete: Optional[CompleteFn] = None,
-              retries: int = 1, use_cache: bool = True, trace: Optional[list] = None, **params) -> T:
+              retries: int = 1, use_cache: bool = True, trace: Optional[list] = None,
+              post_check: Optional[Callable[[T], None]] = None, **params) -> T:
     """
     Вызывает модель и возвращает объект схемы. При ошибке разбора или валидации
     один раз просит модель исправить ответ, показывая ей ошибку.
+    post_check(obj) — доп. проверка (например, что ссылки только на переданные источники);
+    бросает ValueError с понятным текстом, который увидит модель.
     trace — список, куда пишутся шаги (для трассировки, критерий 12).
     """
     complete = complete or openai_compatible_complete
@@ -156,6 +159,8 @@ def call_json(schema: Type[T], messages: list[dict], model: str, complete: Optio
         took = round(time.time() - t0, 2)
         try:
             obj = schema.model_validate(extract_json(raw))
+            if post_check is not None:
+                post_check(obj)
             if use_cache and cached is None:
                 _cache_put(key, raw)
             if trace is not None:

@@ -30,8 +30,8 @@ FACTORS = HARM_ON_UP | HELP_ON_UP | SIGNED
 
 DIR = {"up": 1.0, "down": -1.0, "unchanged": 0.0, "uncertain": 0.0}
 STRENGTH = {"low": 0.5, "medium": 1.0, "high": 1.5}
-# «ставку сохранили» тоже важно для закредитованных: учитываем как половину сигнала, без знака
-NO_MOVE_RELEVANCE = 0.5
+# «ставку сохранили» тоже важно для закредитованных: учитываем как часть сигнала, без знака
+NO_MOVE_RELEVANCE = {"unchanged": 0.5, "uncertain": 0.3}
 
 RU = {
     "key_rate": "ключевая ставка", "usd_rub": "курс рубля", "oil_gas": "нефть и газ", "metals": "металлы",
@@ -96,7 +96,8 @@ def macro_impact(factor_moves: Iterable, company: Mapping) -> dict:
         f = fm["factor"].value if hasattr(fm["factor"], "value") else fm["factor"]
         if f not in FACTORS:
             continue
-        d = DIR.get(getattr(fm["direction"], "value", fm["direction"]), 0.0)
+        dname = getattr(fm["direction"], "value", fm["direction"])
+        d = DIR.get(dname, 0.0)
         s = STRENGTH.get(getattr(fm["strength"], "value", fm["strength"]), 1.0)
         k, extra_src = mult.get(f, (1.0, []))
         sens = row[f]
@@ -107,14 +108,15 @@ def macro_impact(factor_moves: Iterable, company: Mapping) -> dict:
         else:
             effect = sens * d
         effect *= s * k
-        magnitude = abs(effect) if d else abs(sens) * s * k * NO_MOVE_RELEVANCE
+        magnitude = abs(effect) if d else abs(sens) * s * k * NO_MOVE_RELEVANCE.get(dname, 0.3)
         if magnitude == 0:
             continue
         total_signed += effect
         total_abs += magnitude
         why.append({
             "factor": f,
-            "effect": round(effect, 2),
+            "effect": round(effect, 2) + 0.0,
+            "direction": dname,
             "magnitude": round(magnitude, 2),
             "source_ids": [f"F:MAINOKVED_CODE"] + extra_src,
             "text": f"{RU[f]}: отрасль «{row['name']}» чувствительна ({sens:+g})"
