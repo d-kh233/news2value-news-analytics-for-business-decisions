@@ -221,3 +221,6 @@ __marimo__/
 
 data/raw/
 CLAUDE.md
+
+# Настройки Claude Code (локальные, не коммитим)
+.claude/

@@ -9,7 +9,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # только для этого компьютера (127.0.0.1), не для всей сети;
+      # порт поменяй в .env, если 5432 занят (например, Postgres в Windows)
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -24,10 +26,13 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "8000:8000"
+      # только для этого компьютера (127.0.0.1), не для всей сети
+      - "127.0.0.1:8000:8000"
     volumes:
       # моковые данные API (пока нет БД); путь /data/mocks ищет app/services/mock_store.py
       - ./data/mocks:/data/mocks:ro
+      # CSV банка для scripts/load_csv.py (только чтение, в образ не попадают)
+      - ./data/raw:/data/raw:ro
 
 volumes:
   pgdata:
