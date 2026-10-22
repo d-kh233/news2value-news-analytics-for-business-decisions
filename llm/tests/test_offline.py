@@ -219,3 +219,21 @@ class TestInsight(unittest.TestCase):
         self.assertEqual(len(out["sources"]), 2)
         self.assertEqual(out["role"], "cfo")
         self.assertTrue(any(t.get("step") == "interpret" for t in trace))
+
+
+class TestExtraCheck(unittest.TestCase):
+    def test_extra_check_runs_in_repair_loop(self):
+        from llm.insight import interpret
+        from llm.schemas import EventExtraction
+        ev = EventExtraction(**EXAMPLES[0]["answer"], news_id="42")
+        calls = []
+
+        def no_long_headlines(ins):
+            calls.append(ins.headline)
+            if len(calls) == 1:
+                raise ValueError("Заголовок слишком общий")
+
+        fake = FakeLLM([json.dumps(GOOD_INSIGHT, ensure_ascii=False)] * 2)
+        interpret(ev, "текст", COMPANY, bank_chunks=BANK, complete=fake, model="fake2", extra_check=no_long_headlines)
+        self.assertEqual(len(fake.calls), 2)
+        self.assertIn("Заголовок слишком общий", fake.calls[1][-1]["content"])
