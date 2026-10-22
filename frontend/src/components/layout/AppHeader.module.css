@@ -1,0 +1,119 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: var(--header-height);
+  padding: 0 24px;
+  background: rgba(15, 15, 18, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brandName {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.brandAccent {
+  color: var(--accent);
+}
+
+.brandCaption {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.company,
+.userText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.select {
+  max-width: 260px;
+  margin-top: 2px;
+  padding: 4px 28px 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a3a3ad' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 8px center;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  appearance: none;
+  cursor: pointer;
+}
+
+.select:hover {
+  border-color: #4a4a55;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .header {
+    padding: 0 16px;
+  }
+
+  .userText,
+  .company .label {
+    display: none;
+  }
+
+  .select {
+    max-width: 170px;
+  }
+}
