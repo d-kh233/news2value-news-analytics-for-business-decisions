@@ -1,0 +1,107 @@
+{
+  "$defs": {
+    "Issue": {
+      "properties": {
+        "field": {
+          "description": "Где проблема: 'why_it_matters[0]', 'bank_view', 'headline'...",
+          "title": "Field",
+          "type": "string"
+        },
+        "problem": {
+          "enum": [
+            "unsupported_claim",
+            "wrong_origin",
+            "contradiction",
+            "generic",
+            "retelling",
+            "missing_bank_view",
+            "invented_numbers",
+            "other"
+          ],
+          "title": "Problem",
+          "type": "string"
+        },
+        "comment": {
+          "title": "Comment",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "problem",
+        "comment"
+      ],
+      "title": "Issue",
+      "type": "object"
+    },
+    "PlanStep": {
+      "properties": {
+        "tool": {
+          "enum": [
+            "get_company_profile",
+            "get_counterparties",
+            "search_bank_analytics",
+            "search_news",
+            "get_group_companies"
+          ],
+          "title": "Tool",
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": true,
+          "title": "Args",
+          "type": "object"
+        },
+        "goal": {
+          "description": "Зачем нужен этот шаг",
+          "title": "Goal",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "goal"
+      ],
+      "title": "PlanStep",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "verdict": {
+      "enum": [
+        "pass",
+        "revise",
+        "need_more_data"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    },
+    "scores": {
+      "additionalProperties": true,
+      "description": "Оценки 1–5: grounding, personalization, depth, actionability, bank_separation",
+      "title": "Scores",
+      "type": "object"
+    },
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/Issue"
+      },
+      "title": "Issues",
+      "type": "array"
+    },
+    "extra_search": {
+      "description": "Только при need_more_data",
+      "items": {
+        "$ref": "#/$defs/PlanStep"
+      },
+      "title": "Extra Search",
+      "type": "array"
+    }
+  },
+  "required": [
+    "verdict",
+    "scores"
+  ],
+  "title": "CriticVerdict",
+  "type": "object"
+}

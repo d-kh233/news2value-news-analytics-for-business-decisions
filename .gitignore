@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# LLM: кэш ответов моделей (может содержать данные кейса)
+.llm_cache/

@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "MatchedFeature": {
+      "properties": {
+        "source_id": {
+          "description": "F:..., P:..., G:...",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "why": {
+          "description": "Как этот признак связывает событие с компанией",
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "why"
+      ],
+      "title": "MatchedFeature",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "news_id": {
+      "title": "News Id",
+      "type": "string"
+    },
+    "company_id": {
+      "title": "Company Id",
+      "type": "string"
+    },
+    "relevance": {
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Relevance",
+      "type": "integer"
+    },
+    "channel": {
+      "description": "Канал влияния: напрямую на компанию, через отрасль, через контрагентов, через фин. продукты/долг, через макро",
+      "enum": [
+        "direct",
+        "industry",
+        "counterparty",
+        "financial",
+        "macro",
+        "none"
+      ],
+      "title": "Channel",
+      "type": "string"
+    },
+    "matched_features": {
+      "items": {
+        "$ref": "#/$defs/MatchedFeature"
+      },
+      "title": "Matched Features",
+      "type": "array"
+    },
+    "reason": {
+      "description": "Одно предложение для пользователя: почему это может быть важно",
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "news_id",
+    "company_id",
+    "relevance",
+    "channel",
+    "reason"
+  ],
+  "title": "RelevanceAssessment",
+  "type": "object"
+}

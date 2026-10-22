@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "PlanStep": {
+      "properties": {
+        "tool": {
+          "enum": [
+            "get_company_profile",
+            "get_counterparties",
+            "search_bank_analytics",
+            "search_news",
+            "get_group_companies"
+          ],
+          "title": "Tool",
+          "type": "string"
+        },
+        "args": {
+          "additionalProperties": true,
+          "title": "Args",
+          "type": "object"
+        },
+        "goal": {
+          "description": "Зачем нужен этот шаг",
+          "title": "Goal",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "goal"
+      ],
+      "title": "PlanStep",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "questions": {
+      "description": "Что нужно выяснить, чтобы объяснить влияние события на компанию",
+      "items": {
+        "type": "string"
+      },
+      "title": "Questions",
+      "type": "array"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/PlanStep"
+      },
+      "maxItems": 6,
+      "title": "Steps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "questions",
+    "steps"
+  ],
+  "title": "AgentPlan",
+  "type": "object"
+}
