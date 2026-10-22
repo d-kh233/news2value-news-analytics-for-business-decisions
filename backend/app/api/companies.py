@@ -6,7 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Query, Response
 from app.schemas.common import ErrorResponse, Page
 from app.schemas.company import Company, CompanyCreate, CompanyProfile
 from app.schemas.digest import Digest, DigestPeriod
-from app.schemas.insight import Insight, InsightType
+from app.schemas.insight import Insight, InsightType, Role
 from app.schemas.job import JobAccepted
 from app.services import mock_store
 
@@ -83,7 +83,12 @@ def get_digest(company_id: str, period: DigestPeriod) -> Digest:
     status_code=202,
     responses=NOT_FOUND,
 )
-def refresh_insights(company_id: str, background: BackgroundTasks) -> JobAccepted:
-    job_id = mock_store.start_refresh(company_id)
+def refresh_insights(
+    company_id: str,
+    background: BackgroundTasks,
+    role: Annotated[Role | None, Query(description="Роль читателя; по умолчанию ceo")] = None,
+) -> JobAccepted:
+    """Запустить агента: новые инсайты компании заменяют старые."""
+    job_id = mock_store.start_refresh(company_id, role)
     background.add_task(mock_store.run_refresh, job_id)
     return JobAccepted(job_id=job_id)

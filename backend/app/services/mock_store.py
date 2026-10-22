@@ -6,6 +6,7 @@
 """
 
 import json
+import logging
 import uuid
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -20,6 +21,8 @@ from app.schemas.qa import AskResult, Feedback, FeedbackRequest
 
 MOCKS_DIR = Path(__file__).resolve().parents[3] / "data" / "mocks"
 
+logger = logging.getLogger(__name__)
+
 _companies: dict[str, Company] = {}
 _profiles: dict[str, CompanyProfile] = {}
 _insights: dict[str, Insight] = {}
@@ -29,6 +32,8 @@ _job_kinds: dict[str, str] = {}  # job_id -> "refresh" | "ask"
 _job_questions: dict[str, str] = {}
 _job_insight: dict[str, str] = {}
 _ask_results: dict[str, AskResult] = {}
+_job_refresh: dict[str, tuple[str, str | None]] = {}  # job_id -> (company_id, role)
+_job_runs: dict[str, dict[str, Any]] = {}  # job_id -> сводка прогона агента (план, трейс)
 
 
 def _read(name: str) -> list[dict[str, Any]]:
@@ -42,6 +47,8 @@ def reset() -> None:
     _job_questions.clear()
     _job_insight.clear()
     _ask_results.clear()
+    _job_refresh.clear()
+    _job_runs.clear()
     for item in _read("companies.json"):
         _companies[item["id"]] = Company.model_validate(item)
     for item in _read("profiles.json"):
@@ -185,15 +192,53 @@ def _set_status(job_id: str, status: str, error: str | None = None) -> None:
     _jobs[job_id] = Job(id=job_id, status=status, error=error)  # type: ignore[arg-type]
 
 
-def start_refresh(company_id: str) -> str:
+def start_refresh(company_id: str, role: str | None = None) -> str:
     _require_company(company_id)
-    return _create_job("refresh")
+    job_id = _create_job("refresh")
+    _job_refresh[job_id] = (company_id, role)
+    return job_id
 
 
 def run_refresh(job_id: str) -> None:
-    """Имитация фоновой генерации инсайтов (настоящая появится вместе с ML)."""
+    """Фоновая генерация инсайтов агентом (agent/). Старые инсайты компании заменяются новыми.
+
+    Если агент упал, задача получает статус failed, а прежние инсайты остаются.
+    """
     _set_status(job_id, "running")
+    company_id, role = _job_refresh[job_id]
+    company = _companies.get(company_id)
+    if company is None:
+        _set_status(job_id, "failed", "Компания была удалена")
+        return
+    try:
+        from app.ml_ports import agent_port
+
+        cards, run = agent_port.generate_insights(
+            company_id,
+            role,
+            company=company.model_dump(),
+            profile=get_profile(company_id).model_dump(),
+        )
+        fresh = [Insight.model_validate(card) for card in cards]
+    except Exception as exc:  # noqa: BLE001 — любой сбой агента превращаем в статус задачи
+        logger.exception("Агент не смог обновить инсайты %s", company_id)
+        _set_status(job_id, "failed", f"{type(exc).__name__}: {exc}"[:500])
+        return
+    for insight_id in [i.id for i in _insights.values() if i.company_id == company_id]:
+        del _insights[insight_id]
+        _feedback.pop(insight_id, None)
+    for insight in fresh:
+        _insights[insight.id] = insight
+    _job_runs[job_id] = run
     _set_status(job_id, "done")
+
+
+def get_job_run(job_id: str) -> dict[str, Any]:
+    """Сводка прогона агента по refresh-задаче (план и трейс — для панели трассировки)."""
+    get_job(job_id)
+    if job_id not in _job_runs:
+        raise NotFoundError(f"У задачи {job_id} нет прогона агента")
+    return _job_runs[job_id]
 
 
 def start_ask(insight_id: str, question: str) -> str:

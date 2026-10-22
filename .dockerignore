@@ -1,0 +1,16 @@
+# Контекст сборки api — корень репозитория. В образ идут только backend/, llm/, agent/, replay_cache/
+.git
+.env
+frontend
+data
+docs
+runs
+.llm_cache
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+backend/tests
+llm/tests
+agent/tests

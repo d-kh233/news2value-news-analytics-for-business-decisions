@@ -19,7 +19,10 @@ services:
       retries: 10
 
   api:
-    build: ./backend
+    build:
+      # корень репозитория: в образ нужны agent/ и llm/ (см. backend/Dockerfile)
+      context: .
+      dockerfile: backend/Dockerfile
     restart: unless-stopped
     env_file: .env
     depends_on:

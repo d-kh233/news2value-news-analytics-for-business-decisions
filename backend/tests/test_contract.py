@@ -102,6 +102,7 @@ def test_openapi_lists_all_endpoints(client):
         "/insights/{insight_id}/feedback": {"post"},
         "/jobs/{job_id}": {"get"},
         "/jobs/{job_id}/result": {"get"},
+        "/jobs/{job_id}/run": {"get"},
     }
     for path, methods in expected.items():
         assert methods <= set(paths[path]), path

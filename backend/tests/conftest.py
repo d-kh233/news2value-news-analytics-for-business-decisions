@@ -86,6 +86,14 @@ def db(db_engine: Engine) -> Engine:
 
 
 @pytest.fixture(autouse=True)
+def _agent_offline(monkeypatch, tmp_path):
+    """Агент в тестах не ходит в модель: карточки по правилам, дата моковых новостей фиксирована."""
+    monkeypatch.setenv("LLM_MODE", "stub")
+    monkeypatch.setenv("AGENT_TODAY", "2026-10-22")
+    monkeypatch.setenv("RUNS_DIR", str(tmp_path / "runs"))
+
+
+@pytest.fixture(autouse=True)
 def _reset_mocks():
     """Перед каждым тестом возвращаем моки в исходное состояние."""
     mock_store.reset()
