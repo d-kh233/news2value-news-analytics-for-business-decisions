@@ -20,6 +20,17 @@ export const insightTypeLabel: Record<InsightType, string> = {
  * «Вывод AI» есть всегда: объяснение влияния на компанию формирует модель.
  */
 export function insightOrigins(insight: Insight): OriginKind[] {
+  const details = insight.details;
+  if (details) {
+    // Есть разметка агента — берём метки прямо из утверждений
+    const all = [
+      ...details.what_happened,
+      ...details.why_it_matters,
+      ...details.consequences,
+      ...details.bank_view,
+    ].map((s) => s.origin);
+    return (['fact', 'bank', 'ai'] as OriginKind[]).filter((kind) => all.includes(kind));
+  }
   const origins: OriginKind[] = [];
   if (insight.sources.some((s) => s.source_kind === 'external')) origins.push('fact');
   if (insight.sources.some((s) => s.source_kind === 'bank_analytics')) origins.push('bank');

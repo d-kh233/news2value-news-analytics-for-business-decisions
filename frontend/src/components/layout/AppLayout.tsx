@@ -15,11 +15,11 @@ export function AppLayout() {
 }
 
 function Shell() {
-  const { company } = useCurrentCompany();
+  const { company, insightsVersion } = useCurrentCompany();
   const user = useAsync(getCurrentUser, []);
   const insightsCount = useAsync(
     () => (company ? listInsights(company.id, { limit: 1 }).then((page) => page.total) : Promise.resolve(0)),
-    [company?.id],
+    [company?.id, insightsVersion],
   );
 
   return (

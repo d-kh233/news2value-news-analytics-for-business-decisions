@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import type { Insight } from '../../types';
 import { formatDate } from '../../utils/format';
 import { impactLevel, insightOrigins } from '../../utils/insight';
+import { whyItMattersText } from '../../utils/labels';
 import { Icon } from '../ui/Icon';
 import { ImpactPill, OriginChip, TypeTag } from '../ui/Tags';
 import styles from './InsightCard.module.css';
@@ -36,7 +37,7 @@ export function InsightCard({ insight }: { insight: Insight }) {
 
       <div className={styles.why}>
         <p className={styles.whyLabel}>Почему важно вашей компании</p>
-        <p>{insight.impact_on_company}</p>
+        <p>{whyItMattersText(insight)}</p>
       </div>
 
       <div className={styles.bottom}>
@@ -55,13 +56,17 @@ export function InsightCard({ insight }: { insight: Insight }) {
       <details className={styles.sources}>
         <summary className={styles.sourcesSummary}>Источники ({insight.sources.length})</summary>
         <ul className={styles.sourceList}>
-          {insight.sources.map((source) => (
-            <li key={source.url}>
+          {insight.sources.map((source, index) => (
+            <li key={`${source.url}-${index}`}>
               <span className={styles.sourceKind}>{sourceKindLabel[source.source_kind]}</span>
-              <a href={source.url} target="_blank" rel="noreferrer noopener" className={styles.sourceLink}>
-                {source.title}
-                <span className="visually-hidden"> (откроется в новой вкладке)</span>
-              </a>
+              {/^https?:\/\//.test(source.url) ? (
+                <a href={source.url} target="_blank" rel="noreferrer noopener" className={styles.sourceLink}>
+                  {source.title}
+                  <span className="visually-hidden"> (откроется в новой вкладке)</span>
+                </a>
+              ) : (
+                <span>{source.title}</span>
+              )}
               <span className={styles.sourceDate}>{formatDate(source.published_at)}</span>
             </li>
           ))}

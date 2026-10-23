@@ -19,10 +19,10 @@ async function loadHome(company: Company) {
 }
 
 export function HomePage() {
-  const { company, error: companiesError } = useCurrentCompany();
+  const { company, error: companiesError, insightsVersion } = useCurrentCompany();
   const state = useAsync(
     () => (company ? loadHome(company) : new Promise<never>(() => {})),
-    [company?.id],
+    [company?.id, insightsVersion],
   );
 
   const error = companiesError ?? (state.status === 'error' ? state.error : null);

@@ -3,6 +3,7 @@ import { listInsights } from '../api/client';
 import { useAsync } from '../api/useAsync';
 import { FiltersPanel } from '../components/feed/FiltersPanel';
 import { InsightCard } from '../components/feed/InsightCard';
+import { RefreshAgentButton } from '../components/feed/RefreshAgentButton';
 import { useCurrentCompany } from '../state/CurrentCompany';
 import { applyFilters, defaultFilters, type FeedFilters, type SortOrder } from '../utils/filters';
 import { pluralEvents } from '../utils/format';
@@ -10,11 +11,11 @@ import styles from './AnalyticsPage.module.css';
 
 /** Лента персонализированной аналитики выбранной компании. */
 export function AnalyticsPage() {
-  const { company, error: companiesError } = useCurrentCompany();
+  const { company, error: companiesError, insightsVersion } = useCurrentCompany();
   const [filters, setFilters] = useState<FeedFilters>(defaultFilters);
   const state = useAsync(
     () => (company ? listInsights(company.id, { limit: 100 }) : new Promise<never>(() => {})),
-    [company?.id],
+    [company?.id, insightsVersion],
   );
 
   const insights = state.status === 'success' ? state.data.items : [];
@@ -34,6 +35,7 @@ export function AnalyticsPage() {
             </p>
           )}
         </div>
+        <RefreshAgentButton />
       </header>
 
       <div className={styles.layout}>

@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import type { Company, CompanyProfile, Insight } from '../../types';
 import { formatDate, pluralEvents } from '../../utils/format';
 import { impactLevel, insightOrigins } from '../../utils/insight';
+import { whyItMattersText } from '../../utils/labels';
 import { Icon } from '../ui/Icon';
 import { ImpactPill, OriginChip } from '../ui/Tags';
 import styles from './InsightsEntryCard.module.css';
@@ -54,7 +55,7 @@ export function InsightsEntryCard({ company, profile, topInsights, total }: Prop
               <h3 className={styles.itemTitle}>{insight.title}</h3>
               <p className={styles.why}>
                 <span className={styles.whyLabel}>Почему важно вам: </span>
-                {insight.impact_on_company}
+                {whyItMattersText(insight)}
               </p>
               <div className={styles.sources} aria-label="Происхождение выводов">
                 {insightOrigins(insight).map((kind) => (

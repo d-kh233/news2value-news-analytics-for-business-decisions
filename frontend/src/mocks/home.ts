@@ -6,6 +6,7 @@ import type { Account, UserProfile } from '../types';
 export const mockUser: UserProfile = {
   name: 'Анна Кузнецова',
   role: 'Финансовый директор',
+  roleKey: 'cfo',
 };
 
 export const mockAccounts: Account[] = [

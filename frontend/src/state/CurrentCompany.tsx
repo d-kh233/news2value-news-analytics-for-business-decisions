@@ -11,6 +11,12 @@ interface CurrentCompanyValue {
   selectCompany: (companyId: string) => void;
   loading: boolean;
   error: Error | null;
+  /** Растёт после каждого обновления инсайтов агентом — экраны перезагружают данные. */
+  insightsVersion: number;
+  notifyInsightsChanged: () => void;
+  /** id последней задачи агента по компании — для панели трассировки. */
+  lastRunJobId: string | null;
+  setLastRunJobId: (companyId: string, jobId: string) => void;
 }
 
 const CurrentCompanyContext = createContext<CurrentCompanyValue | null>(null);
@@ -28,6 +34,8 @@ function readSavedId(): string | null {
 export function CurrentCompanyProvider({ children }: { children: ReactNode }) {
   const state = useAsync(() => listCompanies(100, 0), []);
   const [selectedId, setSelectedId] = useState<string | null>(readSavedId);
+  const [insightsVersion, setInsightsVersion] = useState(0);
+  const [runJobs, setRunJobs] = useState<Record<string, string>>({});
 
   const companies = state.status === 'success' ? state.data.items : [];
   const company = companies.find((c) => c.id === selectedId) ?? companies[0] ?? null;
@@ -49,6 +57,10 @@ export function CurrentCompanyProvider({ children }: { children: ReactNode }) {
         selectCompany,
         loading: state.status === 'loading',
         error: state.status === 'error' ? state.error : null,
+        insightsVersion,
+        notifyInsightsChanged: () => setInsightsVersion((v) => v + 1),
+        lastRunJobId: company ? (runJobs[company.id] ?? null) : null,
+        setLastRunJobId: (companyId, jobId) => setRunJobs((prev) => ({ ...prev, [companyId]: jobId })),
       }}
     >
       {children}

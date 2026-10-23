@@ -1,11 +1,17 @@
 import type {
   Account,
+  AgentRun,
   ApiErrorBody,
   Company,
   CompanyProfile,
+  Feedback,
+  FeedbackRating,
   Insight,
   InsightsQuery,
+  Job,
+  JobAccepted,
   Page,
+  Role,
   UserProfile,
 } from '../types';
 import { mockAccounts, mockUser } from '../mocks/home';
@@ -37,6 +43,19 @@ async function request<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+async function send<T>(path: string, method: 'POST' | 'PUT', body?: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const errorBody = (await response.json().catch(() => null)) as ApiErrorBody | null;
+    throw new ApiError(response.status, errorBody?.error ?? 'unknown', errorBody?.detail ?? response.statusText);
+  }
+  return (await response.json()) as T;
+}
+
 // ---------- Компании ----------
 
 export function listCompanies(limit = 20, offset = 0): Promise<Page<Company>> {
@@ -64,6 +83,41 @@ export function listInsights(companyId: string, query: InsightsQuery = {}): Prom
 export function getInsight(insightId: string): Promise<Insight> {
   if (USE_MOCKS) return mock.getInsight(insightId);
   return request(`/insights/${encodeURIComponent(insightId)}`);
+}
+
+export function sendFeedback(insightId: string, rating: FeedbackRating, comment?: string): Promise<Feedback> {
+  if (USE_MOCKS) return mock.sendFeedback(insightId, rating, comment);
+  return send(`/insights/${encodeURIComponent(insightId)}/feedback`, 'POST', { rating, comment });
+}
+
+// ---------- Агент и фоновые задачи ----------
+
+/** Запустить агента: когда задача done, новые инсайты компании заменяют прежние. */
+export function refreshInsights(companyId: string, role?: Role): Promise<JobAccepted> {
+  if (USE_MOCKS) return mock.refreshInsights(companyId, role);
+  return send(`/companies/${encodeURIComponent(companyId)}/insights/refresh${toQueryString({ role })}`, 'POST');
+}
+
+export function getJob(jobId: string): Promise<Job> {
+  if (USE_MOCKS) return mock.getJob(jobId);
+  return request(`/jobs/${encodeURIComponent(jobId)}`);
+}
+
+/** План и трейс прогона агента — для панели трассировки. */
+export function getJobRun(jobId: string): Promise<AgentRun> {
+  if (USE_MOCKS) return mock.getJobRun(jobId);
+  return request(`/jobs/${encodeURIComponent(jobId)}/run`);
+}
+
+/** Опрашивает статус задачи, пока она не завершится. */
+export async function waitForJob(jobId: string, intervalMs = 1000, timeoutMs = 5 * 60 * 1000): Promise<Job> {
+  const started = Date.now();
+  for (;;) {
+    const job = await getJob(jobId);
+    if (job.status === 'done' || job.status === 'failed') return job;
+    if (Date.now() - started > timeoutMs) throw new Error('Агент не ответил за отведённое время');
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
 }
 
 // ---------- Только фронтенд: в API бэкенда этого нет ----------
