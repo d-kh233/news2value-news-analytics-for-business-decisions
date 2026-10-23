@@ -1,6 +1,6 @@
 {
   "c-001:cfo": {
-    "run_id": "c-001-cfo-20261023-135912-8766",
+    "run_id": "c-001-cfo-20261023-182828-220e",
     "role": "cfo",
     "llm_mode": "stub",
     "plan": [
@@ -66,7 +66,7 @@
           "period": 30
         },
         "output": {
-          "n": 11,
+          "n": 23,
           "source": "mock (источник новостей не подключён)",
           "ids": [
             "M01",
@@ -79,183 +79,526 @@
             "M08",
             "M09",
             "M11",
-            "M12"
+            "M12",
+            "M13",
+            "M14",
+            "M15",
+            "M16",
+            "M17",
+            "M18",
+            "M19",
+            "M20",
+            "M21",
+            "M22",
+            "M23",
+            "M24"
           ]
         },
         "status": "fallback",
-        "duration_ms": 6,
+        "duration_ms": 30,
         "note": "mock (источник новостей не подключён)"
       },
       {
         "step": 4,
+        "name": "Отбор кандидатов",
+        "tool": "prefilter",
+        "input": {
+          "n": 23,
+          "n_terms": 16
+        },
+        "output": {
+          "query": "Производство готовых металлоизделий Производство строительных металлических конструкций сталь листовая чугун подшипники импортные модернизация литейного цеха выход на рынки Центральной Азии",
+          "terms": [
+            "сталь листовая (F:RAW_MATERIALS)",
+            "металлопрокат ≈ сталь листовая (F:RAW_MATERIALS)",
+            "прокат ≈ сталь листовая (F:RAW_MATERIALS)",
+            "чугун (F:RAW_MATERIALS)",
+            "подшипники импортные (F:RAW_MATERIALS)",
+            "подшипники ≈ подшипники импортные (F:RAW_MATERIALS)",
+            "Вектор-Строй (F:KEY_CLIENTS)",
+            "Северная Нефтесервисная (F:KEY_CLIENTS)",
+            "Рудный Двор (F:KEY_SUPPLIERS)",
+            "Импортпром-Комплект (F:KEY_SUPPLIERS)",
+            "юань (F:CURRENCY_RISKS)",
+            "доллар (F:CURRENCY_RISKS)",
+            "экспорт (F:FTS_FLAG)",
+            "импорт (F:FTS_FLAG)",
+            "внешнеэкономическая (F:FTS_FLAG)",
+            "лизинг (F:CL_PRODUCT_LEA_MARK)"
+          ],
+          "top_similar": [
+            [
+              "M17",
+              1.0
+            ],
+            [
+              "M15",
+              0.442
+            ],
+            [
+              "M05",
+              0.286
+            ],
+            [
+              "M03",
+              0.219
+            ],
+            [
+              "M23",
+              0.219
+            ]
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 11,
+        "note": null
+      },
+      {
+        "step": 5,
         "name": "Скоринг и отбор",
         "tool": "score_news",
         "input": {
-          "n_candidates": 11,
+          "n_candidates": 23,
           "top_k": 5,
           "min_relevance": 0.5,
           "role": "cfo"
         },
         "output": [
           {
-            "news_id": "M01",
-            "title": "[MOCK] Банк России сохранил ключевую ставку на уровне 14%",
-            "score": 0.8262,
-            "parts": {
-              "link": 0.892,
-              "both": 0.0,
-              "event_type": 1.0,
-              "freshness": 0.905,
-              "macro": 0.892,
-              "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "risk",
-            "selected": true
-          },
-          {
-            "news_id": "M08",
-            "title": "[MOCK] В Татарстане запустили программу субсидий для малого бизнеса",
-            "score": 0.7385,
+            "news_id": "M17",
+            "title": "[MOCK] Листовая сталь подорожала на 6% за две недели",
+            "score": 0.8807,
             "parts": {
               "link": 0.85,
-              "both": 0.0,
-              "event_type": 0.9,
-              "freshness": 0.607,
-              "macro": 0.0,
+              "both": 1.0,
+              "sim": 1.0,
+              "event_type": 0.8,
+              "freshness": 0.905,
+              "macro": 0.44,
               "industry": 1.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 1.0
             },
-            "macro_sign": "neutral",
-            "selected": true
+            "macro_sign": "risk",
+            "entities": [
+              "сталь листовая"
+            ],
+            "selected": true,
+            "duplicate_of": null
           },
           {
             "news_id": "M02",
             "title": "[MOCK] Рубль ослаб на 3% к юаню за неделю",
-            "score": 0.5592,
+            "score": 0.7753,
             "parts": {
-              "link": 0.429,
-              "both": 0.0,
+              "link": 0.8,
+              "both": 1.0,
+              "sim": 0.0,
               "event_type": 0.96,
               "freshness": 0.875,
               "macro": 0.429,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 1.0
             },
             "macro_sign": "risk",
-            "selected": true
+            "entities": [
+              "юань"
+            ],
+            "selected": true,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M01",
+            "title": "[MOCK] Банк России сохранил ключевую ставку на уровне 14%",
+            "score": 0.7616,
+            "parts": {
+              "link": 0.892,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 1.2,
+              "freshness": 0.905,
+              "macro": 0.892,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M15",
+            "title": "[MOCK] Китайские производители станков подняли цены для российских дилеров",
+            "score": 0.6912,
+            "parts": {
+              "link": 0.8,
+              "both": 0.0,
+              "sim": 0.442,
+              "event_type": 0.8,
+              "freshness": 0.846,
+              "macro": 0.066,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 1.0
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "подшипники ≈ подшипники импортные",
+              "юань"
+            ],
+            "selected": true,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M21",
+            "title": "[MOCK] ЦБ оставил ставку 14%: регулятор сохранил жёсткий сигнал",
+            "score": 0.6407,
+            "parts": {
+              "link": 0.65,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 1.2,
+              "freshness": 0.905,
+              "macro": 0.65,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": "M01"
           },
           {
             "news_id": "M03",
             "title": "[MOCK] Цены на металлопрокат снизились на 5% за месяц",
-            "score": 0.5208,
+            "score": 0.5807,
             "parts": {
-              "link": 0.44,
+              "link": 0.64,
               "both": 0.0,
+              "sim": 0.219,
               "event_type": 0.8,
               "freshness": 0.792,
               "macro": 0.44,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.8
             },
             "macro_sign": "opportunity",
-            "selected": true
+            "entities": [
+              "металлопрокат ≈ сталь листовая"
+            ],
+            "selected": true,
+            "duplicate_of": null
           },
           {
-            "news_id": "M05",
-            "title": "[MOCK] Дефицит рабочих в строительстве достиг максимума за пять лет",
-            "score": 0.3817,
+            "news_id": "M13",
+            "title": "[MOCK] Китай повысил пошлины на импорт российского проката",
+            "score": 0.5713,
             "parts": {
-              "link": 0.201,
+              "link": 0.64,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.8,
-              "freshness": 0.741,
-              "macro": 0.201,
+              "freshness": 0.875,
+              "macro": 0.216,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.8
             },
             "macro_sign": "risk",
-            "selected": false
-          },
-          {
-            "news_id": "M04",
-            "title": "[MOCK] Росстат: рост розничного товарооборота замедлился в сентябре",
-            "score": 0.3759,
-            "parts": {
-              "link": 0.22,
-              "both": 0.0,
-              "event_type": 0.7,
-              "freshness": 0.766,
-              "macro": 0.22,
-              "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "risk",
-            "selected": false
+            "entities": [
+              "прокат ≈ сталь листовая",
+              "импорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M11",
             "title": "[MOCK] ФНС уточнила порядок подтверждения нулевой ставки НДС при экспорте",
-            "score": 0.3303,
+            "score": 0.4578,
             "parts": {
-              "link": 0.05,
+              "link": 0.4,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
               "freshness": 0.819,
               "macro": 0.05,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.5
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [
+              "экспорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M19",
+            "title": "[MOCK] Биржевые цены на дизельное топливо обновили максимум",
+            "score": 0.4253,
+            "parts": {
+              "link": 0.33,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.936,
+              "macro": 0.33,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M05",
+            "title": "[MOCK] Дефицит рабочих в строительстве достиг максимума за пять лет",
+            "score": 0.3602,
+            "parts": {
+              "link": 0.201,
+              "both": 0.0,
+              "sim": 0.286,
+              "event_type": 0.8,
+              "freshness": 0.741,
+              "macro": 0.201,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M23",
+            "title": "[MOCK] Евро подорожал до максимума с весны",
+            "score": 0.3572,
+            "parts": {
+              "link": 0.129,
+              "both": 0.0,
+              "sim": 0.219,
+              "event_type": 0.96,
+              "freshness": 0.846,
+              "macro": 0.129,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M04",
+            "title": "[MOCK] Росстат: рост розничного товарооборота замедлился в сентябре",
+            "score": 0.3299,
+            "parts": {
+              "link": 0.22,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.7,
+              "freshness": 0.766,
+              "macro": 0.22,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M16",
+            "title": "[MOCK] Лимиты по льготной ипотеке в ряде банков исчерпаны",
+            "score": 0.3048,
+            "parts": {
+              "link": 0.132,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.792,
+              "macro": 0.132,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M14",
+            "title": "[MOCK] Турция ужесточила фитосанитарный контроль российского зерна",
+            "score": 0.3028,
+            "parts": {
+              "link": 0.12,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.819,
+              "macro": 0.099,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.15
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "экспорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M07",
             "title": "[MOCK] Спрос на IT-специалистов в регионах вырос на четверть",
-            "score": 0.3299,
+            "score": 0.2833,
             "parts": {
               "link": 0.132,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.8,
               "freshness": 0.648,
               "macro": 0.132,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "risk",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M12",
             "title": "[MOCK] Минфин предложил изменить тарифы страховых взносов для МСП",
-            "score": 0.326,
+            "score": 0.2775,
             "parts": {
               "link": 0.07,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
               "freshness": 0.717,
               "macro": 0.07,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M18",
+            "title": "[MOCK] Дефицит водителей грузовиков подтолкнул ставки перевозок вверх",
+            "score": 0.265,
+            "parts": {
+              "link": 0.06,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.766,
+              "macro": 0.06,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M20",
+            "title": "[MOCK] Новосибирская область компенсирует ритейлерам часть затрат на открытие магазинов",
+            "score": 0.0492,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.741,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M24",
+            "title": "[MOCK] Льготы по налогу на прибыль для IT-компаний продлены до 2030 года",
+            "score": 0.0485,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.717,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M06",
             "title": "[MOCK] Правительство продлило льготную программу кредитования аграриев",
-            "score": 0.0568,
+            "score": 0.0478,
             "parts": {
               "link": 0.0,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
               "freshness": 0.693,
               "macro": 0.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M08",
+            "title": "[MOCK] В Татарстане запустили программу субсидий для малого бизнеса",
+            "score": 0.0452,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.607,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M09",
@@ -265,15 +608,126 @@
               "link": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M22",
+            "title": "[MOCK] Вебинар: как увеличить продажи в три раза",
+            "score": 0.0,
+            "parts": {
+              "link": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           }
         ],
         "status": "ok",
-        "duration_ms": 4,
+        "duration_ms": 25,
         "note": null
       },
       {
-        "step": 5,
+        "step": 6,
+        "name": "Аналитика банка: M17",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Листовая сталь подорожала на 6% за две недели. металлы",
+          "factors": [
+            "metals"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": [
+            {
+              "id": "A:BA-05:0",
+              "score": 1.6
+            }
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 7,
+        "name": "Интерпретация и самопроверка: M17",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M17",
+          "role": "cfo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-001-M17-cfo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 3,
+            "consequences": 1,
+            "actions": 1,
+            "bank_view": 1
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 8,
+        "name": "Аналитика банка: M02",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Рубль ослаб на 3% к юаню за неделю. курс рубля",
+          "factors": [
+            "usd_rub"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": []
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 9,
+        "name": "Интерпретация и самопроверка: M02",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M02",
+          "role": "cfo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-001-M02-cfo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 2,
+            "consequences": 1,
+            "actions": 1,
+            "bank_view": 0
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 10,
         "name": "Аналитика банка: M01",
         "tool": "search_bank_analytics",
         "input": {
@@ -289,10 +743,6 @@
             {
               "id": "A:BA-06:0",
               "score": 1.6
-            },
-            {
-              "id": "A:BA-01:0",
-              "score": 1.211
             }
           ]
         },
@@ -301,7 +751,7 @@
         "note": null
       },
       {
-        "step": 6,
+        "step": 11,
         "name": "Интерпретация и самопроверка: M01",
         "tool": "interpret",
         "input": {
@@ -321,7 +771,7 @@
             "why_it_matters": 2,
             "consequences": 2,
             "actions": 2,
-            "bank_view": 2
+            "bank_view": 1
           }
         },
         "status": "ok",
@@ -329,18 +779,20 @@
         "note": null
       },
       {
-        "step": 7,
-        "name": "Аналитика банка: M08",
+        "step": 12,
+        "name": "Аналитика банка: M15",
         "tool": "search_bank_analytics",
         "input": {
-          "query": "[MOCK] В Татарстане запустили программу субсидий для малого бизнеса. ",
-          "factors": []
+          "query": "[MOCK] Китайские производители станков подняли цены для российских дилеров. курс рубля",
+          "factors": [
+            "usd_rub"
+          ]
         },
         "output": {
           "source": "local_bm25",
           "hits": [
             {
-              "id": "A:BA-06:0",
+              "id": "A:BA-05:0",
               "score": 1.0
             }
           ]
@@ -350,11 +802,11 @@
         "note": null
       },
       {
-        "step": 8,
-        "name": "Интерпретация и самопроверка: M08",
+        "step": 13,
+        "name": "Интерпретация и самопроверка: M15",
         "tool": "interpret",
         "input": {
-          "news_id": "M08",
+          "news_id": "M15",
           "role": "cfo",
           "mode": "stub"
         },
@@ -364,67 +816,21 @@
             "LLM_MODE=stub: карточка собрана по правилам"
           ],
           "llm_calls": [],
-          "insight_id": "c-001-M08-cfo",
+          "insight_id": "c-001-M15-cfo",
           "blocks": {
             "what_happened": 1,
-            "why_it_matters": 1,
+            "why_it_matters": 3,
             "consequences": 1,
-            "actions": 0,
+            "actions": 1,
             "bank_view": 1
           }
         },
         "status": "ok",
-        "duration_ms": 0,
+        "duration_ms": 1,
         "note": null
       },
       {
-        "step": 9,
-        "name": "Аналитика банка: M02",
-        "tool": "search_bank_analytics",
-        "input": {
-          "query": "[MOCK] Рубль ослаб на 3% к юаню за неделю. курс рубля",
-          "factors": [
-            "usd_rub"
-          ]
-        },
-        "output": {
-          "source": "local_bm25",
-          "hits": []
-        },
-        "status": "ok",
-        "duration_ms": 0,
-        "note": null
-      },
-      {
-        "step": 10,
-        "name": "Интерпретация и самопроверка: M02",
-        "tool": "interpret",
-        "input": {
-          "news_id": "M02",
-          "role": "cfo",
-          "mode": "stub"
-        },
-        "output": {
-          "path": "rules",
-          "notes": [
-            "LLM_MODE=stub: карточка собрана по правилам"
-          ],
-          "llm_calls": [],
-          "insight_id": "c-001-M02-cfo",
-          "blocks": {
-            "what_happened": 1,
-            "why_it_matters": 1,
-            "consequences": 1,
-            "actions": 1,
-            "bank_view": 0
-          }
-        },
-        "status": "ok",
-        "duration_ms": 0,
-        "note": null
-      },
-      {
-        "step": 11,
+        "step": 14,
         "name": "Аналитика банка: M03",
         "tool": "search_bank_analytics",
         "input": {
@@ -447,7 +853,7 @@
         "note": null
       },
       {
-        "step": 12,
+        "step": 15,
         "name": "Интерпретация и самопроверка: M03",
         "tool": "interpret",
         "input": {
@@ -464,7 +870,7 @@
           "insight_id": "c-001-M03-cfo",
           "blocks": {
             "what_happened": 1,
-            "why_it_matters": 1,
+            "why_it_matters": 2,
             "consequences": 1,
             "actions": 1,
             "bank_view": 1
@@ -486,7 +892,7 @@
     }
   },
   "c-001:ceo": {
-    "run_id": "c-001-ceo-20261023-135913-db52",
+    "run_id": "c-001-ceo-20261023-182829-39c3",
     "role": "ceo",
     "llm_mode": "stub",
     "plan": [
@@ -552,7 +958,7 @@
           "period": 30
         },
         "output": {
-          "n": 11,
+          "n": 23,
           "source": "mock (источник новостей не подключён)",
           "ids": [
             "M01",
@@ -565,183 +971,526 @@
             "M08",
             "M09",
             "M11",
-            "M12"
+            "M12",
+            "M13",
+            "M14",
+            "M15",
+            "M16",
+            "M17",
+            "M18",
+            "M19",
+            "M20",
+            "M21",
+            "M22",
+            "M23",
+            "M24"
           ]
         },
         "status": "fallback",
-        "duration_ms": 1,
+        "duration_ms": 5,
         "note": "mock (источник новостей не подключён)"
       },
       {
         "step": 4,
+        "name": "Отбор кандидатов",
+        "tool": "prefilter",
+        "input": {
+          "n": 23,
+          "n_terms": 16
+        },
+        "output": {
+          "query": "Производство готовых металлоизделий Производство строительных металлических конструкций сталь листовая чугун подшипники импортные модернизация литейного цеха выход на рынки Центральной Азии",
+          "terms": [
+            "сталь листовая (F:RAW_MATERIALS)",
+            "металлопрокат ≈ сталь листовая (F:RAW_MATERIALS)",
+            "прокат ≈ сталь листовая (F:RAW_MATERIALS)",
+            "чугун (F:RAW_MATERIALS)",
+            "подшипники импортные (F:RAW_MATERIALS)",
+            "подшипники ≈ подшипники импортные (F:RAW_MATERIALS)",
+            "Вектор-Строй (F:KEY_CLIENTS)",
+            "Северная Нефтесервисная (F:KEY_CLIENTS)",
+            "Рудный Двор (F:KEY_SUPPLIERS)",
+            "Импортпром-Комплект (F:KEY_SUPPLIERS)",
+            "юань (F:CURRENCY_RISKS)",
+            "доллар (F:CURRENCY_RISKS)",
+            "экспорт (F:FTS_FLAG)",
+            "импорт (F:FTS_FLAG)",
+            "внешнеэкономическая (F:FTS_FLAG)",
+            "лизинг (F:CL_PRODUCT_LEA_MARK)"
+          ],
+          "top_similar": [
+            [
+              "M17",
+              1.0
+            ],
+            [
+              "M15",
+              0.442
+            ],
+            [
+              "M05",
+              0.286
+            ],
+            [
+              "M03",
+              0.219
+            ],
+            [
+              "M23",
+              0.219
+            ]
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 6,
+        "note": null
+      },
+      {
+        "step": 5,
         "name": "Скоринг и отбор",
         "tool": "score_news",
         "input": {
-          "n_candidates": 11,
+          "n_candidates": 23,
           "top_k": 5,
           "min_relevance": 0.5,
           "role": "ceo"
         },
         "output": [
           {
-            "news_id": "M08",
-            "title": "[MOCK] В Татарстане запустили программу субсидий для малого бизнеса",
-            "score": 0.7385,
+            "news_id": "M17",
+            "title": "[MOCK] Листовая сталь подорожала на 6% за две недели",
+            "score": 0.8807,
             "parts": {
               "link": 0.85,
-              "both": 0.0,
-              "event_type": 0.9,
-              "freshness": 0.607,
-              "macro": 0.0,
-              "industry": 1.0,
-              "region": 0.0
-            },
-            "macro_sign": "neutral",
-            "selected": true
-          },
-          {
-            "news_id": "M01",
-            "title": "[MOCK] Банк России сохранил ключевую ставку на уровне 14%",
-            "score": 0.7317,
-            "parts": {
-              "link": 0.72,
-              "both": 0.0,
-              "event_type": 1.0,
+              "both": 1.0,
+              "sim": 1.0,
+              "event_type": 0.8,
               "freshness": 0.905,
-              "macro": 0.72,
-              "industry": 0.0,
-              "region": 0.0
+              "macro": 0.44,
+              "industry": 1.0,
+              "region": 0.0,
+              "entity": 1.0
             },
             "macro_sign": "risk",
-            "selected": true
-          },
-          {
-            "news_id": "M03",
-            "title": "[MOCK] Цены на металлопрокат снизились на 5% за месяц",
-            "score": 0.5208,
-            "parts": {
-              "link": 0.44,
-              "both": 0.0,
-              "event_type": 0.8,
-              "freshness": 0.792,
-              "macro": 0.44,
-              "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "opportunity",
-            "selected": true
+            "entities": [
+              "сталь листовая"
+            ],
+            "selected": true,
+            "duplicate_of": null
           },
           {
             "news_id": "M02",
             "title": "[MOCK] Рубль ослаб на 3% к юаню за неделю",
-            "score": 0.4728,
+            "score": 0.7513,
             "parts": {
-              "link": 0.33,
-              "both": 0.0,
+              "link": 0.8,
+              "both": 1.0,
+              "sim": 0.0,
               "event_type": 0.8,
               "freshness": 0.875,
               "macro": 0.33,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 1.0
             },
             "macro_sign": "risk",
-            "selected": false
+            "entities": [
+              "юань"
+            ],
+            "selected": true,
+            "duplicate_of": null
           },
           {
-            "news_id": "M04",
-            "title": "[MOCK] Росстат: рост розничного товарооборота замедлился в сентябре",
-            "score": 0.4141,
+            "news_id": "M15",
+            "title": "[MOCK] Китайские производители станков подняли цены для российских дилеров",
+            "score": 0.7152,
             "parts": {
-              "link": 0.264,
+              "link": 0.8,
               "both": 0.0,
-              "event_type": 0.77,
-              "freshness": 0.766,
-              "macro": 0.264,
-              "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "risk",
-            "selected": false
-          },
-          {
-            "news_id": "M05",
-            "title": "[MOCK] Дефицит рабочих в строительстве достиг максимума за пять лет",
-            "score": 0.4137,
-            "parts": {
-              "link": 0.201,
-              "both": 0.0,
+              "sim": 0.442,
               "event_type": 0.96,
-              "freshness": 0.741,
-              "macro": 0.201,
+              "freshness": 0.846,
+              "macro": 0.051,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 1.0
             },
             "macro_sign": "risk",
-            "selected": false
+            "entities": [
+              "подшипники ≈ подшипники импортные",
+              "юань"
+            ],
+            "selected": true,
+            "duplicate_of": null
           },
           {
-            "news_id": "M07",
-            "title": "[MOCK] Спрос на IT-специалистов в регионах вырос на четверть",
-            "score": 0.3619,
+            "news_id": "M01",
+            "title": "[MOCK] Банк России сохранил ключевую ставку на уровне 14%",
+            "score": 0.6457,
             "parts": {
-              "link": 0.132,
+              "link": 0.72,
               "both": 0.0,
-              "event_type": 0.96,
-              "freshness": 0.648,
-              "macro": 0.132,
+              "sim": 0.0,
+              "event_type": 1.0,
+              "freshness": 0.905,
+              "macro": 0.72,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "risk",
-            "selected": false
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M03",
+            "title": "[MOCK] Цены на металлопрокат снизились на 5% за месяц",
+            "score": 0.5807,
+            "parts": {
+              "link": 0.64,
+              "both": 0.0,
+              "sim": 0.219,
+              "event_type": 0.8,
+              "freshness": 0.792,
+              "macro": 0.44,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.8
+            },
+            "macro_sign": "opportunity",
+            "entities": [
+              "металлопрокат ≈ сталь листовая"
+            ],
+            "selected": true,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M13",
+            "title": "[MOCK] Китай повысил пошлины на импорт российского проката",
+            "score": 0.5713,
+            "parts": {
+              "link": 0.64,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.875,
+              "macro": 0.216,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.8
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "прокат ≈ сталь листовая",
+              "импорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M21",
+            "title": "[MOCK] ЦБ оставил ставку 14%: регулятор сохранил жёсткий сигнал",
+            "score": 0.5357,
+            "parts": {
+              "link": 0.5,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 1.0,
+              "freshness": 0.905,
+              "macro": 0.5,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M11",
             "title": "[MOCK] ФНС уточнила порядок подтверждения нулевой ставки НДС при экспорте",
-            "score": 0.3303,
+            "score": 0.4578,
             "parts": {
-              "link": 0.05,
+              "link": 0.4,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
               "freshness": 0.819,
               "macro": 0.05,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.5
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [
+              "экспорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M19",
+            "title": "[MOCK] Биржевые цены на дизельное топливо обновили максимум",
+            "score": 0.4253,
+            "parts": {
+              "link": 0.33,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.936,
+              "macro": 0.33,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M05",
+            "title": "[MOCK] Дефицит рабочих в строительстве достиг максимума за пять лет",
+            "score": 0.3842,
+            "parts": {
+              "link": 0.201,
+              "both": 0.0,
+              "sim": 0.286,
+              "event_type": 0.96,
+              "freshness": 0.741,
+              "macro": 0.201,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M04",
+            "title": "[MOCK] Росстат: рост розничного товарооборота замедлился в сентябре",
+            "score": 0.3624,
+            "parts": {
+              "link": 0.264,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.77,
+              "freshness": 0.766,
+              "macro": 0.264,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M16",
+            "title": "[MOCK] Лимиты по льготной ипотеке в ряде банков исчерпаны",
+            "score": 0.328,
+            "parts": {
+              "link": 0.13,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.792,
+              "macro": 0.13,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M23",
+            "title": "[MOCK] Евро подорожал до максимума с весны",
+            "score": 0.3184,
+            "parts": {
+              "link": 0.099,
+              "both": 0.0,
+              "sim": 0.219,
+              "event_type": 0.8,
+              "freshness": 0.846,
+              "macro": 0.099,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M07",
+            "title": "[MOCK] Спрос на IT-специалистов в регионах вырос на четверть",
+            "score": 0.3073,
+            "parts": {
+              "link": 0.132,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.648,
+              "macro": 0.132,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M14",
+            "title": "[MOCK] Турция ужесточила фитосанитарный контроль российского зерна",
+            "score": 0.3028,
+            "parts": {
+              "link": 0.12,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.819,
+              "macro": 0.099,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.15
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "экспорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M18",
+            "title": "[MOCK] Дефицит водителей грузовиков подтолкнул ставки перевозок вверх",
+            "score": 0.289,
+            "parts": {
+              "link": 0.06,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.766,
+              "macro": 0.06,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M12",
             "title": "[MOCK] Минфин предложил изменить тарифы страховых взносов для МСП",
-            "score": 0.326,
+            "score": 0.2775,
             "parts": {
               "link": 0.07,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
               "freshness": 0.717,
               "macro": 0.07,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M20",
+            "title": "[MOCK] Новосибирская область компенсирует ритейлерам часть затрат на открытие магазинов",
+            "score": 0.0492,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.741,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M24",
+            "title": "[MOCK] Льготы по налогу на прибыль для IT-компаний продлены до 2030 года",
+            "score": 0.0485,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.717,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M06",
             "title": "[MOCK] Правительство продлило льготную программу кредитования аграриев",
-            "score": 0.0568,
+            "score": 0.0478,
             "parts": {
               "link": 0.0,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
               "freshness": 0.693,
               "macro": 0.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M08",
+            "title": "[MOCK] В Татарстане запустили программу субсидий для малого бизнеса",
+            "score": 0.0452,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.607,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M09",
@@ -751,27 +1500,43 @@
               "link": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M22",
+            "title": "[MOCK] Вебинар: как увеличить продажи в три раза",
+            "score": 0.0,
+            "parts": {
+              "link": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           }
         ],
         "status": "ok",
-        "duration_ms": 0,
+        "duration_ms": 25,
         "note": null
       },
       {
-        "step": 5,
-        "name": "Аналитика банка: M08",
+        "step": 6,
+        "name": "Аналитика банка: M17",
         "tool": "search_bank_analytics",
         "input": {
-          "query": "[MOCK] В Татарстане запустили программу субсидий для малого бизнеса. ",
-          "factors": []
+          "query": "[MOCK] Листовая сталь подорожала на 6% за две недели. металлы",
+          "factors": [
+            "metals"
+          ]
         },
         "output": {
           "source": "local_bm25",
           "hits": [
             {
-              "id": "A:BA-06:0",
-              "score": 1.0
+              "id": "A:BA-05:0",
+              "score": 1.6
             }
           ]
         },
@@ -780,11 +1545,11 @@
         "note": null
       },
       {
-        "step": 6,
-        "name": "Интерпретация и самопроверка: M08",
+        "step": 7,
+        "name": "Интерпретация и самопроверка: M17",
         "tool": "interpret",
         "input": {
-          "news_id": "M08",
+          "news_id": "M17",
           "role": "ceo",
           "mode": "stub"
         },
@@ -794,12 +1559,12 @@
             "LLM_MODE=stub: карточка собрана по правилам"
           ],
           "llm_calls": [],
-          "insight_id": "c-001-M08-ceo",
+          "insight_id": "c-001-M17-ceo",
           "blocks": {
             "what_happened": 1,
-            "why_it_matters": 1,
+            "why_it_matters": 3,
             "consequences": 1,
-            "actions": 0,
+            "actions": 1,
             "bank_view": 1
           }
         },
@@ -808,7 +1573,104 @@
         "note": null
       },
       {
-        "step": 7,
+        "step": 8,
+        "name": "Аналитика банка: M02",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Рубль ослаб на 3% к юаню за неделю. курс рубля",
+          "factors": [
+            "usd_rub"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": []
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 9,
+        "name": "Интерпретация и самопроверка: M02",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M02",
+          "role": "ceo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-001-M02-ceo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 2,
+            "consequences": 1,
+            "actions": 1,
+            "bank_view": 0
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 10,
+        "name": "Аналитика банка: M15",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Китайские производители станков подняли цены для российских дилеров. курс рубля",
+          "factors": [
+            "usd_rub"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": [
+            {
+              "id": "A:BA-05:0",
+              "score": 1.0
+            }
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 11,
+        "name": "Интерпретация и самопроверка: M15",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M15",
+          "role": "ceo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-001-M15-ceo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 3,
+            "consequences": 1,
+            "actions": 1,
+            "bank_view": 1
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 12,
         "name": "Аналитика банка: M01",
         "tool": "search_bank_analytics",
         "input": {
@@ -824,10 +1686,6 @@
             {
               "id": "A:BA-06:0",
               "score": 1.6
-            },
-            {
-              "id": "A:BA-01:0",
-              "score": 1.211
             }
           ]
         },
@@ -836,7 +1694,7 @@
         "note": null
       },
       {
-        "step": 8,
+        "step": 13,
         "name": "Интерпретация и самопроверка: M01",
         "tool": "interpret",
         "input": {
@@ -856,7 +1714,7 @@
             "why_it_matters": 2,
             "consequences": 2,
             "actions": 2,
-            "bank_view": 2
+            "bank_view": 1
           }
         },
         "status": "ok",
@@ -864,7 +1722,7 @@
         "note": null
       },
       {
-        "step": 9,
+        "step": 14,
         "name": "Аналитика банка: M03",
         "tool": "search_bank_analytics",
         "input": {
@@ -887,7 +1745,7 @@
         "note": null
       },
       {
-        "step": 10,
+        "step": 15,
         "name": "Интерпретация и самопроверка: M03",
         "tool": "interpret",
         "input": {
@@ -904,7 +1762,7 @@
           "insight_id": "c-001-M03-ceo",
           "blocks": {
             "what_happened": 1,
-            "why_it_matters": 1,
+            "why_it_matters": 2,
             "consequences": 1,
             "actions": 1,
             "bank_view": 1
@@ -926,7 +1784,7 @@
     }
   },
   "c-002:cfo": {
-    "run_id": "c-002-cfo-20261023-135913-6929",
+    "run_id": "c-002-cfo-20261023-182829-f7a5",
     "role": "cfo",
     "llm_mode": "stub",
     "plan": [
@@ -993,7 +1851,7 @@
           "period": 30
         },
         "output": {
-          "n": 11,
+          "n": 23,
           "source": "mock (источник новостей не подключён)",
           "ids": [
             "M01",
@@ -1006,183 +1864,526 @@
             "M08",
             "M09",
             "M11",
-            "M12"
+            "M12",
+            "M13",
+            "M14",
+            "M15",
+            "M16",
+            "M17",
+            "M18",
+            "M19",
+            "M20",
+            "M21",
+            "M22",
+            "M23",
+            "M24"
           ]
         },
         "status": "fallback",
-        "duration_ms": 1,
+        "duration_ms": 2,
         "note": "mock (источник новостей не подключён)"
       },
       {
         "step": 4,
+        "name": "Отбор кандидатов",
+        "tool": "prefilter",
+        "input": {
+          "n": 23,
+          "n_terms": 18
+        },
+        "output": {
+          "query": "Сухопутный транспорт Деятельность автомобильного грузового транспорта дизельное топливо шины запчасти для грузовиков открыть склад-хаб под Ростовом обновить 30% парка",
+          "terms": [
+            "дизельное топливо (F:RAW_MATERIALS)",
+            "солярка ≈ дизельное топливо (F:RAW_MATERIALS)",
+            "бензин ≈ дизельное топливо (F:RAW_MATERIALS)",
+            "нефтепродукты ≈ дизельное топливо (F:RAW_MATERIALS)",
+            "шины (F:RAW_MATERIALS)",
+            "запчасти для грузовиков (F:RAW_MATERIALS)",
+            "комплектующие ≈ запчасти для грузовиков (F:RAW_MATERIALS)",
+            "Зелёный Берег (F:KEY_CLIENTS)",
+            "ЮгАгроЭкспорт (F:KEY_CLIENTS)",
+            "ТопливоСнаб (F:KEY_SUPPLIERS)",
+            "Шинный Двор (F:KEY_SUPPLIERS)",
+            "евро (F:CURRENCY_RISKS)",
+            "экспорт (F:FTS_FLAG)",
+            "импорт (F:FTS_FLAG)",
+            "внешнеэкономическая (F:FTS_FLAG)",
+            "страховые взносы (F:CL_PRODUCT_ZPP_MARK)",
+            "фонд оплаты труда (F:CL_PRODUCT_ZPP_MARK)",
+            "лизинг (F:CL_PRODUCT_LEA_MARK)"
+          ],
+          "top_similar": [
+            [
+              "M19",
+              1.0
+            ],
+            [
+              "M18",
+              0.526
+            ],
+            [
+              "M24",
+              0.218
+            ],
+            [
+              "M01",
+              0.0
+            ],
+            [
+              "M02",
+              0.0
+            ]
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 6,
+        "note": null
+      },
+      {
+        "step": 5,
         "name": "Скоринг и отбор",
         "tool": "score_news",
         "input": {
-          "n_candidates": 11,
+          "n_candidates": 23,
           "top_k": 5,
           "min_relevance": 0.5,
           "role": "cfo"
         },
         "output": [
           {
+            "news_id": "M18",
+            "title": "[MOCK] Дефицит водителей грузовиков подтолкнул ставки перевозок вверх",
+            "score": 0.8875,
+            "parts": {
+              "link": 1.0,
+              "both": 1.0,
+              "sim": 0.526,
+              "event_type": 0.8,
+              "freshness": 0.766,
+              "macro": 1.0,
+              "industry": 1.0,
+              "region": 1.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M19",
+            "title": "[MOCK] Биржевые цены на дизельное топливо обновили максимум",
+            "score": 0.8853,
+            "parts": {
+              "link": 0.85,
+              "both": 1.0,
+              "sim": 1.0,
+              "event_type": 0.8,
+              "freshness": 0.936,
+              "macro": 0.67,
+              "industry": 1.0,
+              "region": 0.0,
+              "entity": 1.0
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "дизельное топливо"
+            ],
+            "selected": true,
+            "duplicate_of": null
+          },
+          {
             "news_id": "M01",
             "title": "[MOCK] Банк России сохранил ключевую ставку на уровне 14%",
-            "score": 0.8857,
+            "score": 0.8157,
             "parts": {
               "link": 1.0,
               "both": 0.0,
-              "event_type": 1.0,
+              "sim": 0.0,
+              "event_type": 1.2,
               "freshness": 0.905,
               "macro": 1.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "mixed",
-            "selected": true
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
           },
           {
-            "news_id": "M05",
-            "title": "[MOCK] Дефицит рабочих в строительстве достиг максимума за пять лет",
-            "score": 0.4361,
+            "news_id": "M21",
+            "title": "[MOCK] ЦБ оставил ставку 14%: регулятор сохранил жёсткий сигнал",
+            "score": 0.8032,
             "parts": {
-              "link": 0.3,
+              "link": 0.975,
               "both": 0.0,
-              "event_type": 0.8,
-              "freshness": 0.741,
-              "macro": 0.3,
+              "sim": 0.0,
+              "event_type": 1.2,
+              "freshness": 0.905,
+              "macro": 0.975,
               "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "risk",
-            "selected": false
-          },
-          {
-            "news_id": "M07",
-            "title": "[MOCK] Спрос на IT-специалистов в регионах вырос на четверть",
-            "score": 0.3893,
-            "parts": {
-              "link": 0.24,
-              "both": 0.0,
-              "event_type": 0.8,
-              "freshness": 0.648,
-              "macro": 0.24,
-              "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "risk",
-            "selected": false
-          },
-          {
-            "news_id": "M04",
-            "title": "[MOCK] Росстат: рост розничного товарооборота замедлился в сентябре",
-            "score": 0.3759,
-            "parts": {
-              "link": 0.22,
-              "both": 0.0,
-              "event_type": 0.7,
-              "freshness": 0.766,
-              "macro": 0.22,
-              "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "risk",
-            "selected": false
-          },
-          {
-            "news_id": "M11",
-            "title": "[MOCK] ФНС уточнила порядок подтверждения нулевой ставки НДС при экспорте",
-            "score": 0.3578,
-            "parts": {
-              "link": 0.1,
-              "both": 0.0,
-              "event_type": 0.9,
-              "freshness": 0.819,
-              "macro": 0.1,
-              "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": "M01"
           },
           {
-            "news_id": "M12",
-            "title": "[MOCK] Минфин предложил изменить тарифы страховых взносов для МСП",
-            "score": 0.3535,
+            "news_id": "M23",
+            "title": "[MOCK] Евро подорожал до максимума с весны",
+            "score": 0.671,
             "parts": {
-              "link": 0.12,
+              "link": 0.8,
               "both": 0.0,
-              "event_type": 0.9,
-              "freshness": 0.717,
-              "macro": 0.12,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.846,
+              "macro": 0.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 1.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [
+              "евро"
+            ],
+            "selected": true,
+            "duplicate_of": null
           },
           {
             "news_id": "M02",
             "title": "[MOCK] Рубль ослаб на 3% к юаню за неделю",
-            "score": 0.0647,
+            "score": 0.5953,
             "parts": {
-              "link": 0.0,
+              "link": 0.64,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.96,
               "freshness": 0.875,
               "macro": 0.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.8
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [
+              "комплектующие ≈ запчасти для грузовиков"
+            ],
+            "selected": true,
+            "duplicate_of": null
           },
           {
-            "news_id": "M06",
-            "title": "[MOCK] Правительство продлило льготную программу кредитования аграриев",
-            "score": 0.0568,
+            "news_id": "M11",
+            "title": "[MOCK] ФНС уточнила порядок подтверждения нулевой ставки НДС при экспорте",
+            "score": 0.4578,
+            "parts": {
+              "link": 0.4,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.819,
+              "macro": 0.1,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.5
+            },
+            "macro_sign": "neutral",
+            "entities": [
+              "экспорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M12",
+            "title": "[MOCK] Минфин предложил изменить тарифы страховых взносов для МСП",
+            "score": 0.4425,
+            "parts": {
+              "link": 0.4,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.717,
+              "macro": 0.12,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.5
+            },
+            "macro_sign": "neutral",
+            "entities": [
+              "страховые взносы"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M13",
+            "title": "[MOCK] Китай повысил пошлины на импорт российского проката",
+            "score": 0.4013,
+            "parts": {
+              "link": 0.3,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.875,
+              "macro": 0.3,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.15
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "импорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M05",
+            "title": "[MOCK] Дефицит рабочих в строительстве достиг максимума за пять лет",
+            "score": 0.3811,
+            "parts": {
+              "link": 0.3,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.741,
+              "macro": 0.3,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M14",
+            "title": "[MOCK] Турция ужесточила фитосанитарный контроль российского зерна",
+            "score": 0.3433,
+            "parts": {
+              "link": 0.201,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.819,
+              "macro": 0.201,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.15
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "экспорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M07",
+            "title": "[MOCK] Спрос на IT-специалистов в регионах вырос на четверть",
+            "score": 0.3373,
+            "parts": {
+              "link": 0.24,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.648,
+              "macro": 0.24,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M04",
+            "title": "[MOCK] Росстат: рост розничного товарооборота замедлился в сентябре",
+            "score": 0.3299,
+            "parts": {
+              "link": 0.22,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.7,
+              "freshness": 0.766,
+              "macro": 0.22,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M16",
+            "title": "[MOCK] Лимиты по льготной ипотеке в ряде банков исчерпаны",
+            "score": 0.3205,
+            "parts": {
+              "link": 0.163,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.792,
+              "macro": 0.163,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M24",
+            "title": "[MOCK] Льготы по налогу на прибыль для IT-компаний продлены до 2030 года",
+            "score": 0.0529,
             "parts": {
               "link": 0.0,
               "both": 0.0,
+              "sim": 0.218,
               "event_type": 0.9,
-              "freshness": 0.693,
+              "freshness": 0.717,
               "macro": 0.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M17",
+            "title": "[MOCK] Листовая сталь подорожала на 6% за две недели",
+            "score": 0.0511,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.905,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M15",
+            "title": "[MOCK] Китайские производители станков подняли цены для российских дилеров",
+            "score": 0.0494,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.846,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M20",
+            "title": "[MOCK] Новосибирская область компенсирует ритейлерам часть затрат на открытие магазинов",
+            "score": 0.0492,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.741,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M03",
             "title": "[MOCK] Цены на металлопрокат снизились на 5% за месяц",
-            "score": 0.0558,
+            "score": 0.0478,
             "parts": {
               "link": 0.0,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.8,
               "freshness": 0.792,
               "macro": 0.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M06",
+            "title": "[MOCK] Правительство продлило льготную программу кредитования аграриев",
+            "score": 0.0478,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.693,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M08",
             "title": "[MOCK] В Татарстане запустили программу субсидий для малого бизнеса",
-            "score": 0.0542,
+            "score": 0.0452,
             "parts": {
               "link": 0.0,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
               "freshness": 0.607,
               "macro": 0.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M09",
@@ -1192,15 +2393,131 @@
               "link": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M22",
+            "title": "[MOCK] Вебинар: как увеличить продажи в три раза",
+            "score": 0.0,
+            "parts": {
+              "link": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           }
         ],
+        "status": "ok",
+        "duration_ms": 27,
+        "note": null
+      },
+      {
+        "step": 6,
+        "name": "Аналитика банка: M18",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Дефицит водителей грузовиков подтолкнул ставки перевозок вверх. рынок труда",
+          "factors": [
+            "labor_market"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": [
+            {
+              "id": "A:BA-07:0",
+              "score": 1.6
+            }
+          ]
+        },
         "status": "ok",
         "duration_ms": 0,
         "note": null
       },
       {
-        "step": 5,
+        "step": 7,
+        "name": "Интерпретация и самопроверка: M18",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M18",
+          "role": "cfo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-002-M18-cfo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 3,
+            "consequences": 1,
+            "actions": 1,
+            "bank_view": 1
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 8,
+        "name": "Аналитика банка: M19",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Биржевые цены на дизельное топливо обновили максимум. нефть и газ",
+          "factors": [
+            "oil_gas"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": [
+            {
+              "id": "A:BA-05:0",
+              "score": 1.6
+            }
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 9,
+        "name": "Интерпретация и самопроверка: M19",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M19",
+          "role": "cfo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-002-M19-cfo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 3,
+            "consequences": 1,
+            "actions": 1,
+            "bank_view": 1
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 10,
         "name": "Аналитика банка: M01",
         "tool": "search_bank_analytics",
         "input": {
@@ -1216,10 +2533,6 @@
             {
               "id": "A:BA-06:0",
               "score": 1.6
-            },
-            {
-              "id": "A:BA-01:0",
-              "score": 1.211
             }
           ]
         },
@@ -1228,7 +2541,7 @@
         "note": null
       },
       {
-        "step": 6,
+        "step": 11,
         "name": "Интерпретация и самопроверка: M01",
         "tool": "interpret",
         "input": {
@@ -1248,7 +2561,104 @@
             "why_it_matters": 2,
             "consequences": 2,
             "actions": 2,
-            "bank_view": 2
+            "bank_view": 1
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 12,
+        "name": "Аналитика банка: M23",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Евро подорожал до максимума с весны. курс рубля",
+          "factors": [
+            "usd_rub"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": [
+            {
+              "id": "A:BA-08:0",
+              "score": 1.0
+            }
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 13,
+        "name": "Интерпретация и самопроверка: M23",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M23",
+          "role": "cfo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-002-M23-cfo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 1,
+            "consequences": 1,
+            "actions": 0,
+            "bank_view": 1
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 14,
+        "name": "Аналитика банка: M02",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Рубль ослаб на 3% к юаню за неделю. курс рубля",
+          "factors": [
+            "usd_rub"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": []
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 15,
+        "name": "Интерпретация и самопроверка: M02",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M02",
+          "role": "cfo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-002-M02-cfo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 1,
+            "consequences": 1,
+            "actions": 0,
+            "bank_view": 0
           }
         },
         "status": "ok",
@@ -1267,7 +2677,7 @@
     }
   },
   "c-002:ceo": {
-    "run_id": "c-002-ceo-20261023-135913-fefb",
+    "run_id": "c-002-ceo-20261023-182829-1b14",
     "role": "ceo",
     "llm_mode": "stub",
     "plan": [
@@ -1334,7 +2744,7 @@
           "period": 30
         },
         "output": {
-          "n": 11,
+          "n": 23,
           "source": "mock (источник новостей не подключён)",
           "ids": [
             "M01",
@@ -1347,183 +2757,526 @@
             "M08",
             "M09",
             "M11",
-            "M12"
+            "M12",
+            "M13",
+            "M14",
+            "M15",
+            "M16",
+            "M17",
+            "M18",
+            "M19",
+            "M20",
+            "M21",
+            "M22",
+            "M23",
+            "M24"
           ]
         },
         "status": "fallback",
-        "duration_ms": 1,
+        "duration_ms": 2,
         "note": "mock (источник новостей не подключён)"
       },
       {
         "step": 4,
+        "name": "Отбор кандидатов",
+        "tool": "prefilter",
+        "input": {
+          "n": 23,
+          "n_terms": 18
+        },
+        "output": {
+          "query": "Сухопутный транспорт Деятельность автомобильного грузового транспорта дизельное топливо шины запчасти для грузовиков открыть склад-хаб под Ростовом обновить 30% парка",
+          "terms": [
+            "дизельное топливо (F:RAW_MATERIALS)",
+            "солярка ≈ дизельное топливо (F:RAW_MATERIALS)",
+            "бензин ≈ дизельное топливо (F:RAW_MATERIALS)",
+            "нефтепродукты ≈ дизельное топливо (F:RAW_MATERIALS)",
+            "шины (F:RAW_MATERIALS)",
+            "запчасти для грузовиков (F:RAW_MATERIALS)",
+            "комплектующие ≈ запчасти для грузовиков (F:RAW_MATERIALS)",
+            "Зелёный Берег (F:KEY_CLIENTS)",
+            "ЮгАгроЭкспорт (F:KEY_CLIENTS)",
+            "ТопливоСнаб (F:KEY_SUPPLIERS)",
+            "Шинный Двор (F:KEY_SUPPLIERS)",
+            "евро (F:CURRENCY_RISKS)",
+            "экспорт (F:FTS_FLAG)",
+            "импорт (F:FTS_FLAG)",
+            "внешнеэкономическая (F:FTS_FLAG)",
+            "страховые взносы (F:CL_PRODUCT_ZPP_MARK)",
+            "фонд оплаты труда (F:CL_PRODUCT_ZPP_MARK)",
+            "лизинг (F:CL_PRODUCT_LEA_MARK)"
+          ],
+          "top_similar": [
+            [
+              "M19",
+              1.0
+            ],
+            [
+              "M18",
+              0.526
+            ],
+            [
+              "M24",
+              0.218
+            ],
+            [
+              "M01",
+              0.0
+            ],
+            [
+              "M02",
+              0.0
+            ]
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 10,
+        "note": null
+      },
+      {
+        "step": 5,
         "name": "Скоринг и отбор",
         "tool": "score_news",
         "input": {
-          "n_candidates": 11,
+          "n_candidates": 23,
           "top_k": 5,
           "min_relevance": 0.5,
           "role": "ceo"
         },
         "output": [
           {
+            "news_id": "M18",
+            "title": "[MOCK] Дефицит водителей грузовиков подтолкнул ставки перевозок вверх",
+            "score": 0.9115,
+            "parts": {
+              "link": 1.0,
+              "both": 1.0,
+              "sim": 0.526,
+              "event_type": 0.96,
+              "freshness": 0.766,
+              "macro": 1.0,
+              "industry": 1.0,
+              "region": 1.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M19",
+            "title": "[MOCK] Биржевые цены на дизельное топливо обновили максимум",
+            "score": 0.8853,
+            "parts": {
+              "link": 0.85,
+              "both": 1.0,
+              "sim": 1.0,
+              "event_type": 0.8,
+              "freshness": 0.936,
+              "macro": 0.67,
+              "industry": 1.0,
+              "region": 0.0,
+              "entity": 1.0
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "дизельное топливо"
+            ],
+            "selected": true,
+            "duplicate_of": null
+          },
+          {
             "news_id": "M01",
             "title": "[MOCK] Банк России сохранил ключевую ставку на уровне 14%",
-            "score": 0.8692,
+            "score": 0.7707,
             "parts": {
               "link": 0.97,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 1.0,
               "freshness": 0.905,
               "macro": 0.97,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "mixed",
-            "selected": true
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
           },
           {
-            "news_id": "M05",
-            "title": "[MOCK] Дефицит рабочих в строительстве достиг максимума за пять лет",
-            "score": 0.4681,
+            "news_id": "M21",
+            "title": "[MOCK] ЦБ оставил ставку 14%: регулятор сохранил жёсткий сигнал",
+            "score": 0.6607,
             "parts": {
-              "link": 0.3,
+              "link": 0.75,
               "both": 0.0,
-              "event_type": 0.96,
-              "freshness": 0.741,
-              "macro": 0.3,
+              "sim": 0.0,
+              "event_type": 1.0,
+              "freshness": 0.905,
+              "macro": 0.75,
               "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "risk",
-            "selected": false
-          },
-          {
-            "news_id": "M07",
-            "title": "[MOCK] Спрос на IT-специалистов в регионах вырос на четверть",
-            "score": 0.4213,
-            "parts": {
-              "link": 0.24,
-              "both": 0.0,
-              "event_type": 0.96,
-              "freshness": 0.648,
-              "macro": 0.24,
-              "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "risk",
-            "selected": false
-          },
-          {
-            "news_id": "M04",
-            "title": "[MOCK] Росстат: рост розничного товарооборота замедлился в сентябре",
-            "score": 0.4141,
-            "parts": {
-              "link": 0.264,
-              "both": 0.0,
-              "event_type": 0.77,
-              "freshness": 0.766,
-              "macro": 0.264,
-              "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "risk",
-            "selected": false
-          },
-          {
-            "news_id": "M11",
-            "title": "[MOCK] ФНС уточнила порядок подтверждения нулевой ставки НДС при экспорте",
-            "score": 0.3578,
-            "parts": {
-              "link": 0.1,
-              "both": 0.0,
-              "event_type": 0.9,
-              "freshness": 0.819,
-              "macro": 0.1,
-              "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": "M01"
           },
           {
-            "news_id": "M12",
-            "title": "[MOCK] Минфин предложил изменить тарифы страховых взносов для МСП",
-            "score": 0.3535,
+            "news_id": "M23",
+            "title": "[MOCK] Евро подорожал до максимума с весны",
+            "score": 0.647,
             "parts": {
-              "link": 0.12,
+              "link": 0.8,
               "both": 0.0,
-              "event_type": 0.9,
-              "freshness": 0.717,
-              "macro": 0.12,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.846,
+              "macro": 0.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 1.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [
+              "евро"
+            ],
+            "selected": true,
+            "duplicate_of": null
           },
           {
             "news_id": "M02",
             "title": "[MOCK] Рубль ослаб на 3% к юаню за неделю",
-            "score": 0.0583,
+            "score": 0.5713,
             "parts": {
-              "link": 0.0,
+              "link": 0.64,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.8,
               "freshness": 0.875,
               "macro": 0.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.8
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [
+              "комплектующие ≈ запчасти для грузовиков"
+            ],
+            "selected": true,
+            "duplicate_of": null
           },
           {
-            "news_id": "M06",
-            "title": "[MOCK] Правительство продлило льготную программу кредитования аграриев",
-            "score": 0.0568,
+            "news_id": "M11",
+            "title": "[MOCK] ФНС уточнила порядок подтверждения нулевой ставки НДС при экспорте",
+            "score": 0.4578,
             "parts": {
-              "link": 0.0,
+              "link": 0.4,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
-              "freshness": 0.693,
-              "macro": 0.0,
+              "freshness": 0.819,
+              "macro": 0.1,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.5
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [
+              "экспорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
           },
           {
-            "news_id": "M03",
-            "title": "[MOCK] Цены на металлопрокат снизились на 5% за месяц",
-            "score": 0.0558,
+            "news_id": "M12",
+            "title": "[MOCK] Минфин предложил изменить тарифы страховых взносов для МСП",
+            "score": 0.4425,
             "parts": {
-              "link": 0.0,
+              "link": 0.4,
               "both": 0.0,
-              "event_type": 0.8,
-              "freshness": 0.792,
-              "macro": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.717,
+              "macro": 0.12,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.5
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [
+              "страховые взносы"
+            ],
+            "selected": false,
+            "duplicate_of": null
           },
           {
-            "news_id": "M08",
-            "title": "[MOCK] В Татарстане запустили программу субсидий для малого бизнеса",
+            "news_id": "M05",
+            "title": "[MOCK] Дефицит рабочих в строительстве достиг максимума за пять лет",
+            "score": 0.4051,
+            "parts": {
+              "link": 0.3,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.741,
+              "macro": 0.3,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M13",
+            "title": "[MOCK] Китай повысил пошлины на импорт российского проката",
+            "score": 0.4013,
+            "parts": {
+              "link": 0.3,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.875,
+              "macro": 0.3,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.15
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "импорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M04",
+            "title": "[MOCK] Росстат: рост розничного товарооборота замедлился в сентябре",
+            "score": 0.3624,
+            "parts": {
+              "link": 0.264,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.77,
+              "freshness": 0.766,
+              "macro": 0.264,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M07",
+            "title": "[MOCK] Спрос на IT-специалистов в регионах вырос на четверть",
+            "score": 0.3613,
+            "parts": {
+              "link": 0.24,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.648,
+              "macro": 0.24,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M14",
+            "title": "[MOCK] Турция ужесточила фитосанитарный контроль российского зерна",
+            "score": 0.3433,
+            "parts": {
+              "link": 0.201,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.819,
+              "macro": 0.201,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.15
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "экспорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M16",
+            "title": "[MOCK] Лимиты по льготной ипотеке в ряде банков исчерпаны",
+            "score": 0.3399,
+            "parts": {
+              "link": 0.154,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.792,
+              "macro": 0.154,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M15",
+            "title": "[MOCK] Китайские производители станков подняли цены для российских дилеров",
             "score": 0.0542,
             "parts": {
               "link": 0.0,
               "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.846,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M24",
+            "title": "[MOCK] Льготы по налогу на прибыль для IT-компаний продлены до 2030 года",
+            "score": 0.0529,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.218,
+              "event_type": 0.9,
+              "freshness": 0.717,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M17",
+            "title": "[MOCK] Листовая сталь подорожала на 6% за две недели",
+            "score": 0.0511,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.905,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M20",
+            "title": "[MOCK] Новосибирская область компенсирует ритейлерам часть затрат на открытие магазинов",
+            "score": 0.0492,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.741,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M03",
+            "title": "[MOCK] Цены на металлопрокат снизились на 5% за месяц",
+            "score": 0.0478,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.792,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M06",
+            "title": "[MOCK] Правительство продлило льготную программу кредитования аграриев",
+            "score": 0.0478,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.693,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M08",
+            "title": "[MOCK] В Татарстане запустили программу субсидий для малого бизнеса",
+            "score": 0.0452,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
               "freshness": 0.607,
               "macro": 0.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M09",
@@ -1533,15 +3286,131 @@
               "link": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M22",
+            "title": "[MOCK] Вебинар: как увеличить продажи в три раза",
+            "score": 0.0,
+            "parts": {
+              "link": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           }
         ],
+        "status": "ok",
+        "duration_ms": 29,
+        "note": null
+      },
+      {
+        "step": 6,
+        "name": "Аналитика банка: M18",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Дефицит водителей грузовиков подтолкнул ставки перевозок вверх. рынок труда",
+          "factors": [
+            "labor_market"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": [
+            {
+              "id": "A:BA-07:0",
+              "score": 1.6
+            }
+          ]
+        },
         "status": "ok",
         "duration_ms": 0,
         "note": null
       },
       {
-        "step": 5,
+        "step": 7,
+        "name": "Интерпретация и самопроверка: M18",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M18",
+          "role": "ceo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-002-M18-ceo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 3,
+            "consequences": 1,
+            "actions": 1,
+            "bank_view": 1
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 8,
+        "name": "Аналитика банка: M19",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Биржевые цены на дизельное топливо обновили максимум. нефть и газ",
+          "factors": [
+            "oil_gas"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": [
+            {
+              "id": "A:BA-05:0",
+              "score": 1.6
+            }
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 9,
+        "name": "Интерпретация и самопроверка: M19",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M19",
+          "role": "ceo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-002-M19-ceo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 3,
+            "consequences": 1,
+            "actions": 1,
+            "bank_view": 1
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 10,
         "name": "Аналитика банка: M01",
         "tool": "search_bank_analytics",
         "input": {
@@ -1557,10 +3426,6 @@
             {
               "id": "A:BA-06:0",
               "score": 1.6
-            },
-            {
-              "id": "A:BA-01:0",
-              "score": 1.211
             }
           ]
         },
@@ -1569,7 +3434,7 @@
         "note": null
       },
       {
-        "step": 6,
+        "step": 11,
         "name": "Интерпретация и самопроверка: M01",
         "tool": "interpret",
         "input": {
@@ -1589,7 +3454,104 @@
             "why_it_matters": 2,
             "consequences": 2,
             "actions": 2,
-            "bank_view": 2
+            "bank_view": 1
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 12,
+        "name": "Аналитика банка: M23",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Евро подорожал до максимума с весны. курс рубля",
+          "factors": [
+            "usd_rub"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": [
+            {
+              "id": "A:BA-08:0",
+              "score": 1.0
+            }
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 13,
+        "name": "Интерпретация и самопроверка: M23",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M23",
+          "role": "ceo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-002-M23-ceo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 1,
+            "consequences": 1,
+            "actions": 0,
+            "bank_view": 1
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 14,
+        "name": "Аналитика банка: M02",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Рубль ослаб на 3% к юаню за неделю. курс рубля",
+          "factors": [
+            "usd_rub"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": []
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 15,
+        "name": "Интерпретация и самопроверка: M02",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M02",
+          "role": "ceo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-002-M02-ceo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 1,
+            "consequences": 1,
+            "actions": 0,
+            "bank_view": 0
           }
         },
         "status": "ok",
@@ -1608,7 +3570,7 @@
     }
   },
   "c-003:cfo": {
-    "run_id": "c-003-cfo-20261023-135913-3af5",
+    "run_id": "c-003-cfo-20261023-182829-f030",
     "role": "cfo",
     "llm_mode": "stub",
     "plan": [
@@ -1662,7 +3624,7 @@
           ]
         },
         "status": "ok",
-        "duration_ms": 1,
+        "duration_ms": 0,
         "note": null
       },
       {
@@ -1674,7 +3636,7 @@
           "period": 30
         },
         "output": {
-          "n": 11,
+          "n": 23,
           "source": "mock (источник новостей не подключён)",
           "ids": [
             "M01",
@@ -1687,183 +3649,517 @@
             "M08",
             "M09",
             "M11",
-            "M12"
+            "M12",
+            "M13",
+            "M14",
+            "M15",
+            "M16",
+            "M17",
+            "M18",
+            "M19",
+            "M20",
+            "M21",
+            "M22",
+            "M23",
+            "M24"
           ]
         },
         "status": "fallback",
-        "duration_ms": 1,
+        "duration_ms": 3,
         "note": "mock (источник новостей не подключён)"
       },
       {
         "step": 4,
+        "name": "Отбор кандидатов",
+        "tool": "prefilter",
+        "input": {
+          "n": 23,
+          "n_terms": 14
+        },
+        "output": {
+          "query": "Розничная торговля Торговля розничная в неспециализированных магазинах овощи и фрукты бакалея упаковка открыть 12 магазинов у дома запустить доставку",
+          "terms": [
+            "овощи и фрукты (F:RAW_MATERIALS)",
+            "бакалея (F:RAW_MATERIALS)",
+            "упаковка (F:RAW_MATERIALS)",
+            "тара ≈ упаковка (F:RAW_MATERIALS)",
+            "картон ≈ упаковка (F:RAW_MATERIALS)",
+            "розничные покупатели (F:KEY_CLIENTS)",
+            "корпоративные заказы небольших офисов (F:KEY_CLIENTS)",
+            "Сибирский Урожай (F:KEY_SUPPLIERS)",
+            "ДальСнаб Продукт (F:KEY_SUPPLIERS)",
+            "экспорт (F:FTS_FLAG)",
+            "импорт (F:FTS_FLAG)",
+            "внешнеэкономическая (F:FTS_FLAG)",
+            "страховые взносы (F:CL_PRODUCT_ZPP_MARK)",
+            "фонд оплаты труда (F:CL_PRODUCT_ZPP_MARK)"
+          ],
+          "top_similar": [
+            [
+              "M20",
+              1.0
+            ],
+            [
+              "M04",
+              0.656
+            ],
+            [
+              "M08",
+              0.557
+            ],
+            [
+              "M13",
+              0.427
+            ],
+            [
+              "M01",
+              0.0
+            ]
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 9,
+        "note": null
+      },
+      {
+        "step": 5,
         "name": "Скоринг и отбор",
         "tool": "score_news",
         "input": {
-          "n_candidates": 11,
+          "n_candidates": 23,
           "top_k": 5,
           "min_relevance": 0.5,
           "role": "cfo"
         },
         "output": [
           {
-            "news_id": "M01",
-            "title": "[MOCK] Банк России сохранил ключевую ставку на уровне 14%",
-            "score": 0.8262,
-            "parts": {
-              "link": 0.892,
-              "both": 0.0,
-              "event_type": 1.0,
-              "freshness": 0.905,
-              "macro": 0.892,
-              "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "risk",
-            "selected": true
-          },
-          {
             "news_id": "M04",
             "title": "[MOCK] Росстат: рост розничного товарооборота замедлился в сентябре",
-            "score": 0.8224,
+            "score": 0.8105,
             "parts": {
               "link": 0.85,
               "both": 1.0,
+              "sim": 0.656,
               "event_type": 0.7,
               "freshness": 0.766,
               "macro": 0.67,
               "industry": 1.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "risk",
-            "selected": true
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M20",
+            "title": "[MOCK] Новосибирская область компенсирует ритейлерам часть затрат на открытие магазинов",
+            "score": 0.7711,
+            "parts": {
+              "link": 0.85,
+              "both": 0.0,
+              "sim": 1.0,
+              "event_type": 0.9,
+              "freshness": 0.741,
+              "macro": 0.0,
+              "industry": 1.0,
+              "region": 1.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M01",
+            "title": "[MOCK] Банк России сохранил ключевую ставку на уровне 14%",
+            "score": 0.7616,
+            "parts": {
+              "link": 0.892,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 1.2,
+              "freshness": 0.905,
+              "macro": 0.892,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
           },
           {
             "news_id": "M02",
             "title": "[MOCK] Рубль ослаб на 3% к юаню за неделю",
-            "score": 0.8023,
+            "score": 0.7108,
             "parts": {
               "link": 0.871,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.96,
               "freshness": 0.875,
               "macro": 0.871,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "risk",
-            "selected": true
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
           },
           {
-            "news_id": "M05",
-            "title": "[MOCK] Дефицит рабочих в строительстве достиг максимума за пять лет",
-            "score": 0.4361,
+            "news_id": "M23",
+            "title": "[MOCK] Евро подорожал до максимума с весны",
+            "score": 0.7065,
             "parts": {
-              "link": 0.3,
+              "link": 0.871,
               "both": 0.0,
-              "event_type": 0.8,
-              "freshness": 0.741,
-              "macro": 0.3,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.846,
+              "macro": 0.871,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "risk",
-            "selected": false
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
           },
           {
-            "news_id": "M07",
-            "title": "[MOCK] Спрос на IT-специалистов в регионах вырос на четверть",
-            "score": 0.3893,
+            "news_id": "M21",
+            "title": "[MOCK] ЦБ оставил ставку 14%: регулятор сохранил жёсткий сигнал",
+            "score": 0.6407,
             "parts": {
-              "link": 0.24,
+              "link": 0.65,
               "both": 0.0,
-              "event_type": 0.8,
-              "freshness": 0.648,
-              "macro": 0.24,
+              "sim": 0.0,
+              "event_type": 1.2,
+              "freshness": 0.905,
+              "macro": 0.65,
               "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "risk",
-            "selected": false
-          },
-          {
-            "news_id": "M11",
-            "title": "[MOCK] ФНС уточнила порядок подтверждения нулевой ставки НДС при экспорте",
-            "score": 0.3578,
-            "parts": {
-              "link": 0.1,
-              "both": 0.0,
-              "event_type": 0.9,
-              "freshness": 0.819,
-              "macro": 0.1,
-              "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M12",
             "title": "[MOCK] Минфин предложил изменить тарифы страховых взносов для МСП",
-            "score": 0.3535,
+            "score": 0.5625,
             "parts": {
-              "link": 0.12,
+              "link": 0.64,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
               "freshness": 0.717,
               "macro": 0.12,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.8
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [
+              "тара ≈ упаковка",
+              "страховые взносы"
+            ],
+            "selected": false,
+            "duplicate_of": null
           },
           {
-            "news_id": "M06",
-            "title": "[MOCK] Правительство продлило льготную программу кредитования аграриев",
-            "score": 0.0568,
+            "news_id": "M11",
+            "title": "[MOCK] ФНС уточнила порядок подтверждения нулевой ставки НДС при экспорте",
+            "score": 0.4578,
             "parts": {
-              "link": 0.0,
+              "link": 0.4,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
-              "freshness": 0.693,
-              "macro": 0.0,
+              "freshness": 0.819,
+              "macro": 0.1,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.5
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [
+              "экспорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
           },
           {
-            "news_id": "M03",
-            "title": "[MOCK] Цены на металлопрокат снизились на 5% за месяц",
-            "score": 0.0558,
+            "news_id": "M13",
+            "title": "[MOCK] Китай повысил пошлины на импорт российского проката",
+            "score": 0.444,
             "parts": {
-              "link": 0.0,
+              "link": 0.3,
               "both": 0.0,
+              "sim": 0.427,
+              "event_type": 0.8,
+              "freshness": 0.875,
+              "macro": 0.3,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.15
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "импорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M05",
+            "title": "[MOCK] Дефицит рабочих в строительстве достиг максимума за пять лет",
+            "score": 0.3811,
+            "parts": {
+              "link": 0.3,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.741,
+              "macro": 0.3,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M16",
+            "title": "[MOCK] Лимиты по льготной ипотеке в ряде банков исчерпаны",
+            "score": 0.3708,
+            "parts": {
+              "link": 0.264,
+              "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.8,
               "freshness": 0.792,
-              "macro": 0.0,
+              "macro": 0.264,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
-            "macro_sign": "neutral",
-            "selected": false
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M14",
+            "title": "[MOCK] Турция ужесточила фитосанитарный контроль российского зерна",
+            "score": 0.3433,
+            "parts": {
+              "link": 0.201,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.819,
+              "macro": 0.201,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.15
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "экспорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M07",
+            "title": "[MOCK] Спрос на IT-специалистов в регионах вырос на четверть",
+            "score": 0.3373,
+            "parts": {
+              "link": 0.24,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.648,
+              "macro": 0.24,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M15",
+            "title": "[MOCK] Китайские производители станков подняли цены для российских дилеров",
+            "score": 0.3113,
+            "parts": {
+              "link": 0.129,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.846,
+              "macro": 0.129,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M18",
+            "title": "[MOCK] Дефицит водителей грузовиков подтолкнул ставки перевозок вверх",
+            "score": 0.2799,
+            "parts": {
+              "link": 0.09,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.766,
+              "macro": 0.09,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M08",
             "title": "[MOCK] В Татарстане запустили программу субсидий для малого бизнеса",
-            "score": 0.0542,
+            "score": 0.0563,
             "parts": {
               "link": 0.0,
               "both": 0.0,
+              "sim": 0.557,
               "event_type": 0.9,
               "freshness": 0.607,
               "macro": 0.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M19",
+            "title": "[MOCK] Биржевые цены на дизельное топливо обновили максимум",
+            "score": 0.0521,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.936,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M17",
+            "title": "[MOCK] Листовая сталь подорожала на 6% за две недели",
+            "score": 0.0511,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.905,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M24",
+            "title": "[MOCK] Льготы по налогу на прибыль для IT-компаний продлены до 2030 года",
+            "score": 0.0485,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.717,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M03",
+            "title": "[MOCK] Цены на металлопрокат снизились на 5% за месяц",
+            "score": 0.0478,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.792,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M06",
+            "title": "[MOCK] Правительство продлило льготную программу кредитования аграриев",
+            "score": 0.0478,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.693,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M09",
@@ -1873,71 +4169,29 @@
               "link": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M22",
+            "title": "[MOCK] Вебинар: как увеличить продажи в три раза",
+            "score": 0.0,
+            "parts": {
+              "link": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           }
         ],
         "status": "ok",
-        "duration_ms": 2,
-        "note": null
-      },
-      {
-        "step": 5,
-        "name": "Аналитика банка: M01",
-        "tool": "search_bank_analytics",
-        "input": {
-          "query": "[MOCK] Банк России сохранил ключевую ставку на уровне 14%. ключевая ставка инфляция",
-          "factors": [
-            "key_rate",
-            "inflation"
-          ]
-        },
-        "output": {
-          "source": "local_bm25",
-          "hits": [
-            {
-              "id": "A:BA-06:0",
-              "score": 1.6
-            },
-            {
-              "id": "A:BA-01:0",
-              "score": 1.211
-            }
-          ]
-        },
-        "status": "ok",
-        "duration_ms": 1,
+        "duration_ms": 23,
         "note": null
       },
       {
         "step": 6,
-        "name": "Интерпретация и самопроверка: M01",
-        "tool": "interpret",
-        "input": {
-          "news_id": "M01",
-          "role": "cfo",
-          "mode": "stub"
-        },
-        "output": {
-          "path": "rules",
-          "notes": [
-            "LLM_MODE=stub: карточка собрана по правилам"
-          ],
-          "llm_calls": [],
-          "insight_id": "c-003-M01-cfo",
-          "blocks": {
-            "what_happened": 1,
-            "why_it_matters": 2,
-            "consequences": 2,
-            "actions": 2,
-            "bank_view": 2
-          }
-        },
-        "status": "ok",
-        "duration_ms": 1,
-        "note": null
-      },
-      {
-        "step": 7,
         "name": "Аналитика банка: M04",
         "tool": "search_bank_analytics",
         "input": {
@@ -1952,6 +4206,10 @@
             {
               "id": "A:BA-08:0",
               "score": 1.6
+            },
+            {
+              "id": "A:BA-09:0",
+              "score": 1.214
             }
           ]
         },
@@ -1960,7 +4218,7 @@
         "note": null
       },
       {
-        "step": 8,
+        "step": 7,
         "name": "Интерпретация и самопроверка: M04",
         "tool": "interpret",
         "input": {
@@ -1980,6 +4238,102 @@
             "why_it_matters": 2,
             "consequences": 1,
             "actions": 1,
+            "bank_view": 2
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 8,
+        "name": "Аналитика банка: M20",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Новосибирская область компенсирует ритейлерам часть затрат на открытие магазинов. ",
+          "factors": []
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": []
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 9,
+        "name": "Интерпретация и самопроверка: M20",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M20",
+          "role": "cfo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-003-M20-cfo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 2,
+            "consequences": 1,
+            "actions": 0,
+            "bank_view": 0
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 10,
+        "name": "Аналитика банка: M01",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Банк России сохранил ключевую ставку на уровне 14%. ключевая ставка инфляция",
+          "factors": [
+            "key_rate",
+            "inflation"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": [
+            {
+              "id": "A:BA-06:0",
+              "score": 1.6
+            }
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 11,
+        "name": "Интерпретация и самопроверка: M01",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M01",
+          "role": "cfo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-003-M01-cfo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 2,
+            "consequences": 2,
+            "actions": 2,
             "bank_view": 1
           }
         },
@@ -1988,7 +4342,7 @@
         "note": null
       },
       {
-        "step": 9,
+        "step": 12,
         "name": "Аналитика банка: M02",
         "tool": "search_bank_analytics",
         "input": {
@@ -2006,7 +4360,7 @@
         "note": null
       },
       {
-        "step": 10,
+        "step": 13,
         "name": "Интерпретация и самопроверка: M02",
         "tool": "interpret",
         "input": {
@@ -2032,6 +4386,57 @@
         "status": "ok",
         "duration_ms": 0,
         "note": null
+      },
+      {
+        "step": 14,
+        "name": "Аналитика банка: M23",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Евро подорожал до максимума с весны. курс рубля",
+          "factors": [
+            "usd_rub"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": [
+            {
+              "id": "A:BA-08:0",
+              "score": 1.0
+            }
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 2,
+        "note": null
+      },
+      {
+        "step": 15,
+        "name": "Интерпретация и самопроверка: M23",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M23",
+          "role": "cfo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-003-M23-cfo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 1,
+            "consequences": 1,
+            "actions": 1,
+            "bank_view": 1
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
       }
     ],
     "llm_usage": {
@@ -2045,7 +4450,7 @@
     }
   },
   "c-003:ceo": {
-    "run_id": "c-003-ceo-20261023-135913-ac52",
+    "run_id": "c-003-ceo-20261023-182829-3bdf",
     "role": "ceo",
     "llm_mode": "stub",
     "plan": [
@@ -2111,7 +4516,7 @@
           "period": 30
         },
         "output": {
-          "n": 11,
+          "n": 23,
           "source": "mock (источник новостей не подключён)",
           "ids": [
             "M01",
@@ -2124,19 +4529,84 @@
             "M08",
             "M09",
             "M11",
-            "M12"
+            "M12",
+            "M13",
+            "M14",
+            "M15",
+            "M16",
+            "M17",
+            "M18",
+            "M19",
+            "M20",
+            "M21",
+            "M22",
+            "M23",
+            "M24"
           ]
         },
         "status": "fallback",
-        "duration_ms": 22,
+        "duration_ms": 4,
         "note": "mock (источник новостей не подключён)"
       },
       {
         "step": 4,
+        "name": "Отбор кандидатов",
+        "tool": "prefilter",
+        "input": {
+          "n": 23,
+          "n_terms": 14
+        },
+        "output": {
+          "query": "Розничная торговля Торговля розничная в неспециализированных магазинах овощи и фрукты бакалея упаковка открыть 12 магазинов у дома запустить доставку",
+          "terms": [
+            "овощи и фрукты (F:RAW_MATERIALS)",
+            "бакалея (F:RAW_MATERIALS)",
+            "упаковка (F:RAW_MATERIALS)",
+            "тара ≈ упаковка (F:RAW_MATERIALS)",
+            "картон ≈ упаковка (F:RAW_MATERIALS)",
+            "розничные покупатели (F:KEY_CLIENTS)",
+            "корпоративные заказы небольших офисов (F:KEY_CLIENTS)",
+            "Сибирский Урожай (F:KEY_SUPPLIERS)",
+            "ДальСнаб Продукт (F:KEY_SUPPLIERS)",
+            "экспорт (F:FTS_FLAG)",
+            "импорт (F:FTS_FLAG)",
+            "внешнеэкономическая (F:FTS_FLAG)",
+            "страховые взносы (F:CL_PRODUCT_ZPP_MARK)",
+            "фонд оплаты труда (F:CL_PRODUCT_ZPP_MARK)"
+          ],
+          "top_similar": [
+            [
+              "M20",
+              1.0
+            ],
+            [
+              "M04",
+              0.656
+            ],
+            [
+              "M08",
+              0.557
+            ],
+            [
+              "M13",
+              0.427
+            ],
+            [
+              "M01",
+              0.0
+            ]
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 8,
+        "note": null
+      },
+      {
+        "step": 5,
         "name": "Скоринг и отбор",
         "tool": "score_news",
         "input": {
-          "n_candidates": 11,
+          "n_candidates": 23,
           "top_k": 5,
           "min_relevance": 0.5,
           "role": "ceo"
@@ -2145,162 +4615,431 @@
           {
             "news_id": "M04",
             "title": "[MOCK] Росстат: рост розничного товарооборота замедлился в сентябре",
-            "score": 0.8364,
+            "score": 0.821,
             "parts": {
               "link": 0.85,
               "both": 1.0,
+              "sim": 0.656,
               "event_type": 0.77,
               "freshness": 0.766,
               "macro": 0.804,
               "industry": 1.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "risk",
-            "selected": true
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M20",
+            "title": "[MOCK] Новосибирская область компенсирует ритейлерам часть затрат на открытие магазинов",
+            "score": 0.7711,
+            "parts": {
+              "link": 0.85,
+              "both": 0.0,
+              "sim": 1.0,
+              "event_type": 0.9,
+              "freshness": 0.741,
+              "macro": 0.0,
+              "industry": 1.0,
+              "region": 1.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
           },
           {
             "news_id": "M01",
             "title": "[MOCK] Банк России сохранил ключевую ставку на уровне 14%",
-            "score": 0.7317,
+            "score": 0.6457,
             "parts": {
               "link": 0.72,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 1.0,
               "freshness": 0.905,
               "macro": 0.72,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "risk",
-            "selected": true
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
           },
           {
             "news_id": "M02",
             "title": "[MOCK] Рубль ослаб на 3% к юаню за неделю",
-            "score": 0.6598,
+            "score": 0.5863,
             "parts": {
               "link": 0.67,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.8,
               "freshness": 0.875,
               "macro": 0.67,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "risk",
-            "selected": true
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
           },
           {
-            "news_id": "M05",
-            "title": "[MOCK] Дефицит рабочих в строительстве достиг максимума за пять лет",
-            "score": 0.4681,
+            "news_id": "M23",
+            "title": "[MOCK] Евро подорожал до максимума с весны",
+            "score": 0.582,
             "parts": {
-              "link": 0.3,
+              "link": 0.67,
               "both": 0.0,
-              "event_type": 0.96,
-              "freshness": 0.741,
-              "macro": 0.3,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.846,
+              "macro": 0.67,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "risk",
-            "selected": false
-          },
-          {
-            "news_id": "M07",
-            "title": "[MOCK] Спрос на IT-специалистов в регионах вырос на четверть",
-            "score": 0.4213,
-            "parts": {
-              "link": 0.24,
-              "both": 0.0,
-              "event_type": 0.96,
-              "freshness": 0.648,
-              "macro": 0.24,
-              "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "risk",
-            "selected": false
-          },
-          {
-            "news_id": "M11",
-            "title": "[MOCK] ФНС уточнила порядок подтверждения нулевой ставки НДС при экспорте",
-            "score": 0.3578,
-            "parts": {
-              "link": 0.1,
-              "both": 0.0,
-              "event_type": 0.9,
-              "freshness": 0.819,
-              "macro": 0.1,
-              "industry": 0.0,
-              "region": 0.0
-            },
-            "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": true,
+            "duplicate_of": null
           },
           {
             "news_id": "M12",
             "title": "[MOCK] Минфин предложил изменить тарифы страховых взносов для МСП",
-            "score": 0.3535,
+            "score": 0.5625,
             "parts": {
-              "link": 0.12,
+              "link": 0.64,
               "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
               "freshness": 0.717,
               "macro": 0.12,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.8
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [
+              "тара ≈ упаковка",
+              "страховые взносы"
+            ],
+            "selected": false,
+            "duplicate_of": null
           },
           {
-            "news_id": "M06",
-            "title": "[MOCK] Правительство продлило льготную программу кредитования аграриев",
-            "score": 0.0568,
+            "news_id": "M21",
+            "title": "[MOCK] ЦБ оставил ставку 14%: регулятор сохранил жёсткий сигнал",
+            "score": 0.5357,
             "parts": {
-              "link": 0.0,
+              "link": 0.5,
               "both": 0.0,
+              "sim": 0.0,
+              "event_type": 1.0,
+              "freshness": 0.905,
+              "macro": 0.5,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M11",
+            "title": "[MOCK] ФНС уточнила порядок подтверждения нулевой ставки НДС при экспорте",
+            "score": 0.4578,
+            "parts": {
+              "link": 0.4,
+              "both": 0.0,
+              "sim": 0.0,
               "event_type": 0.9,
-              "freshness": 0.693,
-              "macro": 0.0,
+              "freshness": 0.819,
+              "macro": 0.1,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.5
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [
+              "экспорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
           },
           {
-            "news_id": "M03",
-            "title": "[MOCK] Цены на металлопрокат снизились на 5% за месяц",
-            "score": 0.0558,
+            "news_id": "M13",
+            "title": "[MOCK] Китай повысил пошлины на импорт российского проката",
+            "score": 0.444,
             "parts": {
-              "link": 0.0,
+              "link": 0.3,
               "both": 0.0,
+              "sim": 0.427,
               "event_type": 0.8,
-              "freshness": 0.792,
-              "macro": 0.0,
+              "freshness": 0.875,
+              "macro": 0.3,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.15
             },
-            "macro_sign": "neutral",
-            "selected": false
+            "macro_sign": "risk",
+            "entities": [
+              "импорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M16",
+            "title": "[MOCK] Лимиты по льготной ипотеке в ряде банков исчерпаны",
+            "score": 0.4072,
+            "parts": {
+              "link": 0.289,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.792,
+              "macro": 0.289,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M05",
+            "title": "[MOCK] Дефицит рабочих в строительстве достиг максимума за пять лет",
+            "score": 0.4051,
+            "parts": {
+              "link": 0.3,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.741,
+              "macro": 0.3,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M07",
+            "title": "[MOCK] Спрос на IT-специалистов в регионах вырос на четверть",
+            "score": 0.3613,
+            "parts": {
+              "link": 0.24,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.648,
+              "macro": 0.24,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M14",
+            "title": "[MOCK] Турция ужесточила фитосанитарный контроль российского зерна",
+            "score": 0.3433,
+            "parts": {
+              "link": 0.201,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.819,
+              "macro": 0.201,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.15
+            },
+            "macro_sign": "risk",
+            "entities": [
+              "экспорт"
+            ],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M15",
+            "title": "[MOCK] Китайские производители станков подняли цены для российских дилеров",
+            "score": 0.3205,
+            "parts": {
+              "link": 0.099,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.846,
+              "macro": 0.099,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M18",
+            "title": "[MOCK] Дефицит водителей грузовиков подтолкнул ставки перевозок вверх",
+            "score": 0.3039,
+            "parts": {
+              "link": 0.09,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.96,
+              "freshness": 0.766,
+              "macro": 0.09,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "risk",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M08",
             "title": "[MOCK] В Татарстане запустили программу субсидий для малого бизнеса",
-            "score": 0.0542,
+            "score": 0.0563,
             "parts": {
               "link": 0.0,
               "both": 0.0,
+              "sim": 0.557,
               "event_type": 0.9,
               "freshness": 0.607,
               "macro": 0.0,
               "industry": 0.0,
-              "region": 0.0
+              "region": 0.0,
+              "entity": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M19",
+            "title": "[MOCK] Биржевые цены на дизельное топливо обновили максимум",
+            "score": 0.0521,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.936,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M17",
+            "title": "[MOCK] Листовая сталь подорожала на 6% за две недели",
+            "score": 0.0511,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.905,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M24",
+            "title": "[MOCK] Льготы по налогу на прибыль для IT-компаний продлены до 2030 года",
+            "score": 0.0485,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.717,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M03",
+            "title": "[MOCK] Цены на металлопрокат снизились на 5% за месяц",
+            "score": 0.0478,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.8,
+              "freshness": 0.792,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M06",
+            "title": "[MOCK] Правительство продлило льготную программу кредитования аграриев",
+            "score": 0.0478,
+            "parts": {
+              "link": 0.0,
+              "both": 0.0,
+              "sim": 0.0,
+              "event_type": 0.9,
+              "freshness": 0.693,
+              "macro": 0.0,
+              "industry": 0.0,
+              "region": 0.0,
+              "entity": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           },
           {
             "news_id": "M09",
@@ -2310,15 +5049,29 @@
               "link": 0.0
             },
             "macro_sign": "neutral",
-            "selected": false
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
+          },
+          {
+            "news_id": "M22",
+            "title": "[MOCK] Вебинар: как увеличить продажи в три раза",
+            "score": 0.0,
+            "parts": {
+              "link": 0.0
+            },
+            "macro_sign": "neutral",
+            "entities": [],
+            "selected": false,
+            "duplicate_of": null
           }
         ],
         "status": "ok",
-        "duration_ms": 0,
+        "duration_ms": 24,
         "note": null
       },
       {
-        "step": 5,
+        "step": 6,
         "name": "Аналитика банка: M04",
         "tool": "search_bank_analytics",
         "input": {
@@ -2333,6 +5086,10 @@
             {
               "id": "A:BA-08:0",
               "score": 1.6
+            },
+            {
+              "id": "A:BA-09:0",
+              "score": 1.214
             }
           ]
         },
@@ -2341,7 +5098,7 @@
         "note": null
       },
       {
-        "step": 6,
+        "step": 7,
         "name": "Интерпретация и самопроверка: M04",
         "tool": "interpret",
         "input": {
@@ -2361,7 +5118,7 @@
             "why_it_matters": 2,
             "consequences": 1,
             "actions": 1,
-            "bank_view": 1
+            "bank_view": 2
           }
         },
         "status": "ok",
@@ -2369,7 +5126,51 @@
         "note": null
       },
       {
-        "step": 7,
+        "step": 8,
+        "name": "Аналитика банка: M20",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Новосибирская область компенсирует ритейлерам часть затрат на открытие магазинов. ",
+          "factors": []
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": []
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 9,
+        "name": "Интерпретация и самопроверка: M20",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M20",
+          "role": "ceo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-003-M20-ceo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 2,
+            "consequences": 1,
+            "actions": 0,
+            "bank_view": 0
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 10,
         "name": "Аналитика банка: M01",
         "tool": "search_bank_analytics",
         "input": {
@@ -2385,10 +5186,6 @@
             {
               "id": "A:BA-06:0",
               "score": 1.6
-            },
-            {
-              "id": "A:BA-01:0",
-              "score": 1.211
             }
           ]
         },
@@ -2397,7 +5194,7 @@
         "note": null
       },
       {
-        "step": 8,
+        "step": 11,
         "name": "Интерпретация и самопроверка: M01",
         "tool": "interpret",
         "input": {
@@ -2417,7 +5214,7 @@
             "why_it_matters": 2,
             "consequences": 2,
             "actions": 2,
-            "bank_view": 2
+            "bank_view": 1
           }
         },
         "status": "ok",
@@ -2425,7 +5222,7 @@
         "note": null
       },
       {
-        "step": 9,
+        "step": 12,
         "name": "Аналитика банка: M02",
         "tool": "search_bank_analytics",
         "input": {
@@ -2443,7 +5240,7 @@
         "note": null
       },
       {
-        "step": 10,
+        "step": 13,
         "name": "Интерпретация и самопроверка: M02",
         "tool": "interpret",
         "input": {
@@ -2464,6 +5261,57 @@
             "consequences": 1,
             "actions": 1,
             "bank_view": 0
+          }
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 14,
+        "name": "Аналитика банка: M23",
+        "tool": "search_bank_analytics",
+        "input": {
+          "query": "[MOCK] Евро подорожал до максимума с весны. курс рубля",
+          "factors": [
+            "usd_rub"
+          ]
+        },
+        "output": {
+          "source": "local_bm25",
+          "hits": [
+            {
+              "id": "A:BA-08:0",
+              "score": 1.0
+            }
+          ]
+        },
+        "status": "ok",
+        "duration_ms": 0,
+        "note": null
+      },
+      {
+        "step": 15,
+        "name": "Интерпретация и самопроверка: M23",
+        "tool": "interpret",
+        "input": {
+          "news_id": "M23",
+          "role": "ceo",
+          "mode": "stub"
+        },
+        "output": {
+          "path": "rules",
+          "notes": [
+            "LLM_MODE=stub: карточка собрана по правилам"
+          ],
+          "llm_calls": [],
+          "insight_id": "c-003-M23-ceo",
+          "blocks": {
+            "what_happened": 1,
+            "why_it_matters": 1,
+            "consequences": 1,
+            "actions": 1,
+            "bank_view": 1
           }
         },
         "status": "ok",
