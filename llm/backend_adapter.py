@@ -14,7 +14,7 @@ from typing import Callable, Optional
 
 from .schemas import ImpactType, Insight, Level, Origin
 
-PROMPT_VERSION = "insight@v0"   # меняем при каждой правке промптов: по нему бэкенд сбрасывает кэш
+PROMPT_VERSION = "insight@v3"   # меняем при каждой правке промптов: по нему бэкенд сбрасывает кэш
 
 IMPORTANCE = {Level.high: 85, Level.medium: 60, Level.low: 35}
 TYPE = {ImpactType.risk: "risk", ImpactType.opportunity: "opportunity",
