@@ -27,7 +27,22 @@ const featureLabels: Record<string, string> = {
   FTS_COUNTRY_NAME: 'Страна внешнеэкономической деятельности',
   FACTORING_MARK: 'Факторинг',
   GROUP_ID: 'Группа компаний',
+  // Поля профиля компании (CompanyProfile бэкенда), которые агент тоже передаёт как F:<ПОЛЕ>
+  INDUSTRY: 'Отрасль',
+  REGIONS: 'Регионы присутствия',
+  RAW_MATERIALS: 'Сырьё и материалы',
+  KEY_CLIENTS: 'Ключевые клиенты',
+  KEY_SUPPLIERS: 'Ключевые поставщики',
+  CURRENCY_RISKS: 'Валютные риски',
+  DEBT_LOAD: 'Долговая нагрузка',
+  STRATEGIC_GOALS: 'Стратегические цели',
+  BANK_PRODUCTS: 'Продукты банка',
 };
+
+/** Неизвестный код признака: показываем как «Признак компании (CODE)», а не голым кодом. */
+function featureLabel(code: string): string {
+  return featureLabels[code.toUpperCase()] ?? `Признак компании (${code})`;
+}
 
 /** Подпись для id источника: F:<колонка>, P:<контрагент>, G:<группа>, N:<новость>, A:<аналитика>. */
 export function sourceIdLabel(sourceId: string): string {
@@ -35,7 +50,7 @@ export function sourceIdLabel(sourceId: string): string {
   const value = rest.join(':');
   switch (prefix) {
     case 'F':
-      return featureLabels[value] ?? value;
+      return featureLabel(value);
     case 'P':
       return `Платежи с контрагентом ${value}`;
     case 'G':
