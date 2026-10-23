@@ -18,6 +18,7 @@ import logging
 import os
 import re
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Callable, Optional, Type, TypeVar
@@ -58,23 +59,64 @@ MODELS = {
 
 # ---------- Простой клиент (если нет шлюза бэкенда) ----------
 
-def openai_compatible_complete(model: str, messages: list[dict], temperature: float = 0.1,
-                               max_tokens: int = 1500, json_mode: bool = True, timeout: int = 90) -> str:
+# Рассуждающие модели (GLM, DeepSeek, Qwen3.6) тратят max_tokens на скрытые рассуждения и
+# могут вернуть пустой content. LLM_REASONING: off | low | default — что просить у шлюза.
+REASONING = os.getenv("LLM_REASONING", "off")
+DEBUG_DIR = Path(os.getenv("LLM_DEBUG_DIR", ".llm_cache/raw"))
+
+
+def _reasoning_params(model: str) -> dict:
+    if REASONING == "default" or model.startswith("google/gemma"):
+        return {}
+    if REASONING == "low":
+        return {"reasoning": {"effort": "low", "exclude": True}}
+    return {"reasoning": {"enabled": False, "exclude": True}}
+
+
+def raw_request(model: str, messages: list[dict], timeout: int = 120, **body_extra) -> dict:
     base = os.environ["LLM_BASE_URL"].rstrip("/")
     key = os.environ["LLM_API_KEY"]
-    body = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
-    if json_mode and os.getenv("LLM_JSON_MODE", "1") == "1":
-        body["response_format"] = {"type": "json_object"}
+    body = {"model": model, "messages": messages, **body_extra}
     req = urllib.request.Request(
         f"{base}/chat/completions",
         data=json.dumps(body).encode(),
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=timeout) as r:
-        data = json.loads(r.read())
+        return json.loads(r.read())
+
+
+def openai_compatible_complete(model: str, messages: list[dict], temperature: float = 0.1,
+                               max_tokens: int = 1500, json_mode: bool = True, timeout: int = 120) -> str:
+    extra = {"temperature": temperature, "max_tokens": max_tokens, **_reasoning_params(model)}
+    if json_mode and os.getenv("LLM_JSON_MODE", "1") == "1":
+        extra["response_format"] = {"type": "json_object"}
+    try:
+        data = raw_request(model, messages, timeout=timeout, **extra)
+    except urllib.error.HTTPError as e:
+        if e.code != 400 or "reasoning" not in extra:
+            raise
+        log.warning("шлюз не принял параметр reasoning (400), повторяю без него")
+        extra.pop("reasoning")
+        data = raw_request(model, messages, timeout=timeout, **extra)
+    choice = data["choices"][0]
+    msg = choice.get("message") or {}
+    content = msg.get("content") or ""
     usage = data.get("usage", {})
-    log.info("llm model=%s in=%s out=%s", model, usage.get("prompt_tokens"), usage.get("completion_tokens"))
-    return data["choices"][0]["message"]["content"]
+    log.info("llm model=%s in=%s out=%s finish=%s", model, usage.get("prompt_tokens"),
+             usage.get("completion_tokens"), choice.get("finish_reason"))
+    if "{" not in content:
+        # сохраняем сырой ответ без промпта, чтобы понять, что пошло не так
+        DEBUG_DIR.mkdir(parents=True, exist_ok=True)
+        f = DEBUG_DIR / f"{int(time.time() * 1000)}_{model.replace('/', '_')}.json"
+        f.write_text(json.dumps({"finish_reason": choice.get("finish_reason"), "usage": usage,
+                                 "content": content[:3000],
+                                 "reasoning": str(msg.get("reasoning") or msg.get("reasoning_content") or "")[:3000]},
+                                ensure_ascii=False, indent=1))
+        reason = msg.get("reasoning") or msg.get("reasoning_content")
+        hint = " (модель потратила токены на рассуждения)" if reason else ""
+        return content + f"\n[пустой ответ{hint}, finish_reason={choice.get('finish_reason')}, см. {f}]"
+    return content
 
 
 # ---------- Кэш на диске (в разработке экономит лимит 500 ₽) ----------

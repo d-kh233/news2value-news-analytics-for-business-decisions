@@ -34,7 +34,7 @@ DEFAULT_ROLE = "ceo"
 FEATURES = [
     ("MAINOKVED_CODE", "Код основного ОКВЭД"),
     ("MAINOKVED_NAME", "Основной вид деятельности"),
-    ("REVENUE_COMPANY", "Годовая выручка (в единицах данных банка)"),
+    ("REVENUE_COMPANY", "Выручка есть в данных (число не называть, единицы неизвестны)"),
     ("REGION", "Регион регистрации"),
     ("CITY", "Город регистрации"),
     ("ORG_TYPE", "Тип организации"),
@@ -51,7 +51,7 @@ FEATURES = [
     ("CL_PRODUCT_ZPP_MARK", "Есть зарплатный проект"),
     ("FACTORING_MARK", "Есть факторинг"),
     ("FTS_FLAG", "Ведёт внешнеэкономическую деятельность (есть в базе ФТС)"),
-    ("FTS_COUNTRY_NAME", "Страны ВЭД по данным ФТС"),
+    ("FTS_COUNTRY_NAME", "Страны ВЭД по данным ФТС (экспорт или импорт — в данных не указано)"),
     ("GROUP_ID", "Входит в группу компаний"),
 ]
 FLAGS = {k for k, _ in FEATURES if k.endswith("_MARK") or k == "FTS_FLAG"}
@@ -93,10 +93,8 @@ def company_facts(company: Mapping) -> list[dict]:
             facts.append({"id": f"F:{key}", "text": label})
             continue
         if key == "REVENUE_COMPANY":
-            try:
-                v = f"{float(str(v).strip()):,.0f}".replace(",", " ")
-            except ValueError:
-                pass
+            facts.append({"id": f"F:{key}", "text": label})
+            continue
         if key == "GROUP_ID":
             facts.append({"id": f"G:{str(v).strip()}", "text": f"{label} {str(v).strip()}"})
             continue
@@ -211,7 +209,7 @@ def interpret(event: EventExtraction, news_text: str, company: Mapping, *, count
             extra_check(ins)
 
     ins = call_json(Insight, msgs, model=model or MODELS["smart"], complete=complete, trace=trace,
-                    post_check=post_check, temperature=0.2, max_tokens=2500)
+                    post_check=post_check, temperature=0.2, max_tokens=4000)
     if trace is not None:
         trace.append({"step": "interpret", "prompt_version": PROMPT_VERSION, "role": role,
                       "macro_impact": {"score": impact["score"], "sign": impact["sign"]},

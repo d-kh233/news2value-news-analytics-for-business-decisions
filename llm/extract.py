@@ -19,7 +19,7 @@ from .client import MODELS, CompleteFn, LLMCallError, call_json
 from .prompts.extract_event_examples import EXAMPLES
 from .schemas import EventExtraction, EventExtractionLLM
 
-PROMPT_VERSION = "extract_event@v2"
+PROMPT_VERSION = "extract_event@v3"
 SYSTEM = (Path(__file__).parent / "prompts" / "extract_event.system.md").read_text(encoding="utf-8")
 MAX_TEXT_CHARS = 6000   # длиннее режем: экономия токенов, суть обычно в начале
 
@@ -75,7 +75,24 @@ def extract_event(news: dict, complete: Optional[CompleteFn] = None, model: Opti
     if not ev.event_date and not ev.is_noise and "no_date" not in ev.quality_flags:
         # даты события в тексте нет: дальше используем published_at, но помечаем
         ev.quality_flags.append("no_date")
+    _clean(ev)
     return ev
+
+
+_COUNTRY_AS_REGION = {"россия", "рф", "российская федерация"}
+_STRENGTH = {"low": 0, "medium": 1, "high": 2}
+
+
+def _clean(ev: EventExtraction) -> None:
+    """Чистка типовых огрехов модели (по прогонам на Gemma 22.10): дубли факторов, страна в регионах."""
+    best: dict = {}
+    for fm in ev.factor_moves:
+        key = (fm.factor, fm.direction)
+        if key not in best or _STRENGTH[fm.strength.value] > _STRENGTH[best[key].strength.value]:
+            best[key] = fm
+    ev.factor_moves = list(best.values())
+    ev.regions = [r for r in ev.regions if r.strip().lower() not in _COUNTRY_AS_REGION]
+    ev.facts = [f for i, f in enumerate(ev.facts) if f.text not in {x.text for x in ev.facts[:i]}]
 
 
 def extract_many(news_list: Iterable[dict], complete: Optional[CompleteFn] = None,
