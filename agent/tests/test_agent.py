@@ -200,6 +200,35 @@ class TestSelection(unittest.TestCase):
             st = [t for t in r.trace if t.tool == "score_news"][0].output
             self.assertEqual(next(x for x in st if x["news_id"] == "M21")["duplicate_of"], "M01")
 
+    def test_findings_from_prompt_engineer_set(self):
+        """Три промаха, найденные на наборе промпт-инженера 23.10."""
+        from agent.config import REPO_ROOT
+        path = REPO_ROOT / "llm" / "eval" / "for_agent" / "prompt_eval_news.json"
+        if not path.exists():
+            self.skipTest("нет набора llm/eval/for_agent")
+        news = json.loads(path.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as d:
+            o = Orchestrator(_settings(d, today="2026-10-24"), news_provider=lambda cid, period: news)
+            feed = lambda cid, role="ceo": [c["id"].split("-")[2] for c in o.run(cid, 30, role=role).insights]  # noqa: E731
+            self.assertNotIn("E16", feed("MOCK-002"))    # зарплаты разработчиков — не стройке
+            self.assertNotIn("E16", feed("MOCK-003"))    # и не рознице
+            self.assertNotIn("E04", feed("MOCK-006"))    # «сталь в Китае» — цена, а не торговля с Китаем
+            self.assertNotIn("E05", feed("MOCK-004"))    # контроль транзита через Турцию — у металлурга ВЭД с Китаем
+            self.assertIn("E03", feed("MOCK-004"))       # рубль к доллару — экспортёру
+            self.assertIn("E03", feed("MOCK-006"))       # и импортёру
+
+    def test_quality_on_prompt_engineer_set(self):
+        from agent.config import REPO_ROOT
+        from agent.evaluate import evaluate
+        path = REPO_ROOT / "llm" / "eval" / "for_agent" / "prompt_selection_set.json"
+        if not path.exists():
+            self.skipTest("нет набора llm/eval/for_agent")
+        with tempfile.TemporaryDirectory() as d:
+            s = evaluate(path, settings=_settings(d))["summary"]
+        # 23.10: P 0.96, R 0.96, nDCG 0.96 (до правок по её отчёту — 0.86 / 0.88 / 0.91)
+        self.assertGreaterEqual(s["P@k"], 0.9)
+        self.assertGreaterEqual(s["R@k"], 0.9)
+
     def test_quality_on_labeled_set(self):
         from agent.evaluate import evaluate
         with tempfile.TemporaryDirectory() as d:
