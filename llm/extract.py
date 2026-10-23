@@ -19,7 +19,7 @@ from .client import MODELS, CompleteFn, LLMCallError, call_json
 from .prompts.extract_event_examples import EXAMPLES
 from .schemas import EventExtraction, EventExtractionLLM
 
-PROMPT_VERSION = "extract_event@v3"
+PROMPT_VERSION = "extract_event@v4"
 SYSTEM = (Path(__file__).parent / "prompts" / "extract_event.system.md").read_text(encoding="utf-8")
 MAX_TEXT_CHARS = 6000   # длиннее режем: экономия токенов, суть обычно в начале
 

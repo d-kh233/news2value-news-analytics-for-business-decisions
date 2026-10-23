@@ -270,3 +270,15 @@ class TestExtractClean(unittest.TestCase):
         self.assertEqual(len(ev.factor_moves), 1)
         self.assertEqual(ev.factor_moves[0].strength.value, "high")
         self.assertEqual(ev.regions, ["Подмосковье"])
+
+
+class TestProfileFields(unittest.TestCase):
+    def test_profile_lists_visible(self):
+        from llm.insight import company_facts
+        f = company_facts({"mainokved_code": "24.10", "raw_materials": ["железная руда", "кокс"],
+                           "key_clients": [], "currency_risks": ["CNY"], "manual_data": {"KEY_SUPPLIERS": ["ООО Руда"]}})
+        txt = {x["id"]: x["text"] for x in f}
+        self.assertEqual(txt["F:RAW_MATERIALS"], "Ключевое сырьё и материалы: железная руда, кокс")
+        self.assertIn("F:CURRENCY_RISKS", txt)
+        self.assertIn("F:KEY_SUPPLIERS", txt)
+        self.assertNotIn("F:KEY_CLIENTS", txt)  # пустой список не показываем

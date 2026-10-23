@@ -53,6 +53,11 @@ FEATURES = [
     ("FTS_FLAG", "Ведёт внешнеэкономическую деятельность (есть в базе ФТС)"),
     ("FTS_COUNTRY_NAME", "Страны ВЭД по данным ФТС (экспорт или импорт — в данных не указано)"),
     ("GROUP_ID", "Входит в группу компаний"),
+    # поля профиля (CompanyProfile бэкенда / agent): по ним агент ищет новости, модель должна их видеть
+    ("RAW_MATERIALS", "Ключевое сырьё и материалы"),
+    ("KEY_SUPPLIERS", "Ключевые поставщики"),
+    ("KEY_CLIENTS", "Ключевые клиенты"),
+    ("CURRENCY_RISKS", "Валютные риски"),
 ]
 FLAGS = {k for k, _ in FEATURES if k.endswith("_MARK") or k == "FTS_FLAG"}
 EMPTY = {"", "nan", "none", "null", "не определено"}
@@ -80,6 +85,8 @@ def company_facts(company: Mapping) -> list[dict]:
     facts = []
     for key, label in FEATURES:
         v = _get(company, key)
+        if isinstance(v, (list, tuple, set)):
+            v = ", ".join(str(x).strip() for x in v if str(x).strip())
         if v is None or str(v).strip().lower() in EMPTY:
             continue
         if key in FLAGS:
@@ -183,9 +190,11 @@ def check_sources(allowed: set[str]):
         bad = sorted(s for s in ins.all_source_ids() if s not in allowed)
         if bad:
             raise ValueError(f"Ссылки на несуществующие источники: {bad}. Допустимы только: {sorted(allowed)}")
-        if not ins.company_features_used and not any(
-                s[:2] in ("F:", "P:", "G:") for st in ins.why_it_matters for s in st.source_ids):
-            raise ValueError("В why_it_matters нет опоры на признаки компании (F:/P:/G:). Объясни связь с этой компанией.")
+        loose = [i for i, st in enumerate(ins.why_it_matters)
+                 if not any(s[:2] in ("F:", "P:", "G:") for s in st.source_ids)]
+        if loose:
+            raise ValueError(f"Утверждения why_it_matters {loose} не опираются на признаки компании (F:/P:/G:). "
+                             "Свяжи каждое с конкретным признаком или убери.")
     return check
 
 

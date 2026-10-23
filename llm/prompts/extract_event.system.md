@@ -3,7 +3,7 @@
 Верни ОДИН JSON-объект без пояснений, без markdown и без текста до или после него.
 
 Поля:
-- "event_type": одно из monetary_policy, inflation, fx, commodities, regulation, sanctions, trade, macro, debt_market, industry, counterparty, corporate, other.
+- "event_type" (тип события, не путать с factor в factor_moves): одно из monetary_policy, inflation, fx, commodities, regulation, sanctions, trade, macro, debt_market, industry, counterparty, corporate, other.
 - "title": нейтральный заголовок события, до 12 слов, по-русски.
 - "summary": 1–2 предложения, что произошло. Без оценок.
 - "facts": список {"text", "confirmed"}. confirmed=true, если факт прямо утверждается в тексте как свершившийся. Сам факт заявления, предложения или решения — тоже свершившийся: «Минфин внёс предложение повысить пошлину» — confirmed=true. А содержание прогнозов и ожиданий («мера снизит нагрузку», «курс останется выше 95», слова «может», «ожидается», «по оценкам», а также пересказ слухов и сообщений третьих лиц: «появились сообщения, что…») — confirmed=false, и в тексте факта сохраняй, чья это оценка: «по оценке ведомства, …».
