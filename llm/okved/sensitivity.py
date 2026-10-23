@@ -1,11 +1,14 @@
 """
 Карта «ОКВЭД → чувствительность к макрофакторам» и расчёт влияния события на компанию.
 
-Колонки okved_sensitivity.csv (черновик, проверяет аналитик):
-  key_rate, inflation, labor_market, sanctions_trade  — 0..3, рост фактора вредит
-  consumer_demand                                     — 0..3, рост фактора помогает
-  usd_rub, oil_gas, metals, agri, gold                — −2..+2, эффект РОСТА фактора
-                                                        (usd_rub up = рубль слабеет; + у экспортёров)
+Колонки okved_sensitivity.csv (проверено аналитиком 22.10):
+  key_rate, usd_rub, oil_gas, metals, agri, gold,
+  inflation, consumer_demand, labor_market           — −3..+3, эффект РОСТА фактора для отрасли
+                                                        (минус — вредит, плюс — помогает;
+                                                        usd_rub up = рубль слабеет; у банков key_rate > 0)
+  sanctions_trade                                    — 0..3, уязвимость к ужесточению санкций и ВЭД
+                                                        (знак не важен: ужесточение всегда вредит)
+  Код ОКВЭД может быть без ведущего нуля (Excel) — добиваем до двух знаков.
 
 Использование в ранжировании (тимлид):
     from llm.okved.sensitivity import macro_impact
@@ -23,10 +26,9 @@ from typing import Iterable, Mapping
 
 CSV_PATH = Path(__file__).with_name("okved_sensitivity.csv")
 
-HARM_ON_UP = {"key_rate", "inflation", "labor_market", "sanctions_trade"}
-HELP_ON_UP = {"consumer_demand"}
-SIGNED = {"usd_rub", "oil_gas", "metals", "agri", "gold"}
-FACTORS = HARM_ON_UP | HELP_ON_UP | SIGNED
+EXPOSURE = {"sanctions_trade"}   # уязвимость: рост фактора вредит пропорционально |значению|
+SIGNED = {"key_rate", "usd_rub", "oil_gas", "metals", "agri", "gold", "inflation", "consumer_demand", "labor_market"}
+FACTORS = EXPOSURE | SIGNED
 
 DIR = {"up": 1.0, "down": -1.0, "unchanged": 0.0, "uncertain": 0.0}
 STRENGTH = {"low": 0.5, "medium": 1.0, "high": 1.5}
@@ -48,7 +50,7 @@ def load_map() -> dict[str, dict]:
             rec = {"name": row["name"], "note": row.get("note") or ""}
             for k in FACTORS:
                 rec[k] = float(row[k])
-            out[row["okved2"]] = rec
+            out[row["okved2"].strip().split(".")[0].zfill(2)] = rec
     return out
 
 
@@ -101,12 +103,7 @@ def macro_impact(factor_moves: Iterable, company: Mapping) -> dict:
         s = STRENGTH.get(getattr(fm["strength"], "value", fm["strength"]), 1.0)
         k, extra_src = mult.get(f, (1.0, []))
         sens = row[f]
-        if f in HARM_ON_UP:
-            effect = -sens * d
-        elif f in HELP_ON_UP:
-            effect = sens * d
-        else:
-            effect = sens * d
+        effect = -abs(sens) * d if f in EXPOSURE else sens * d
         effect *= s * k
         magnitude = abs(effect) if d else abs(sens) * s * k * NO_MOVE_RELEVANCE.get(dname, 0.3)
         if magnitude == 0:

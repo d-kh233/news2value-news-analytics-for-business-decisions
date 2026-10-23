@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Optional
+from typing import Any, Callable, Iterable, Mapping, Optional
 
 from .backend_adapter import PROMPT_VERSION, SourceResolver, to_backend_insight
 from .client import MODELS, CompleteFn, call_json
@@ -175,12 +175,12 @@ def build_context(event: EventExtraction, news_text: str, company: Mapping,
     return msg, allowed, impact
 
 
-def _system(role: str) -> str:
+def system_prompt(role: str = DEFAULT_ROLE) -> str:
     guide = "\n".join(f"- {k}: {v}" for k, v in ROLES.items())
     return SYSTEM_TEMPLATE.replace("{role_guide}", guide)
 
 
-def _check_sources(allowed: set[str]):
+def check_sources(allowed: set[str]):
     def check(ins: Insight) -> None:
         bad = sorted(s for s in ins.all_source_ids() if s not in allowed)
         if bad:
@@ -191,13 +191,27 @@ def _check_sources(allowed: set[str]):
     return check
 
 
+# старые имена — чтобы код агента (agent/generator.py) работал без правок
+_system = system_prompt
+_check_sources = check_sources
+
+
 def interpret(event: EventExtraction, news_text: str, company: Mapping, *, counterparties=(), bank_chunks=(),
               related_news=(), role: str = DEFAULT_ROLE, complete: Optional[CompleteFn] = None,
-              model: Optional[str] = None, trace: Optional[list] = None) -> tuple[Insight, dict]:
+              model: Optional[str] = None, trace: Optional[list] = None,
+              extra_check: Optional[Callable[[Insight], None]] = None) -> tuple[Insight, dict]:
+    """extra_check(ins) — доп. проверка агента; бросает ValueError, модель увидит текст и исправит ответ."""
     user, allowed, impact = build_context(event, news_text, company, counterparties, bank_chunks, related_news, role)
-    msgs = [{"role": "system", "content": _system(role)}, {"role": "user", "content": user}]
+    msgs = [{"role": "system", "content": system_prompt(role)}, {"role": "user", "content": user}]
+    base = check_sources(allowed)
+
+    def post_check(ins: Insight) -> None:
+        base(ins)
+        if extra_check is not None:
+            extra_check(ins)
+
     ins = call_json(Insight, msgs, model=model or MODELS["smart"], complete=complete, trace=trace,
-                    post_check=_check_sources(allowed), temperature=0.2, max_tokens=2500)
+                    post_check=post_check, temperature=0.2, max_tokens=2500)
     if trace is not None:
         trace.append({"step": "interpret", "prompt_version": PROMPT_VERSION, "role": role,
                       "macro_impact": {"score": impact["score"], "sign": impact["sign"]},

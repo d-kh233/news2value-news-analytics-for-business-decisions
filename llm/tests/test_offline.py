@@ -219,3 +219,42 @@ class TestInsight(unittest.TestCase):
         self.assertEqual(len(out["sources"]), 2)
         self.assertEqual(out["role"], "cfo")
         self.assertTrue(any(t.get("step") == "interpret" for t in trace))
+
+
+class TestExtraCheck(unittest.TestCase):
+    def test_extra_check_runs_in_repair_loop(self):
+        from llm.insight import interpret
+        from llm.schemas import EventExtraction
+        ev = EventExtraction(**EXAMPLES[0]["answer"], news_id="42")
+        calls = []
+
+        def no_long_headlines(ins):
+            calls.append(ins.headline)
+            if len(calls) == 1:
+                raise ValueError("Заголовок слишком общий")
+
+        fake = FakeLLM([json.dumps(GOOD_INSIGHT, ensure_ascii=False)] * 2)
+        interpret(ev, "текст", COMPANY, bank_chunks=BANK, complete=fake, model="fake2", extra_check=no_long_headlines)
+        self.assertEqual(len(fake.calls), 2)
+        self.assertIn("Заголовок слишком общий", fake.calls[1][-1]["content"])
+
+
+class TestAnalystMap(unittest.TestCase):
+    def test_signed_convention_and_leading_zero(self):
+        up = [{"factor": "key_rate", "direction": "up", "strength": "high"}]
+        self.assertIn("01", load_map())  # в файле аналитика «1», без нуля
+        self.assertEqual(macro_impact(up, {"MAINOKVED_CODE": "64.19"})["sign"], "opportunity")  # банки
+        self.assertEqual(macro_impact(up, {"MAINOKVED_CODE": "01.11"})["sign"], "risk")
+        sanc = [{"factor": "sanctions_trade", "direction": "up", "strength": "medium"}]
+        self.assertEqual(macro_impact(sanc, {"MAINOKVED_CODE": "06.10"})["sign"], "risk")
+
+
+class TestDedupMoves(unittest.TestCase):
+    def test_one_move_per_factor(self):
+        ans = dict(EXAMPLES[1]["answer"])
+        ans["factor_moves"] = ans["factor_moves"] + [
+            {"factor": "metals", "direction": "up", "strength": "high", "evidence": "дефицит"}]
+        fake = FakeLLM([json.dumps(ans, ensure_ascii=False)])
+        ev = extract_event({"id": "m1", "title": "медь", "text": "медь дорожает x"}, complete=fake, model="fake3")
+        self.assertEqual(len(ev.factor_moves), 1)
+        self.assertEqual(ev.factor_moves[0].strength.value, "high")

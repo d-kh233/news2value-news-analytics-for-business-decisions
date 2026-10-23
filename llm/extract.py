@@ -19,7 +19,7 @@ from .client import MODELS, CompleteFn, LLMCallError, call_json
 from .prompts.extract_event_examples import EXAMPLES
 from .schemas import EventExtraction, EventExtractionLLM
 
-PROMPT_VERSION = "extract_event@v1"
+PROMPT_VERSION = "extract_event@v2"
 SYSTEM = (Path(__file__).parent / "prompts" / "extract_event.system.md").read_text(encoding="utf-8")
 MAX_TEXT_CHARS = 6000   # длиннее режем: экономия токенов, суть обычно в начале
 
@@ -62,6 +62,14 @@ def extract_event(news: dict, complete: Optional[CompleteFn] = None, model: Opti
         model=model,
         prompt_version=PROMPT_VERSION,
     )
+    # один фактор — одна запись: оставляем самую сильную
+    rank = {"low": 0, "medium": 1, "high": 2}
+    best: dict = {}
+    for fm in ev.factor_moves:
+        k = fm.factor
+        if k not in best or rank[fm.strength.value] > rank[best[k].strength.value]:
+            best[k] = fm
+    ev.factor_moves = list(best.values())
     if len((news.get("text") or "")) > MAX_TEXT_CHARS and "truncated" not in ev.quality_flags:
         ev.quality_flags.append("truncated")
     if not ev.event_date and not ev.is_noise and "no_date" not in ev.quality_flags:
