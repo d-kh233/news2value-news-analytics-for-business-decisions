@@ -1,0 +1,129 @@
+{
+ "_comment": "Тестовый набор промпт-инженера (llm/eval/test_set.json): 16 синтетических новостей, разметка Gemma из прогона 23.10 в поле extraction. 2 — новость должна попасть в ленту компании. E01 и E02 (ставка вверх и вниз) противоречат друг другу намеренно: проверяем знак, а не сюжет. E11 (нефть), E12 (футбол), E13 (реклама) не должны попасть никому из MOCK-компаний.",
+ "as_of": "2026-10-24",
+ "period_days": 30,
+ "top_k": 5,
+ "news_file": "llm/eval/for_agent/prompt_eval_news.json",
+ "duplicates": [],
+ "cases": [
+  {
+   "company": "MOCK-001",
+   "profile_source": "csv",
+   "role": "ceo",
+   "relevant": {
+    "E01": 2,
+    "E02": 2,
+    "E05": 2,
+    "E06": 2
+   }
+  },
+  {
+   "company": "MOCK-001",
+   "profile_source": "csv",
+   "role": "cfo",
+   "relevant": {
+    "E01": 2,
+    "E02": 2,
+    "E05": 2,
+    "E06": 2
+   }
+  },
+  {
+   "company": "MOCK-002",
+   "profile_source": "csv",
+   "role": "ceo",
+   "relevant": {
+    "E01": 2,
+    "E02": 2,
+    "E08": 2,
+    "E10": 2,
+    "E15": 2
+   }
+  },
+  {
+   "company": "MOCK-002",
+   "profile_source": "csv",
+   "role": "cfo",
+   "relevant": {
+    "E01": 2,
+    "E02": 2,
+    "E08": 2,
+    "E10": 2,
+    "E15": 2
+   }
+  },
+  {
+   "company": "MOCK-003",
+   "profile_source": "csv",
+   "role": "ceo",
+   "relevant": {
+    "E07": 2,
+    "E08": 2
+   }
+  },
+  {
+   "company": "MOCK-004",
+   "profile_source": "csv",
+   "role": "ceo",
+   "relevant": {
+    "E01": 2,
+    "E02": 2,
+    "E03": 2,
+    "E04": 2,
+    "E14": 2
+   }
+  },
+  {
+   "company": "MOCK-004",
+   "profile_source": "csv",
+   "role": "cfo",
+   "relevant": {
+    "E01": 2,
+    "E02": 2,
+    "E03": 2,
+    "E04": 2,
+    "E14": 2
+   }
+  },
+  {
+   "company": "MOCK-005",
+   "profile_source": "csv",
+   "role": "ceo",
+   "relevant": {
+    "E09": 2,
+    "E16": 2
+   }
+  },
+  {
+   "company": "MOCK-005",
+   "profile_source": "csv",
+   "role": "accountant",
+   "relevant": {
+    "E09": 2,
+    "E16": 2
+   }
+  },
+  {
+   "company": "MOCK-006",
+   "profile_source": "csv",
+   "role": "ceo",
+   "relevant": {
+    "E01": 2,
+    "E02": 2,
+    "E03": 2,
+    "E05": 2
+   }
+  },
+  {
+   "company": "MOCK-006",
+   "profile_source": "csv",
+   "role": "cfo",
+   "relevant": {
+    "E01": 2,
+    "E02": 2,
+    "E03": 2,
+    "E05": 2
+   }
+  }
+ ]
+}
