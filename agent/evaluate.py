@@ -3,6 +3,12 @@
 Для каждого случая «компания × роль» прогоняет агента (режим stub — модель не вызывается, отбор и
 скоринг те же, что в бою) и сравнивает ленту с разметкой.
 
+Новости — agent/data/mock_news.json или свой файл: поле "news_file" в наборе (путь от корня репозитория).
+В stub-режиме разметка не вызывается, поэтому у каждой новости должно быть поле "extraction" —
+объект EventExtraction (event_type, factor_moves, okved_hints, regions, countries…), например из
+прогона промпт-инженера на модели. Компании — "profile_source": "csv" (agent/data/df_Uid_data_mock.csv
+или COMPANIES_CSV) либо "backend_mocks" (data/mocks).
+
 Метрики на ленте из top_k карточек:
   P@k     — доля уместных (оценка ≥ 1) среди показанных;
   R@k     — доля обязательных (оценка 2), которые попали в ленту;
@@ -46,7 +52,14 @@ def evaluate(set_path: str | Path = DEFAULT_SET, settings: Settings | None = Non
     spec = json.loads(Path(set_path).read_text(encoding="utf-8"))
     base = settings or Settings.from_env()
     s = replace(base, llm_mode="stub", today=spec["as_of"], top_k_news=spec.get("top_k", base.top_k_news))
-    orch = Orchestrator(s)
+    provider = None
+    if spec.get("news_file"):
+        news = json.loads((REPO_ROOT / spec["news_file"]).read_text(encoding="utf-8"))
+        unlabeled = [n.get("id") for n in news if "extraction" not in n]
+        if unlabeled:
+            raise ValueError(f"{spec['news_file']}: нет поля extraction у {unlabeled[:5]} — в stub-режиме разметки нет")
+        provider = lambda cid, period: news  # noqa: E731
+    orch = Orchestrator(s, news_provider=provider)
     backend = _backend_profiles()
     dup_pairs = [tuple(p) for p in spec.get("duplicates", [])]
     k = s.top_k_news

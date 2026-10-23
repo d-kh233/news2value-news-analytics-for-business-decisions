@@ -14,16 +14,16 @@ from llm.insight import DEFAULT_ROLE, ROLES as ROLE_FOCUS
 _FACTOR_W: dict[str, dict[str, float]] = {
     "owner": {},
     "ceo": {"consumer_demand": 1.2},
-    "cfo": {"key_rate": 1.3, "usd_rub": 1.3, "inflation": 1.1},
-    "treasurer": {"key_rate": 1.3, "usd_rub": 1.4},
+    "cfo": {"key_rate": 1.6, "usd_rub": 1.5, "inflation": 1.1},
+    "treasurer": {"key_rate": 1.6, "usd_rub": 1.6},
     "accountant": {"sanctions_trade": 1.3, "labor_market": 1.1},
     "procurement": {"usd_rub": 1.2, "oil_gas": 1.3, "metals": 1.3, "agri": 1.3, "sanctions_trade": 1.2},
 }
 _EVENT_W: dict[str, dict[str, float]] = {
     "owner": {"corporate": 1.3, "counterparty": 1.2, "sanctions": 1.2, "regulation": 1.1},
     "ceo": {"industry": 1.2, "corporate": 1.2, "counterparty": 1.2, "macro": 1.1},
-    "cfo": {"monetary_policy": 1.2, "debt_market": 1.3, "fx": 1.2},
-    "treasurer": {"monetary_policy": 1.3, "debt_market": 1.3, "fx": 1.3},
+    "cfo": {"monetary_policy": 1.5, "debt_market": 1.5, "fx": 1.3},
+    "treasurer": {"monetary_policy": 1.5, "debt_market": 1.5, "fx": 1.4},
     "accountant": {"regulation": 1.6, "sanctions": 1.2, "trade": 1.2,
                    "monetary_policy": 0.8, "commodities": 0.7, "fx": 0.9},
     "procurement": {"commodities": 1.3, "trade": 1.3, "sanctions": 1.2, "counterparty": 1.2, "fx": 1.1},

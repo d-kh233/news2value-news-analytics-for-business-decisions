@@ -28,6 +28,7 @@ from .schemas import CompanyProfile, NewsItem
 WEIGHTS = {"link": 0.50, "both": 0.10, "sim": 0.10, "event_type": 0.15, "freshness": 0.15}
 INDUSTRY_LINK = 0.85
 REGION_LINK = 0.6
+MACRO_SCALE = 5.0          # величина влияния, при которой macro ≈ 0.63
 ENTITY_LINK = 0.8          # × вес сущности: страна/сырьё/контрагент 1.0, подсказка по продукту 0.5
 EVENT_TYPE_WEIGHT = {   # значения llm.schemas.EventType
     "monetary_policy": 1.0, "counterparty": 1.0, "regulation": 0.9, "sanctions": 0.9, "corporate": 0.9,
@@ -64,11 +65,11 @@ def score_news(profile: CompanyProfile, news: NewsItem, period_days: int, today:
     etype = ev.event_type.value
 
     mi = macro_impact(ev.factor_moves, profile.row)
-    macro = mi["score"] / 100
-    if mi["why"] and role.factor_weight:
-        total = sum(w["magnitude"] for w in mi["why"]) or 1.0
-        k = sum(w["magnitude"] * role.factor_weight.get(w["factor"], 1.0) for w in mi["why"]) / total
-        macro = min(1.0, macro * k)
+    # Счёт macro_impact упирается в 100: на решении по ставке у застройщика с кредитом и у IT без
+    # кредита одинаково 100, ранжировать нечем. Берём сумму величин влияния (с весами роли) и
+    # насыщаем плавно: 2 → 0.33, 4.5 → 0.59, 6 → 0.70, 11 → 0.89.
+    total = sum(w["magnitude"] * role.factor_weight.get(w["factor"], 1.0) for w in mi["why"])
+    macro = 1 - math.exp(-total / MACRO_SCALE)
 
     industry = bool(profile.okved2 and profile.okved2 in ev.okved_hints)
     region = bool(profile.region and any(_same_region(r, profile.region) for r in ev.regions))

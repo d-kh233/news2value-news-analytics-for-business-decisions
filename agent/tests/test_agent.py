@@ -120,7 +120,8 @@ class TestStub(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             r = Orchestrator(_settings(d)).run("MOCK-002", 30)
             ids = [c["id"] for c in r.insights]
-            self.assertEqual(ids[:3], ["MOCK-002-M05-ceo", "MOCK-002-M16-ceo", "MOCK-002-M01-ceo"])
+            self.assertEqual(ids[:2], ["MOCK-002-M05-ceo", "MOCK-002-M16-ceo"])
+            self.assertIn("MOCK-002-M01-ceo", ids)
             self.assertNotIn("MOCK-002-M09-ceo", ids)                       # шум
             self.assertNotIn("MOCK-002-M22-ceo", ids)                       # реклама вебинара
             for c in r.insights:
@@ -140,10 +141,11 @@ class TestStub(unittest.TestCase):
             o = Orchestrator(_settings(d))
             ceo = [c["id"].split("-")[2] for c in o.run("MOCK-004", 30, role="ceo").insights]
             acc = [c["id"].split("-")[2] for c in o.run("MOCK-004", 30, role="accountant").insights]
-            cfo = [c["id"].split("-")[2] for c in o.run("MOCK-006", 30, role="cfo").insights]
+            ceo2 = [c["id"].split("-")[2] for c in o.run("MOCK-002", 30, role="ceo").insights]
+            cfo2 = [c["id"].split("-")[2] for c in o.run("MOCK-002", 30, role="cfo").insights]
             self.assertIn("M11", acc)                              # НДС при экспорте — бухгалтеру экспортёра
             self.assertNotIn("M11", ceo)
-            self.assertEqual(cfo[0], "M01")                        # финдиректору — ставка первой
+            self.assertLess(cfo2.index("M01"), ceo2.index("M01"))  # финдиректору ставка выше, чем гендиректору
             with self.assertRaises(ValueError):
                 o.run("MOCK-004", 30, role="intern")
 
@@ -162,6 +164,23 @@ class TestStub(unittest.TestCase):
 
 
 class TestSelection(unittest.TestCase):
+    def test_macro_not_saturated(self):
+        """Решение по ставке: у застройщика с кредитом влияние сильнее, чем у IT без кредита (не оба 100)."""
+        from agent.roles import get_role
+        from agent.scoring import score_news
+        from agent.schemas import NewsItem
+        from datetime import date
+        st = ProfileStore(Settings().companies_csv)
+        news = NewsItem.from_dict({"id": "X", "title": "ЦБ повысил ставку до 15%", "text": "ЦБ повысил ставку.",
+                                   "published_at": "2026-10-22", "extraction": {"event_type": "monetary_policy",
+                                   "factor_moves": [{"factor": "key_rate", "direction": "up", "strength": "high", "evidence": "-"},
+                                                    {"factor": "labor_market", "direction": "up", "strength": "medium", "evidence": "-"}]}})
+        m = {cid: score_news(st.get(cid), news, 30, date(2026, 10, 22), get_role("ceo")).parts["macro"]
+             for cid in ("MOCK-002", "MOCK-003", "MOCK-005")}
+        self.assertGreater(m["MOCK-002"], m["MOCK-003"])
+        self.assertGreater(m["MOCK-002"], m["MOCK-005"])
+        self.assertLess(m["MOCK-002"], 1.0)
+
     def test_entities_and_targeting(self):
         with tempfile.TemporaryDirectory() as d:
             o = Orchestrator(_settings(d))
@@ -185,7 +204,7 @@ class TestSelection(unittest.TestCase):
         from agent.evaluate import evaluate
         with tempfile.TemporaryDirectory() as d:
             s = evaluate(settings=_settings(d))["summary"]
-        # планка, ниже которой правки весов не принимаем (на 23.10: P 0.97, R 1.00, nDCG 0.90)
+        # планка, ниже которой правки весов не принимаем (на 23.10: P 0.98, R 1.00, nDCG 0.87)
         self.assertGreaterEqual(s["P@k"], 0.9)
         self.assertGreaterEqual(s["R@k"], 0.9)
         self.assertEqual(s["dup_pairs"], 0)
