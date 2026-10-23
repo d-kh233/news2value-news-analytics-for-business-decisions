@@ -26,11 +26,14 @@ from .generator import InsightContext, generate, to_backend
 from .profiles import ProfileStore
 from .roles import Role, get_role
 from .schemas import AgentResult, CompanyProfile, NewsItem, TraceStep
-from .scoring import ScoreBreakdown, explain, score_news
+from .entities import company_terms
+from .retrieval import BM25, jaccard
+from .scoring import ScoreBreakdown, company_query, explain, score_news
 from .tools import NewsProvider, Tools
 
 MAX_PERIOD_DAYS = 90
 MACRO_FALLBACK_N = 2
+DUP_JACCARD = 0.35      # общая доля основ заголовка+текста, выше — считаем перепечаткой одного события
 
 
 class CompanyNotFound(LookupError):
@@ -89,26 +92,31 @@ class Orchestrator:
             st.output = {"plan": plan}
 
         news, period_used = self._retrieve(trace, cid, period_days)
-        self._extract_missing(trace, news, gw, llm_trace)
+        terms = company_terms(profile.row)
+        sims = self._prefilter(trace, profile, news, terms)
+        self._extract_missing(trace, news, sims, gw, llm_trace)
 
         with self._step(trace, "Скоринг и отбор", "score_news", n_candidates=len(news), top_k=top_k,
                         min_relevance=self.s.min_relevance, role=r.key) as st:
-            ranked = sorted(((n, score_news(profile, n, period_used, self.today, r)) for n in news),
-                            key=lambda x: -x[1].score)
-            selected = [(n, b) for n, b in ranked if b.score >= self.s.min_relevance][:top_k]
+            ranked = sorted(((n, score_news(profile, n, period_used, self.today, r, terms, sims.get(n.news_id, 0.0)))
+                             for n in news), key=lambda x: -x[1].score)
+            selected, dups = self._select(ranked, top_k)
             if not selected:
                 # без ОКВЭД или в тихий период: общие макрособытия (ставка ЦБ первой), с пометкой
                 macro = [(n, b) for n, b in ranked if n.event and not n.event.is_noise
                          and not n.event.okved_hints and n.event.factor_moves]
                 macro.sort(key=lambda x: (x[0].event.event_type.value == "monetary_policy", x[0].published_at),
                            reverse=True)
-                selected = macro[:MACRO_FALLBACK_N]
+                selected, more = self._select(macro, MACRO_FALLBACK_N, min_score=0.0)
+                dups.update(more)
                 st.status = "fallback" if selected else "skipped"
                 st.note = ("ни одна новость не прошла порог; показаны общие макрособытия" if selected
                            else "ни одна новость не прошла порог релевантности")
             chosen = {n.news_id for n, _ in selected}
             st.output = [{"news_id": n.news_id, "title": n.title, "score": b.score, "parts": b.parts,
-                          "macro_sign": b.macro.get("sign"), "selected": n.news_id in chosen} for n, b in ranked]
+                          "macro_sign": b.macro.get("sign"), "entities": [t.text for t in b.entities],
+                          "selected": n.news_id in chosen, "duplicate_of": dups.get(n.news_id)}
+                         for n, b in ranked]
 
         insights = [self._analyze(trace, gw, llm_trace, profile, n, b, r, run_id) for n, b in selected]
 
@@ -145,8 +153,37 @@ class Orchestrator:
                 return news, period
             period = min(period * 2, MAX_PERIOD_DAYS)   # повторный поиск с расширенным окном
 
-    def _extract_missing(self, trace: list[TraceStep], news: list[NewsItem], gw: Gateway, llm_trace: list) -> None:
-        todo = [n for n in news if n.event is None]
+    def _prefilter(self, trace: list[TraceStep], profile: CompanyProfile, news: list[NewsItem],
+                   terms: list) -> dict[str, float]:
+        """Дешёвый первый этап до вызова модели: близость к профилю (BM25) и упоминание сущностей.
+        По нему выбираются неразмеченные новости, которые стоит отдать на разметку (она платная)."""
+        with self._step(trace, "Отбор кандидатов", "prefilter", n=len(news), n_terms=len(terms)) as st:
+            query = company_query(profile)
+            raw = BM25([f"{n.title}. {n.text}" for n in news]).scores(query) if news and query else []
+            top = max(raw, default=0.0) or 1.0
+            sims = {n.news_id: round(x / top, 3) for n, x in zip(news, raw)}
+            st.output = {"query": query, "terms": [f"{t.text} ({t.source_id})" for t in terms],
+                         "top_similar": sorted(sims.items(), key=lambda x: -x[1])[:5]}
+        return sims
+
+    def _select(self, ranked: list, k: int, min_score: float | None = None) -> tuple[list, dict[str, str]]:
+        """Top-k с порогом и подавлением дублей: одно событие от двух изданий — одна карточка."""
+        thr = self.s.min_relevance if min_score is None else min_score
+        chosen: list = []
+        dups: dict[str, str] = {}
+        for n, b in ranked:
+            if b.score < thr or len(chosen) >= k:
+                continue
+            twin = next((c for c, _ in chosen if jaccard(f"{n.title} {n.text}", f"{c.title} {c.text}") >= DUP_JACCARD), None)
+            if twin is not None:
+                dups[n.news_id] = twin.news_id
+                continue
+            chosen.append((n, b))
+        return chosen, dups
+
+    def _extract_missing(self, trace: list[TraceStep], news: list[NewsItem], sims: dict[str, float],
+                         gw: Gateway, llm_trace: list) -> None:
+        todo = sorted((n for n in news if n.event is None), key=lambda n: -sims.get(n.news_id, 0.0))
         if not todo:
             return
         with self._step(trace, "Разметка новостей", "extract_event", n=len(todo)) as st:

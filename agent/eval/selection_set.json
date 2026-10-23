@@ -1,0 +1,174 @@
+{
+ "_comment": "ЧЕРНОВАЯ разметка тимлида 23.10 для проверки отбора на моковых новостях agent/data/mock_news.json. Оценки: 2 — должна попасть в ленту, 1 — уместна, отсутствует — лишняя. M21 — перепечатка M01 (в ленте не должно быть обеих), M09 и M22 — шум, M10 — вне периода. Аналитик проверяет в сб; тестовый набор промпт-инженера добавляется сюда в том же формате.",
+ "as_of": "2026-10-22",
+ "period_days": 30,
+ "top_k": 5,
+ "duplicates": [
+  [
+   "M01",
+   "M21"
+  ]
+ ],
+ "cases": [
+  {
+   "company": "MOCK-001",
+   "profile_source": "csv",
+   "role": "ceo",
+   "relevant": {
+    "M06": 2,
+    "M14": 2,
+    "M19": 2,
+    "M01": 1,
+    "M02": 1,
+    "M11": 1
+   }
+  },
+  {
+   "company": "MOCK-002",
+   "profile_source": "csv",
+   "role": "ceo",
+   "relevant": {
+    "M05": 2,
+    "M16": 2,
+    "M01": 2,
+    "M03": 1,
+    "M17": 1,
+    "M12": 1
+   }
+  },
+  {
+   "company": "MOCK-003",
+   "profile_source": "csv",
+   "role": "ceo",
+   "relevant": {
+    "M04": 2,
+    "M01": 1,
+    "M02": 1,
+    "M12": 1
+   }
+  },
+  {
+   "company": "MOCK-004",
+   "profile_source": "csv",
+   "role": "ceo",
+   "relevant": {
+    "M13": 2,
+    "M03": 2,
+    "M01": 2,
+    "M02": 1,
+    "M17": 1,
+    "M11": 1,
+    "M08": 1
+   }
+  },
+  {
+   "company": "MOCK-004",
+   "profile_source": "csv",
+   "role": "accountant",
+   "relevant": {
+    "M11": 2,
+    "M13": 2,
+    "M01": 1,
+    "M03": 1,
+    "M12": 1,
+    "M02": 1,
+    "M08": 1,
+    "M17": 1
+   }
+  },
+  {
+   "company": "MOCK-005",
+   "profile_source": "csv",
+   "role": "ceo",
+   "relevant": {
+    "M07": 2,
+    "M24": 2,
+    "M12": 1,
+    "M01": 1
+   }
+  },
+  {
+   "company": "MOCK-005",
+   "profile_source": "csv",
+   "role": "accountant",
+   "relevant": {
+    "M24": 2,
+    "M12": 2,
+    "M07": 1,
+    "M01": 1
+   }
+  },
+  {
+   "company": "MOCK-006",
+   "profile_source": "csv",
+   "role": "ceo",
+   "relevant": {
+    "M02": 2,
+    "M15": 2,
+    "M01": 2,
+    "M11": 1
+   }
+  },
+  {
+   "company": "MOCK-006",
+   "profile_source": "csv",
+   "role": "cfo",
+   "relevant": {
+    "M01": 2,
+    "M02": 2,
+    "M15": 1,
+    "M21": 1,
+    "M23": 1
+   }
+  },
+  {
+   "company": "c-001",
+   "profile_source": "backend_mocks",
+   "role": "ceo",
+   "relevant": {
+    "M17": 2,
+    "M03": 2,
+    "M15": 2,
+    "M01": 1,
+    "M02": 1,
+    "M13": 1
+   }
+  },
+  {
+   "company": "c-001",
+   "profile_source": "backend_mocks",
+   "role": "procurement",
+   "relevant": {
+    "M17": 2,
+    "M15": 2,
+    "M03": 2,
+    "M02": 1,
+    "M13": 1
+   }
+  },
+  {
+   "company": "c-002",
+   "profile_source": "backend_mocks",
+   "role": "ceo",
+   "relevant": {
+    "M18": 2,
+    "M19": 2,
+    "M23": 2,
+    "M01": 1,
+    "M12": 1
+   }
+  },
+  {
+   "company": "c-003",
+   "profile_source": "backend_mocks",
+   "role": "ceo",
+   "relevant": {
+    "M04": 2,
+    "M20": 2,
+    "M01": 1,
+    "M02": 1,
+    "M12": 1
+   }
+  }
+ ]
+}

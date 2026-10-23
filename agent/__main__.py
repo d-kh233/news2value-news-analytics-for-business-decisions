@@ -5,6 +5,7 @@
   python -m agent companies                                  # компании из COMPANIES_CSV
   python -m agent inspect-csv data/raw/df_Uid_data_hack.csv  # что увидит модель по реальному файлу
   python -m agent roles
+  python -m agent eval                                       # качество отбора на размеченном наборе
 """
 from __future__ import annotations
 
@@ -53,6 +54,9 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--json", action="store_true", help="полный JSON прогона вместо краткого вида")
     sub.add_parser("companies")
     sub.add_parser("roles")
+    ev = sub.add_parser("eval")
+    ev.add_argument("--set", default=None, help="по умолчанию agent/eval/selection_set.json")
+    ev.add_argument("--json", action="store_true")
     ic = sub.add_parser("inspect-csv")
     ic.add_argument("path")
     a = ap.parse_args(argv)
@@ -69,6 +73,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     s = Settings.from_env()
+    if a.cmd == "eval":
+        from .evaluate import DEFAULT_SET, evaluate, print_report
+        res = evaluate(a.set or DEFAULT_SET, s)
+        print(json.dumps(res, ensure_ascii=False, indent=2) if a.json else "", end="")
+        if not a.json:
+            print_report(res)
+        return 0
     if a.cmd == "companies":
         print(json.dumps(ProfileStore(s.companies_csv).list_brief(1000), ensure_ascii=False, indent=2))
         return 0

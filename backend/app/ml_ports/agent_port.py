@@ -6,7 +6,8 @@
 Профиль компании для агента — строка с колонками df_Uid_data_hack:
   • компания из таблицы companies (SYNTHETIC_U) — строка БД как есть;
   • моковая или созданная через API компания — поля Company и CompanyProfile, ОКВЭД и флаги
-    продуктов берутся из manual_data, а если флагов нет — угадываются по тексту bank_products.
+    продуктов берутся из manual_data, а если флагов нет — угадываются по тексту bank_products;
+    сырьё, контрагенты и валютные риски из профиля идут в поиск сущностей.
 """
 
 import logging
@@ -18,18 +19,6 @@ logger = logging.getLogger(__name__)
 
 # Совпадает с llm/insight.py ROLES (тексты фокуса ролей — там)
 ROLES = ("owner", "ceo", "cfo", "treasurer", "accountant", "procurement")
-
-# Подсказки для профилей, введённых вручную: слово в bank_products -> флаг продукта из CSV банка
-_PRODUCT_HINTS = {
-    "CL_PRODUCT_LOA_MARK": ("кредит", "овердрафт", "займ"),
-    "CL_PRODUCT_LEA_MARK": ("лизинг",),
-    "CL_PRODUCT_DEP_MARK": ("депозит",),
-    "CL_PRODUCT_ZPP_MARK": ("зарплат",),
-    "CL_PRODUCT_GAR_MARK": ("гарант",),
-    "FACTORING_MARK": ("факторинг",),
-}
-_FX_HINTS = ("экспорт", "импорт", "юан", "доллар", "евро", "валют")
-
 
 def _ensure_repo_on_path() -> None:
     here = Path(__file__).resolve()
@@ -43,19 +32,10 @@ def _ensure_repo_on_path() -> None:
 
 def row_from_profile(company: dict[str, Any], profile: dict[str, Any]) -> dict[str, Any]:
     """Строка в формате df_Uid_data_hack из Company + CompanyProfile (моки и ручной ввод)."""
-    manual = {k.upper(): v for k, v in (profile.get("manual_data") or {}).items()}
-    products = " ".join(profile.get("bank_products") or []).lower()
-    fx = " ".join(profile.get("currency_risks") or []).lower()
-    row: dict[str, Any] = {
-        "SYNTHETIC_U": company["id"],
-        "MAINOKVED_NAME": profile.get("industry") or company.get("industry"),
-        "REGION": company.get("region"),
-    }
-    for flag, words in _PRODUCT_HINTS.items():
-        row[flag] = 1 if any(w in products for w in words) else 0
-    row["FTS_FLAG"] = 1 if any(w in fx for w in _FX_HINTS) else 0
-    row.update({k: v for k, v in manual.items() if v not in (None, "")})  # ручные данные главнее
-    return row
+    _ensure_repo_on_path()
+    from agent.profiles import row_from_backend_profile
+
+    return row_from_backend_profile(company, profile)
 
 
 def row_from_db(company_id: str) -> dict[str, Any] | None:

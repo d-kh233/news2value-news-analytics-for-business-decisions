@@ -1,8 +1,9 @@
 """Интерпретация одной пары «новость × компания × роль».
 
-Промпт, контекст и проверка источников — промпт-инженера (llm/insight.py). Сверху агент добавляет:
-  • строгую проверку (strict_check) прямо в цикл исправления call_json: модель видит ошибку и
-    переписывает ответ — числа в фактах только из новости, «банк» только со ссылкой на A:, «факт» — на N:;
+Промпт, контекст и проверка источников — промпт-инженера (llm.insight.interpret). Сверху агент добавляет:
+  • строгую проверку (strict_check, передаётся в interpret как extra_check) — она стоит в цикле
+    исправления call_json: модель видит ошибку и переписывает ответ — числа в фактах только из
+    новости, «банк» только со ссылкой на A:, «факт» — на N:;
   • правку после ответа (finalize): текст позиции банка заменяется дословным тезисом, id новости
     и компании выставляет код;
   • откат на правила, если модель недоступна или ответ так и не прошёл проверку.
@@ -15,8 +16,8 @@ import re
 from dataclasses import dataclass
 
 from llm.backend_adapter import to_backend_insight
-from llm.client import MODELS, LLMCallError, call_json
-from llm.insight import _check_sources, _system, build_context  # TODO(Лина): отдать extra_check в interpret()
+from llm.client import MODELS, LLMCallError
+from llm.insight import interpret
 from llm.okved.sensitivity import RU as FACTOR_RU
 from llm.schemas import Action, Consequence, Insight, Origin, Statement
 
@@ -89,20 +90,13 @@ def generate(ctx: InsightContext, gw: Gateway, use_smart: bool, llm_trace: list)
                                        "notes": ["новость не размечена — карточка собрана по правилам"]}
 
     model = MODELS["smart"] if use_smart else MODELS["fast"]
-    user, allowed, _impact = build_context(ctx.news.event, ctx.news.text, ctx.profile.row,
-                                           bank_chunks=[t.as_chunk() for t in ctx.theses], role=ctx.role.key)
-    msgs = [{"role": "system", "content": _system(ctx.role.key)}, {"role": "user", "content": user}]
-    their, ours = _check_sources(allowed), strict_check(ctx)
-
-    def post_check(ins: Insight) -> None:
-        their(ins)
-        ours(ins)
-
     n0 = len(llm_trace)
     meta: dict = {"path": "llm", "model": model}
     try:
-        ins = call_json(Insight, msgs, model=model, complete=gw.complete, trace=llm_trace,
-                        post_check=post_check, temperature=0.2, max_tokens=2500)
+        ins, _impact = interpret(ctx.news.event, ctx.news.text, ctx.profile.row,
+                                 bank_chunks=[t.as_chunk() for t in ctx.theses], role=ctx.role.key,
+                                 complete=gw.complete, model=model, trace=llm_trace,
+                                 extra_check=strict_check(ctx))
         notes = finalize(ins, ctx)
         fails = [x.get("error") for x in llm_trace[n0:] if x.get("ok") is False]
         if fails:

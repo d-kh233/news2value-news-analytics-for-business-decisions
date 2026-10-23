@@ -9,7 +9,7 @@ from __future__ import annotations
 import csv
 import io
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 from .schemas import CompanyProfile
 
@@ -75,3 +75,42 @@ class ProfileStore:
         return {"n_companies": len(self._profiles), "header": self.header,
                 "facts_of_first": sample.facts() if sample else {},
                 "okved_not_in_map": sorted({p.okved or "—" for p in self._profiles.values() if not p.okved2})[:20]}
+
+
+# ---------- профиль из бэкенда (моки и ручной ввод через API) ----------
+
+# слово в bank_products -> флаг продукта из CSV банка
+_PRODUCT_HINTS = {
+    "CL_PRODUCT_LOA_MARK": ("кредит", "овердрафт", "займ"),
+    "CL_PRODUCT_LEA_MARK": ("лизинг",),
+    "CL_PRODUCT_DEP_MARK": ("депозит",),
+    "CL_PRODUCT_ZPP_MARK": ("зарплат",),
+    "CL_PRODUCT_GAR_MARK": ("гарант",),
+    "FACTORING_MARK": ("факторинг",),
+}
+_FX_HINTS = ("экспорт", "импорт", "юан", "доллар", "евро", "валют")
+_PROFILE_LISTS = ("raw_materials", "key_clients", "key_suppliers", "currency_risks", "strategic_goals")
+
+
+def row_from_backend_profile(company: dict[str, Any], profile: dict[str, Any]) -> dict[str, Any]:
+    """Строка в формате df_Uid_data_hack из backend Company + CompanyProfile.
+
+    ОКВЭД и флаги продуктов — из manual_data; если флагов нет, они угадываются по тексту bank_products,
+    ВЭД — по валютным рискам. Списки профиля (сырьё, контрагенты, валюты) идут в поиск сущностей.
+    """
+    manual = {k.upper(): v for k, v in (profile.get("manual_data") or {}).items()}
+    products = " ".join(profile.get("bank_products") or []).lower()
+    fx = " ".join(profile.get("currency_risks") or []).lower()
+    row: dict[str, Any] = {
+        "SYNTHETIC_U": company["id"],
+        "MAINOKVED_NAME": profile.get("industry") or company.get("industry"),
+        "REGION": company.get("region"),
+    }
+    for flag, words in _PRODUCT_HINTS.items():
+        row[flag] = 1 if any(w in products for w in words) else 0
+    row["FTS_FLAG"] = 1 if any(w in fx for w in _FX_HINTS) else 0
+    for field in _PROFILE_LISTS:
+        if profile.get(field):
+            row[field.upper()] = list(profile[field])
+    row.update({k: v for k, v in manual.items() if v not in (None, "")})  # ручные данные главнее
+    return row

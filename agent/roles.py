@@ -30,6 +30,17 @@ _EVENT_W: dict[str, dict[str, float]] = {
 }
 
 
+# множители веса сущностей компании (entities.py): бухгалтеру важны экспорт/импорт и взносы,
+# закупкам — сырьё и поставщики, финансам — валюты обязательств
+_TERM_W: dict[str, dict[str, float]] = {
+    "accountant": {"F:FTS_FLAG": 2.0, "F:CL_PRODUCT_ZPP_MARK": 2.0},
+    "procurement": {"F:RAW_MATERIALS": 1.2, "F:KEY_SUPPLIERS": 1.2},
+    "cfo": {"F:CURRENCY_RISKS": 1.2},
+    "treasurer": {"F:CURRENCY_RISKS": 1.2},
+    "owner": {"F:KEY_CLIENTS": 1.2},
+}
+
+
 @dataclass(frozen=True)
 class Role:
     key: str
@@ -37,12 +48,14 @@ class Role:
     focus: str
     factor_weight: dict[str, float] = field(default_factory=dict)
     event_weight: dict[str, float] = field(default_factory=dict)
+    term_weight: dict[str, float] = field(default_factory=dict)
 
 
 ROLES: dict[str, Role] = {}
 for _k, _txt in ROLE_FOCUS.items():
     _title, _, _focus = _txt.partition(":")
-    ROLES[_k] = Role(_k, _title.strip(), _focus.strip(), _FACTOR_W.get(_k, {}), _EVENT_W.get(_k, {}))
+    ROLES[_k] = Role(_k, _title.strip(), _focus.strip(), _FACTOR_W.get(_k, {}), _EVENT_W.get(_k, {}),
+                     _TERM_W.get(_k, {}))
 
 
 def get_role(key: str | None) -> Role:

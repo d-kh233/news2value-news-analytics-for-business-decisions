@@ -120,8 +120,9 @@ class TestStub(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             r = Orchestrator(_settings(d)).run("MOCK-002", 30)
             ids = [c["id"] for c in r.insights]
-            self.assertEqual(ids[:2], ["MOCK-002-M05-ceo", "MOCK-002-M01-ceo"])
+            self.assertEqual(ids[:3], ["MOCK-002-M05-ceo", "MOCK-002-M16-ceo", "MOCK-002-M01-ceo"])
             self.assertNotIn("MOCK-002-M09-ceo", ids)                       # шум
+            self.assertNotIn("MOCK-002-M22-ceo", ids)                       # реклама вебинара
             for c in r.insights:
                 self.assertLessEqual(BACKEND_KEYS, set(c))
                 self.assertIn(c["type"], ("risk", "opportunity", "event"))
@@ -137,10 +138,11 @@ class TestStub(unittest.TestCase):
     def test_role_changes_feed(self):
         with tempfile.TemporaryDirectory() as d:
             o = Orchestrator(_settings(d))
-            ceo = [c["id"].split("-")[2] for c in o.run("MOCK-003", 30, role="ceo").insights]
-            acc = [c["id"].split("-")[2] for c in o.run("MOCK-003", 30, role="accountant").insights]
-            cfo = [c["id"].split("-")[2] for c in o.run("MOCK-004", 30, role="cfo").insights]
-            self.assertLess(acc.index("M08"), ceo.index("M08"))   # региональная субсидия — бухгалтеру выше
+            ceo = [c["id"].split("-")[2] for c in o.run("MOCK-004", 30, role="ceo").insights]
+            acc = [c["id"].split("-")[2] for c in o.run("MOCK-004", 30, role="accountant").insights]
+            cfo = [c["id"].split("-")[2] for c in o.run("MOCK-006", 30, role="cfo").insights]
+            self.assertIn("M11", acc)                              # НДС при экспорте — бухгалтеру экспортёра
+            self.assertNotIn("M11", ceo)
             self.assertEqual(cfo[0], "M01")                        # финдиректору — ставка первой
             with self.assertRaises(ValueError):
                 o.run("MOCK-004", 30, role="intern")
@@ -157,6 +159,36 @@ class TestStub(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             with self.assertRaises(CompanyNotFound):
                 Orchestrator(_settings(d)).run("NOPE", 30)
+
+
+class TestSelection(unittest.TestCase):
+    def test_entities_and_targeting(self):
+        with tempfile.TemporaryDirectory() as d:
+            o = Orchestrator(_settings(d))
+            feed = lambda cid, role="ceo": [c["id"].split("-")[2] for c in o.run(cid, 30, role=role).insights]  # noqa: E731
+            self.assertIn("M14", feed("MOCK-001"))        # Турция — страна ВЭД аграрной компании
+            self.assertIn("M15", feed("MOCK-006"))        # китайские станки — оптовику оборудования из Китая
+            self.assertNotIn("M13", feed("MOCK-003"))     # пошлины Китая на прокат — не рознице
+            self.assertNotIn("M20", feed("MOCK-003"))     # программа Новосибирской области — не Татарстану
+            self.assertNotIn("M18", feed("MOCK-001"))     # дефицит водителей на юге — не аграрию из того же края
+
+    def test_duplicates_suppressed(self):
+        with tempfile.TemporaryDirectory() as d:
+            r = Orchestrator(_settings(d)).run("MOCK-006", 30, role="cfo")
+            ids = [c["id"].split("-")[2] for c in r.insights]
+            self.assertIn("M01", ids)
+            self.assertNotIn("M21", ids)                  # перепечатка решения ЦБ
+            st = [t for t in r.trace if t.tool == "score_news"][0].output
+            self.assertEqual(next(x for x in st if x["news_id"] == "M21")["duplicate_of"], "M01")
+
+    def test_quality_on_labeled_set(self):
+        from agent.evaluate import evaluate
+        with tempfile.TemporaryDirectory() as d:
+            s = evaluate(settings=_settings(d))["summary"]
+        # планка, ниже которой правки весов не принимаем (на 23.10: P 0.97, R 1.00, nDCG 0.90)
+        self.assertGreaterEqual(s["P@k"], 0.9)
+        self.assertGreaterEqual(s["R@k"], 0.9)
+        self.assertEqual(s["dup_pairs"], 0)
 
 
 class TestLiveReplay(unittest.TestCase):
