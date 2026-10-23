@@ -1,0 +1,8 @@
+# Свой список для образа фронта (корневой .dockerignore исключает frontend/ — он для образа API)
+**
+!frontend/
+!deploy/nginx.conf
+frontend/node_modules
+frontend/dist
+frontend/.env
+frontend/.env.local

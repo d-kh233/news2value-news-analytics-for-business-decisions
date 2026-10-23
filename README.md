@@ -45,6 +45,7 @@
 | `data/mocks/` | демо-компании и инсайты для API | |
 | `data/raw/` | CSV кейса — **не в git**, кладётся вручную | |
 | `replay_cache/` | записанные ответы моделей для запуска без ключа | |
+| `deploy/` | запуск на сервере: интерфейс + API на одном адресе | `deploy/README.md` |
 
 ## Запуск
 
@@ -75,6 +76,15 @@ docker compose up --build                        # API на http://localhost:800
 ```bash
 cd backend && uv run --frozen uvicorn app.main:app --port 8000
 ```
+
+### На сервере
+
+```bash
+docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d --build
+./deploy/check.sh
+```
+
+Интерфейс и API работают на порту 80. Подробно — в `deploy/README.md`.
 
 ### Интерфейс с настоящим API
 
@@ -115,7 +125,8 @@ python -m agent inspect-csv data/raw/df_Uid_data_hack.csv  # что из про�
 | `AGENT_TODAY` | сегодня | «сегодняшняя» дата агента. Для replay — та же, что при записи |
 | `TOP_K_NEWS`, `MIN_RELEVANCE` | `5`, `0.5` | сколько карточек в ленте и порог релевантности |
 | `TEAM_MEMBER` | — | кто гоняет модель — пишется в лог расхода |
-| `VITE_USE_MOCKS` (frontend/.env) | `true` | фронтенд на моках или на API |
+| `VITE_USE_MOCKS` (frontend/.env) | `true` | фронтенд на моках или на API. В сборке для сервера — всегда `false` |
+| `WEB_PORT` | `80` | порт интерфейса на сервере (`deploy/`) |
 
 ## Проверка
 
@@ -133,7 +144,7 @@ python -m agent eval                                           # качеств�
 - **Источник новостей.** Пока агент работает на выдуманных новостях `agent/data/mock_news.json` (с пометкой `[MOCK]`).
 - **Компании из базы.** `GET /companies` отдаёт демо-компании из моков. Компании из `companies` в API пока не выбрать.
 - **Ссылки на материалы банка.** У 9 тезисов банка нет ссылок на первоисточник.
-- **Деплой** — 24.10.
+- **Площадка для деплоя.** Сборка готова (`deploy/`), площадку пока не выбрали.
 - **Финальное README, метрики и `THIRD_PARTY_NOTICES`** — 25.10.
 
 ## Команда
