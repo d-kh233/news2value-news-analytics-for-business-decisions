@@ -57,4 +57,4 @@ scripts/run_pipeline.py --company U_10 --role cfo --period week
 ## Что бэкенд не делал (по договорённости)
 
 - Не трогал `agent/` и `llm/`, не вызывал модель напрямую.
-- Эндпоинты инсайтов (B1) по-прежнему на моках (`mock_store`), переход на таблицу `insights` — в B7. `POST /companies/{id}/insights/refresh` тоже идёт через `mock_store.run_refresh`.
+- Эндпоинты инсайтов (B1) по-прежнему на моках (`mock_store`), переход на таблицу `insights` — в B7. `POST /companies/{id}/insights/refresh` с B6 — фоновая задача: таблица `jobs`, выполняет сервис `worker` (`services/job_service.py` → `refresh.run_for_company`), карточки пишутся в `insights`.

@@ -1,14 +1,14 @@
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Query, Response
+from fastapi import APIRouter, Query, Response
 
 from app.schemas.common import ErrorResponse, Page
 from app.schemas.company import Company, CompanyCreate, CompanyProfile, CompanyProfileUpdate
 from app.schemas.digest import Digest, DigestPeriod
 from app.schemas.insight import Insight, InsightType, Role
 from app.schemas.job import JobAccepted
-from app.services import company_service, mock_store
+from app.services import company_service, job_service, mock_store
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
@@ -96,10 +96,10 @@ def get_digest(company_id: str, period: DigestPeriod) -> Digest:
 )
 def refresh_insights(
     company_id: str,
-    background: BackgroundTasks,
     role: Annotated[Role | None, Query(description="Роль читателя; по умолчанию ceo")] = None,
 ) -> JobAccepted:
-    """Запустить агента: новые инсайты компании заменяют старые."""
-    job_id = mock_store.start_refresh(company_id, role)
-    background.add_task(mock_store.run_refresh, job_id)
-    return JobAccepted(job_id=job_id)
+    """Поставить задачу агенту: новые инсайты компании заменят старые (выполняет worker).
+
+    Если у компании уже есть задача pending/running, возвращается её job_id.
+    """
+    return JobAccepted(job_id=job_service.request_refresh(company_id, role))

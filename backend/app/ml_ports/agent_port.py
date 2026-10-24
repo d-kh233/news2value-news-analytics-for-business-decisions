@@ -81,12 +81,21 @@ def row_from_db(company_id: str) -> dict[str, Any] | None:
         return row
 
 
-def select_news_provider(news_source: str) -> Callable[[str, int], list[dict]] | None:
-    """NEWS_SOURCE: db — новости из таблицы documents; mock — None, агент берёт свои моки."""
-    if news_source == "db":
-        from app.ml_ports.news_port import news_provider
+def prompt_version() -> str:
+    """Версия промптов LLM-части (llm/backend_adapter.py): по ней сбрасывается кэш llm_cache."""
+    _ensure_repo_on_path()
+    from llm.backend_adapter import PROMPT_VERSION
 
-        return news_provider
+    return PROMPT_VERSION
+
+
+def select_news_provider(news_source: str) -> Callable[[str, int], list[dict]] | None:
+    """NEWS_SOURCE: db — новости из таблицы documents (под кэшем llm_cache); mock — None,
+    агент берёт свои моки."""
+    if news_source == "db":
+        from app.ml_ports.news_port import get_relevant_news
+
+        return get_relevant_news
     return None
 
 

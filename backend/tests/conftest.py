@@ -1,6 +1,7 @@
 import os
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -10,18 +11,29 @@ from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine, make_url, text
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import Session
 
 from app.core import db as db_module
 from app.core.config import get_settings
 from app.core.db import outside_docker_url, to_sqlalchemy_url
+from app.ingestion.normalizer import content_hash
 from app.ingestion.rss_parser import PoliteClient
 from app.main import app
+from app.repositories import document_repo
 from app.services import mock_store
 from app.services.bank_loader import load_all
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 BANK_TABLES = ["companies", "persons", "person_company_links", "payments", "rejected_rows"]
-DB_TABLES = [*BANK_TABLES, "company_profiles", "documents", "insights", "pipeline_runs"]
+DB_TABLES = [
+    *BANK_TABLES,
+    "company_profiles",
+    "documents",
+    "insights",
+    "pipeline_runs",
+    "jobs",
+    "llm_cache",
+]
 FIXTURES = Path(__file__).parent / "fixtures"
 # моковая компания с моковыми инсайтами (data/mocks); компании API живут в БД
 MOCK_COMPANY_ID = "c-001"
@@ -121,6 +133,76 @@ def _reset_mocks():
     """Перед каждым тестом возвращаем моки в исходное состояние."""
     mock_store.reset()
     yield
+
+
+@pytest.fixture
+def env(monkeypatch):
+    """Задать переменные окружения для Settings (настройки кешируются — сбрасываем кеш)."""
+
+    def set_env(**values: object) -> None:
+        for name, value in values.items():
+            monkeypatch.setenv(name, str(value))
+        get_settings.cache_clear()
+
+    yield set_env
+    get_settings.cache_clear()
+
+
+@pytest.fixture
+def modes(env):
+    """Переключить ML_MODE и NEWS_SOURCE."""
+
+    def set_modes(ml_mode: str, news_source: str) -> None:
+        env(ML_MODE=ml_mode, NEWS_SOURCE=news_source)
+
+    return set_modes
+
+
+def add_news(db: Engine, n: int, title: str, text: str, day: int) -> int:
+    """Новость (external_news, ok) за day октября 2026 в таблицу documents; вернуть её id."""
+    values = {
+        "kind": "external_news",
+        "source_name": "test_feed",
+        "url": f"https://news.example.com/{n}",
+        "title": title,
+        "text": text,
+        "published_at": datetime(2026, 10, day, 9, tzinfo=UTC),
+        "tags": ["economy"],
+        "status": "ok",
+    }
+    values["content_hash"] = content_hash(text + values["url"])
+    with Session(db) as session:
+        doc_id = document_repo.insert_new(session, values)
+        session.commit()
+    assert doc_id is not None
+    return doc_id
+
+
+@pytest.fixture
+def news(db: Engine, bank_client) -> dict[str, int]:
+    """Компании из tests/fixtures/*.csv и три неразмеченные новости в documents.
+
+    U_2 (напитки) совпадает с новостью drinks, U_4 (ПО) — с software, rate — ни с кем.
+    """
+    return {
+        "drinks": add_news(
+            db,
+            1,
+            "Оптовые цены на напитки выросли",
+            "Торговля напитками дорожает: поставки из Китая подорожали на 12%.",
+            21,
+        ),
+        "software": add_news(
+            db,
+            2,
+            "Разработчикам программного обеспечения продлили льготы",
+            "Компании, которые ведут разработку программного обеспечения, сохранят льготу.",
+            20,
+        ),
+        "rate": add_news(
+            db, 3, "Банк России сохранил ключевую ставку", "Ставка осталась на уровне 16%.", 22
+        ),
+    }
 
 
 @pytest.fixture

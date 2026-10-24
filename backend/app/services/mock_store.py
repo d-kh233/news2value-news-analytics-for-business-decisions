@@ -1,19 +1,18 @@
-"""Слой моковых данных для инсайтов, дайджеста, задач и отзывов (заглушка до B7).
+"""Слой моковых данных для инсайтов, дайджеста, задач ask и отзывов (заглушка до B7).
 
 Данные читаются из data/mocks/*.json и живут в памяти процесса. Изменения в файлы не пишутся.
 Компании и профили для API живут в БД (company_service); моковые компании c-001…c-003
-остались только как владельцы моковых инсайтов и как вход агента.
+остались только как владельцы моковых инсайтов. Задачи refresh — в БД (job_service, B6).
 """
 
 import json
-import logging
 import uuid
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from app.core.errors import NotFoundError
-from app.schemas.company import Company, CompanyProfile
+from app.schemas.company import Company
 from app.schemas.digest import Digest, DigestPeriod
 from app.schemas.insight import Insight, InsightType
 from app.schemas.job import Job
@@ -22,19 +21,14 @@ from app.services import company_service
 
 MOCKS_DIR = Path(__file__).resolve().parents[3] / "data" / "mocks"
 
-logger = logging.getLogger(__name__)
-
 _companies: dict[str, Company] = {}
-_profiles: dict[str, CompanyProfile] = {}
 _insights: dict[str, Insight] = {}
 _feedback: dict[str, Feedback] = {}
 _jobs: dict[str, Job] = {}
-_job_kinds: dict[str, str] = {}  # job_id -> "refresh" | "ask"
+_job_kinds: dict[str, str] = {}  # job_id -> "ask"
 _job_questions: dict[str, str] = {}
 _job_insight: dict[str, str] = {}
 _ask_results: dict[str, AskResult] = {}
-_job_refresh: dict[str, tuple[str, str | None]] = {}  # job_id -> (company_id, role)
-_job_runs: dict[str, dict[str, Any]] = {}  # job_id -> сводка прогона агента (план, трейс)
 
 
 def _read(name: str) -> list[dict[str, Any]]:
@@ -43,17 +37,13 @@ def _read(name: str) -> list[dict[str, Any]]:
 
 def reset() -> None:
     """Загрузить исходные моки заново (используется при старте и в тестах)."""
-    for store in (_companies, _profiles, _insights, _feedback, _jobs, _job_kinds):
+    for store in (_companies, _insights, _feedback, _jobs, _job_kinds):
         store.clear()
     _job_questions.clear()
     _job_insight.clear()
     _ask_results.clear()
-    _job_refresh.clear()
-    _job_runs.clear()
     for item in _read("companies.json"):
         _companies[item["id"]] = Company.model_validate(item)
-    for item in _read("profiles.json"):
-        _profiles[item["company_id"]] = CompanyProfile.model_validate(item)
     for item in _read("insights.json"):
         _insights[item["id"]] = Insight.model_validate(item)
 
@@ -77,17 +67,6 @@ def _require_insight(insight_id: str) -> Insight:
     if insight is None:
         raise NotFoundError(f"Инсайт {insight_id} не найден")
     return insight
-
-
-def _mock_profile(company_id: str) -> CompanyProfile:
-    """Профиль моковой компании для агента (эндпоинты профиля работают с БД)."""
-    profile = _profiles.get(company_id)
-    if profile is not None:
-        return profile
-    company = _companies[company_id]
-    return CompanyProfile(
-        company_id=company_id, industry=company.industry, regions=[company.region]
-    )
 
 
 # ---- инсайты ----
@@ -160,59 +139,6 @@ def _create_job(kind: str) -> str:
 
 def _set_status(job_id: str, status: str, error: str | None = None) -> None:
     _jobs[job_id] = Job(id=job_id, status=status, error=error)  # type: ignore[arg-type]
-
-
-def start_refresh(company_id: str, role: str | None = None) -> str:
-    _require_company(company_id)
-    job_id = _create_job("refresh")
-    _job_refresh[job_id] = (company_id, role)
-    return job_id
-
-
-def run_refresh(job_id: str) -> None:
-    """Фоновая генерация инсайтов агентом (agent/). Старые инсайты компании заменяются новыми.
-
-    Если агент упал, задача получает статус failed, а прежние инсайты остаются.
-    """
-    _set_status(job_id, "running")
-    company_id, role = _job_refresh[job_id]
-    company = _companies.get(company_id)
-    if company is None and not company_service.company_exists(company_id):
-        _set_status(job_id, "failed", "Компания была удалена")
-        return
-    try:
-        from app.ml_ports import agent_port
-
-        if company is not None:
-            cards, run = agent_port.generate_insights(
-                company_id,
-                role,
-                company=company.model_dump(),
-                profile=_mock_profile(company_id).model_dump(),
-            )
-        else:
-            # компания из БД: агент сам читает её строку из таблицы companies
-            cards, run = agent_port.generate_insights(company_id, role)
-        fresh = [Insight.model_validate(card) for card in cards]
-    except Exception as exc:  # noqa: BLE001 — любой сбой агента превращаем в статус задачи
-        logger.exception("Агент не смог обновить инсайты %s", company_id)
-        _set_status(job_id, "failed", f"{type(exc).__name__}: {exc}"[:500])
-        return
-    for insight_id in [i.id for i in _insights.values() if i.company_id == company_id]:
-        del _insights[insight_id]
-        _feedback.pop(insight_id, None)
-    for insight in fresh:
-        _insights[insight.id] = insight
-    _job_runs[job_id] = run
-    _set_status(job_id, "done")
-
-
-def get_job_run(job_id: str) -> dict[str, Any]:
-    """Сводка прогона агента по refresh-задаче (план и трейс — для панели трассировки)."""
-    get_job(job_id)
-    if job_id not in _job_runs:
-        raise NotFoundError(f"У задачи {job_id} нет прогона агента")
-    return _job_runs[job_id]
 
 
 def start_ask(insight_id: str, question: str) -> str:

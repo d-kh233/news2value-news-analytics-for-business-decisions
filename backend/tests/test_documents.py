@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.ingestion.normalizer import content_hash
 from app.main import app
 from app.ml_ports import agent_port, news_port
-from app.ml_ports.news_port import news_provider
+from app.ml_ports.news_port import get_relevant_news, news_provider
 from app.repositories import document_repo
 
 NEWS_KEYS = {"id", "title", "text", "published_at", "url", "source", "tags"}
@@ -203,5 +203,7 @@ def test_news_provider_today_from_env(news_db, monkeypatch):
 
 def test_select_news_provider():
     # NEWS_SOURCE=mock (по умолчанию) — агент берёт свои моки; db — таблица documents
+    # через get_relevant_news (news_provider под кэшем llm_cache, B6)
     assert agent_port.select_news_provider("mock") is None
-    assert agent_port.select_news_provider("db") is news_provider
+    provider = agent_port.select_news_provider("db")
+    assert provider is get_relevant_news and provider.__wrapped__ is not None

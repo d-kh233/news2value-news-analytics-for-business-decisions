@@ -63,7 +63,8 @@ class PipelineRun(Base):
     """Один запуск refresh для компании.
 
     status: running → done (инсайты заменены) | empty (агент не вернул карточек, старые остались)
-    | failed (ошибка, старые остались). steps — трейс агента как есть, бэкенд шаги не считает.
+    | failed (ошибка, старые остались). steps — трейс агента как есть, бэкенд шаги не считает;
+    summary — остальная сводка прогона (для GET /jobs/{id}/run).
     """
 
     __tablename__ = "pipeline_runs"
@@ -81,5 +82,7 @@ class PipelineRun(Base):
         JSONB, server_default=sql_text("'[]'::jsonb")
     )
     error: Mapped[str | None] = mapped_column(Text)
+    # сводка генератора без трейса: run_id агента, role, llm_mode, plan, llm_usage (B6)
+    summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -21,6 +21,14 @@ class Settings(BaseSettings):
     ml_mode: Literal["fake", "real"] = "real"
     # «Сегодня» агента (YYYY-MM-DD); пусто — текущая дата. Им же пользуется news_provider
     agent_today: str = ""
+    # Кэш ответов generate_insight / get_relevant_news в таблице llm_cache (1 — включён)
+    cache_enabled: bool = False
+    # Пауза заглушки (ML_MODE=fake) на каждую карточку, секунды — имитация ответа модели
+    fake_delay_seconds: float = 0.0
+    # Задача refresh в running дольше этого — worker, вероятно, упал: помечаем failed
+    job_timeout_minutes: float = 10.0
+    # Как часто worker проверяет таблицу jobs, секунды
+    worker_poll_seconds: float = 1.0
 
 
 @lru_cache

@@ -23,32 +23,25 @@ def test_digest_invalid_period_422(client, company_id):
         assert r.json()["error"] == "validation_error"
 
 
-def test_refresh_returns_202_and_job(client, company_id):
-    r = client.post(f"/companies/{company_id}/insights/refresh")
+def test_refresh_returns_202_and_job(bank_client):
+    r = bank_client.post("/companies/U_2/insights/refresh")
     assert r.status_code == 202
     accepted = JobAccepted.model_validate(r.json())
     assert set(r.json()) == {"job_id"}
 
-    job = client.get(f"/jobs/{accepted.job_id}")
+    job = bank_client.get(f"/jobs/{accepted.job_id}")
     assert job.status_code == 200
     parsed = Job.model_validate(job.json())
     assert parsed.id == accepted.job_id
-    assert parsed.status in {"pending", "running", "done"}
+    assert parsed.status == "pending"  # выполняет worker (tests/test_jobs_worker.py)
     assert set(job.json()) == {"id", "status", "error"}  # схему Job не расширяем
 
 
-def test_job_not_found(client):
-    r = client.get("/jobs/nope")
+def test_job_not_found(db_client):
+    r = db_client.get("/jobs/nope")
     assert r.status_code == 404
     assert r.json()["error"] == "not_found"
 
 
-def test_result_of_refresh_job_is_404(client, company_id):
-    job_id = client.post(f"/companies/{company_id}/insights/refresh").json()["job_id"]
-    r = client.get(f"/jobs/{job_id}/result")
-    assert r.status_code == 404
-    assert r.json()["error"] == "not_found"
-
-
-def test_result_of_unknown_job_is_404(client):
-    assert client.get("/jobs/nope/result").status_code == 404
+def test_result_of_unknown_job_is_404(db_client):
+    assert db_client.get("/jobs/nope/result").status_code == 404

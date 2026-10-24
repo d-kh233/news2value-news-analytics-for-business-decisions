@@ -1,82 +1,20 @@
 """refresh компаний из БД (services/refresh.py): сохранение инсайтов, pipeline_runs, режимы.
 
-ML_MODE=fake|real и NEWS_SOURCE=mock|db задаются фикстурой modes; агент — в LLM_MODE=stub,
-AGENT_TODAY=2026-10-22 (conftest), окно week — 15–22 октября.
+ML_MODE=fake|real и NEWS_SOURCE=mock|db задаются фикстурой modes, новости — фикстурой news
+(обе в conftest); агент — в LLM_MODE=stub, AGENT_TODAY=2026-10-22, окно week — 15–22 октября.
 """
 
-from datetime import UTC, datetime
-
 import pytest
-from sqlalchemy import Engine
-from sqlalchemy.orm import Session
 
-from app.core.config import get_settings
 from app.core.errors import NotFoundError
-from app.ingestion.normalizer import content_hash
 from app.ml_ports import agent_port
-from app.repositories import document_repo, insight_repo, pipeline_run_repo, profile_repo
+from app.repositories import insight_repo, pipeline_run_repo, profile_repo
 from app.schemas.insight import Insight
 from app.services.refresh import document_ids, run_for_company
 
 DRINKS = "U_2"  # Торговля оптовая напитками, ВЭД: Китай, Турция
 SOFTWARE = "U_4"  # Разработка программного обеспечения
 BLOCKS = {"what_happened", "why_it_matters", "consequences", "actions", "bank_view"}
-
-
-@pytest.fixture
-def modes(monkeypatch):
-    """Переключить ML_MODE и NEWS_SOURCE (настройки кешируются — сбрасываем кеш)."""
-
-    def set_modes(ml_mode: str, news_source: str) -> None:
-        monkeypatch.setenv("ML_MODE", ml_mode)
-        monkeypatch.setenv("NEWS_SOURCE", news_source)
-        get_settings.cache_clear()
-
-    yield set_modes
-    get_settings.cache_clear()
-
-
-def _add_news(db: Engine, n: int, title: str, text: str, day: int) -> int:
-    values = {
-        "kind": "external_news",
-        "source_name": "test_feed",
-        "url": f"https://news.example.com/{n}",
-        "title": title,
-        "text": text,
-        "published_at": datetime(2026, 10, day, 9, tzinfo=UTC),
-        "tags": ["economy"],
-        "status": "ok",
-    }
-    values["content_hash"] = content_hash(text + values["url"])
-    with Session(db) as session:
-        doc_id = document_repo.insert_new(session, values)
-        session.commit()
-    assert doc_id is not None
-    return doc_id
-
-
-@pytest.fixture
-def news(db: Engine, bank_client) -> dict[str, int]:
-    """Компании из tests/fixtures/*.csv и три неразмеченные новости в documents."""
-    return {
-        "drinks": _add_news(
-            db,
-            1,
-            "Оптовые цены на напитки выросли",
-            "Торговля напитками дорожает: поставки из Китая подорожали на 12%.",
-            21,
-        ),
-        "software": _add_news(
-            db,
-            2,
-            "Разработчикам программного обеспечения продлили льготы",
-            "Компании, которые ведут разработку программного обеспечения, сохранят льготу.",
-            20,
-        ),
-        "rate": _add_news(
-            db, 3, "Банк России сохранил ключевую ставку", "Ставка осталась на уровне 16%.", 22
-        ),
-    }
 
 
 def _saved(company_id: str):

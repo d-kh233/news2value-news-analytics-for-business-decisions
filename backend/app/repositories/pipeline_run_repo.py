@@ -22,12 +22,25 @@ def finish(
     status: str,
     steps: list[dict[str, Any]],
     error: str | None = None,
+    summary: dict[str, Any] | None = None,
 ) -> None:
-    """Записать итог запуска: статус, шаги из трейса агента, текст ошибки или пояснение."""
+    """Записать итог запуска: статус, шаги из трейса агента, текст ошибки или пояснение,
+    сводку генератора (план, роль, режим LLM)."""
     session.execute(
         update(PipelineRun)
         .where(PipelineRun.id == run_id)
-        .values(status=status, steps=steps, error=error, finished_at=func.now())
+        .values(status=status, steps=steps, error=error, summary=summary, finished_at=func.now())
+    )
+
+
+def fail_running(session: Session, run_ids: list[int], error: str) -> None:
+    """Запуски, которые остались running (worker упал посреди работы), — в failed."""
+    if not run_ids:
+        return
+    session.execute(
+        update(PipelineRun)
+        .where(PipelineRun.id.in_(run_ids), PipelineRun.status == "running")
+        .values(status="failed", error=error, finished_at=func.now())
     )
 
 

@@ -591,7 +591,7 @@
           "companies"
         ],
         "summary": "Refresh Insights",
-        "description": "Запустить агента: новые инсайты компании заменяют старые.",
+        "description": "Поставить задачу агенту: новые инсайты компании заменят старые (выполняет worker).\n\nЕсли у компании уже есть задача pending/running, возвращается её job_id.",
         "operationId": "refresh_insights_companies__company_id__insights_refresh_post",
         "parameters": [
           {
@@ -908,7 +908,7 @@
           "jobs"
         ],
         "summary": "Get Job Result",
-        "description": "Результат задачи ask. Для refresh-задач результата нет — 404.",
+        "description": "Результат задачи ask (моки до B7). Для refresh-задач результата нет — 404.",
         "operationId": "get_job_result_jobs__job_id__result_get",
         "parameters": [
           {

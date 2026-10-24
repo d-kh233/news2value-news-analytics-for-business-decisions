@@ -23,11 +23,20 @@ services:
       # корень репозитория: в образ нужны agent/ и llm/ (см. backend/Dockerfile)
       context: .
       dockerfile: backend/Dockerfile
+    # один образ на api и worker
+    image: news2value-backend:local
     restart: unless-stopped
     env_file: .env
     depends_on:
       db:
         condition: service_healthy
+    # healthy = миграции применены и API отвечает (по нему стартует worker)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     ports:
       # только для этого компьютера (127.0.0.1), не для всей сети
       - "127.0.0.1:8000:8000"
@@ -40,6 +49,20 @@ services:
       - ./data/demo_profiles:/data/demo_profiles:ro
       # список источников для scripts/ingest.py (PDF берутся из /data/raw/analytics)
       - ./config:/config:ro
+
+  # фоновые задачи (refresh): тот же образ, другая команда; задачи берёт из таблицы jobs
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: news2value-backend:local
+    command: ["python", "-m", "app.worker"]
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      # миграции накатывает api при старте — ждём, пока он поднимется
+      api:
+        condition: service_healthy
 
 volumes:
   pgdata:

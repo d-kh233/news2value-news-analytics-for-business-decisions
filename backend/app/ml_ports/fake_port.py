@@ -9,6 +9,11 @@ mock — файл agent/data/mock_news.json (читается как JSON, ко�
 
 Карточки честно помечены: generated_by = rules (другого значения схема Insight не допускает),
 details = None, prompt_version = fake@v1; в таблице insights — generated_by = fake.
+
+Шаги — как у ML: get_relevant_news (новости за период) → совпадение слов с профилем →
+generate_insight на каждую отобранную новость. Обе функции — под кэшем llm_cache (CACHE_ENABLED,
+services/llm_cache.py). FAKE_DELAY_SECONDS — пауза в каждом generate_insight (имитация ответа
+модели), чтобы проверять фоновую работу; из кэша карточка отдаётся без паузы.
 """
 
 import json
@@ -22,7 +27,9 @@ from typing import Any
 
 from app.core.config import get_settings
 from app.ml_ports.agent_port import ROLES, period_to_days
-from app.ml_ports.news_port import agent_today, news_provider
+from app.ml_ports.news_port import agent_today, get_relevant_news
+from app.schemas.insight import Insight
+from app.services.llm_cache import cached
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +107,7 @@ def _mock_news_file() -> Path:
 def _news(company_id: str, period_days: int, today: date) -> tuple[list[dict[str, Any]], str]:
     """Новости за период по NEWS_SOURCE и название источника для трейса."""
     if get_settings().news_source == "db":
-        return news_provider(company_id, period_days), "db"
+        return get_relevant_news(company_id, period_days), "db"
     since = today - timedelta(days=period_days)
     items = json.loads(_mock_news_file().read_text(encoding="utf-8"))
     window = [n for n in items if since <= date.fromisoformat(n["published_at"][:10]) <= today]
@@ -169,6 +176,22 @@ def _card(
     }
 
 
+@cached("generate_insight", version=lambda: PROMPT_VERSION, validate=Insight.model_validate)
+def generate_insight(
+    company_id: str,
+    role: str,
+    news: dict[str, Any],
+    score: float,
+    words: list[str],
+    fields: list[str],
+) -> dict[str, Any]:
+    """Карточка по одной новости (как llm.insight.generate_insight у ML) и пауза заглушки."""
+    delay = get_settings().fake_delay_seconds
+    if delay > 0:
+        time.sleep(delay)
+    return _card(company_id, role, news, score, words, fields)
+
+
 def _step(n: int, name: str, inp: dict, out: Any, status: str, ms: int, note: str | None) -> dict:
     """Шаг трейса в той же форме, что TraceStep агента."""
     return {
@@ -217,7 +240,9 @@ def generate_insights(
     t0 = time.perf_counter()
     scored = [(n, *_score(n, terms, today, period_days)) for n in news]
     ranked = sorted((x for x in scored if x[1] > 0), key=lambda x: -x[1])[:TOP_K]
-    cards = [_card(company_id, role, n, s, words, fields) for n, s, words, fields in ranked]
+    cards = [
+        generate_insight(company_id, role, n, s, words, fields) for n, s, words, fields in ranked
+    ]
     trace.append(
         _step(
             2,

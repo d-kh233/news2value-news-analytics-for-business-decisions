@@ -89,3 +89,17 @@ def existing_ids(session: Session, ids: list[int]) -> set[int]:
     if not ids:
         return set()
     return set(session.scalars(select(Document.id).where(Document.id.in_(ids))))
+
+
+def news_fingerprint(session: Session) -> str:
+    """Отпечаток внешних новостей: «число:последний id» строк external_news со статусом ok.
+
+    Меняется, когда добавилась новость или документ стал ok, — по нему кэш get_relevant_news
+    понимает, что выборка могла измениться (services/llm_cache.py).
+    """
+    count, last = session.execute(
+        select(func.count(), func.max(Document.id)).where(
+            Document.kind == "external_news", Document.status == "ok"
+        )
+    ).one()
+    return f"{count}:{last or 0}"

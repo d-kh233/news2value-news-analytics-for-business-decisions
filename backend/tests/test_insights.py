@@ -27,16 +27,6 @@ def test_company_from_db_has_empty_feed(bank_client):
     assert digest.status_code == 200 and digest.json()["insight_ids"] == []
 
 
-def test_refresh_for_company_from_db(bank_client):
-    """Агент берёт строку компании из таблицы companies (тестовой БД)."""
-    r = bank_client.post("/companies/U_2/insights/refresh")
-    assert r.status_code == 202
-    job = bank_client.get(f"/jobs/{r.json()['job_id']}").json()
-    assert job["status"] == "done", job
-    items = bank_client.get("/companies/U_2/insights", params={"limit": 100}).json()["items"]
-    assert all(i["company_id"] == "U_2" for i in items)
-
-
 def test_list_insights_schema(client, company_id):
     r = client.get(f"/companies/{company_id}/insights")
     assert r.status_code == 200

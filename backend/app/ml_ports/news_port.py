@@ -14,6 +14,9 @@
   • company_id пока не используется: отдаём все новости периода, ранжирует агент.
 
 Подключается к агенту в agent_port.generate_insights при NEWS_SOURCE=db (по умолчанию mock).
+Агент и заглушка получают get_relevant_news — тот же news_provider под кэшем llm_cache
+(CACHE_ENABLED, services/llm_cache.py). В ключ кэша входят «сегодня» и отпечаток documents,
+поэтому новая новость видна при следующем refresh.
 """
 
 import logging
@@ -23,6 +26,7 @@ from typing import Any
 
 from app.core.config import get_settings
 from app.models import Document
+from app.services.llm_cache import cached
 
 logger = logging.getLogger(__name__)
 
@@ -67,3 +71,40 @@ def news_provider(company_id: str, period: int) -> list[dict[str, Any]]:
         items = [to_news_item(d) for d in docs]
     logger.info("news_provider(%s, %d): %d новостей из documents", company_id, period, len(items))
     return items
+
+
+def _prompt_version() -> str:
+    """PROMPT_VERSION генератора, которым сейчас делаются инсайты (по ML_MODE)."""
+    if get_settings().ml_mode == "fake":
+        from app.ml_ports import fake_port
+
+        return fake_port.PROMPT_VERSION
+    from app.ml_ports import agent_port
+
+    return agent_port.prompt_version()
+
+
+def _news_context() -> dict[str, str]:
+    """Что влияет на выборку, кроме аргументов: «сегодня» и содержимое documents."""
+    from app.core.db import get_session
+    from app.repositories import document_repo
+
+    with get_session() as session:
+        fingerprint = document_repo.news_fingerprint(session)
+    return {"today": agent_today().isoformat(), "documents": fingerprint}
+
+
+def _check_news(items: list[dict[str, Any]]) -> None:
+    """В кэш — только список новостей с обязательными полями (их читает NewsItem.from_dict)."""
+    if not isinstance(items, list):
+        raise TypeError(f"ожидался список новостей, получено {type(items).__name__}")
+    for item in items:
+        missing = {"id", "title", "text", "published_at"} - set(item)
+        if missing:
+            raise ValueError(f"новость {item.get('id')}: нет полей {sorted(missing)}")
+
+
+@cached("get_relevant_news", version=_prompt_version, validate=_check_news, context=_news_context)
+def get_relevant_news(company_id: str, period: int) -> list[dict[str, Any]]:
+    """news_provider под кэшем llm_cache — его получают агент и заглушка при NEWS_SOURCE=db."""
+    return news_provider(company_id, period)
