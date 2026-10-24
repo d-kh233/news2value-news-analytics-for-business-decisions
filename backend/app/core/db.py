@@ -34,11 +34,14 @@ def outside_docker_url(url: str) -> str:
 
 @lru_cache
 def get_engine() -> Engine:
-    """Engine (пул соединений с БД) по DATABASE_URL; создаётся при первом вызове."""
+    """Engine (пул соединений с БД) по DATABASE_URL; создаётся при первом вызове.
+
+    Вне Docker хост db подменяется (outside_docker_url), чтобы API работал и через uvicorn.
+    """
     url = get_settings().database_url
     if not url:
         raise RuntimeError("DATABASE_URL не задан")
-    return create_engine(to_sqlalchemy_url(url), pool_pre_ping=True)
+    return create_engine(outside_docker_url(url), pool_pre_ping=True)
 
 
 def get_session() -> Session:

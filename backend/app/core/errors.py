@@ -20,6 +20,14 @@ class NotFoundError(Exception):
         self.detail = detail
 
 
+class ConflictError(Exception):
+    """Действие противоречит состоянию объекта (превращается в 409)."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail)
+        self.detail = detail
+
+
 def _response(status: int, error: str, detail: str) -> JSONResponse:
     body = ErrorResponse(error=error, detail=detail)
     return JSONResponse(status_code=status, content=body.model_dump())
@@ -27,6 +35,10 @@ def _response(status: int, error: str, detail: str) -> JSONResponse:
 
 async def _not_found(_: Request, exc: NotFoundError) -> JSONResponse:
     return _response(404, "not_found", exc.detail)
+
+
+async def _conflict(_: Request, exc: ConflictError) -> JSONResponse:
+    return _response(409, "conflict", exc.detail)
 
 
 async def _http_error(_: Request, exc: StarletteHTTPException) -> JSONResponse:
@@ -50,6 +62,7 @@ async def _unexpected(request: Request, exc: Exception) -> JSONResponse:
 
 def register_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(NotFoundError, _not_found)
+    app.add_exception_handler(ConflictError, _conflict)
     app.add_exception_handler(StarletteHTTPException, _http_error)
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(Exception, _unexpected)

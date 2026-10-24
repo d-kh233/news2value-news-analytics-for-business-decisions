@@ -9,13 +9,19 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine, make_url, text
 from sqlalchemy.exc import OperationalError
 
+from app.core import db as db_module
 from app.core.config import get_settings
 from app.core.db import outside_docker_url, to_sqlalchemy_url
 from app.main import app
 from app.services import mock_store
+from app.services.bank_loader import load_all
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 BANK_TABLES = ["companies", "persons", "person_company_links", "payments", "rejected_rows"]
+DB_TABLES = [*BANK_TABLES, "company_profiles"]
+FIXTURES = Path(__file__).parent / "fixtures"
+# моковая компания с моковыми инсайтами (data/mocks); компании API живут в БД
+MOCK_COMPANY_ID = "c-001"
 
 
 def _test_database_url() -> str | None:
@@ -79,10 +85,24 @@ def db_engine() -> Iterator[Engine]:
 
 @pytest.fixture
 def db(db_engine: Engine) -> Engine:
-    """Пустые таблицы банка перед каждым тестом."""
+    """Пустые таблицы банка и профилей перед каждым тестом."""
     with db_engine.begin() as conn:
-        conn.execute(text(f"TRUNCATE {', '.join(BANK_TABLES)} RESTART IDENTITY"))
+        conn.execute(text(f"TRUNCATE {', '.join(DB_TABLES)} RESTART IDENTITY"))
     return db_engine
+
+
+@pytest.fixture
+def db_client(db: Engine, monkeypatch) -> TestClient:
+    """Клиент API, который работает с тестовой БД (пустые таблицы)."""
+    monkeypatch.setattr(db_module, "get_engine", lambda: db)
+    return TestClient(app)
+
+
+@pytest.fixture
+def bank_client(db: Engine, db_client: TestClient) -> TestClient:
+    """Клиент API с загруженными фикстурами банка (tests/fixtures/*.csv)."""
+    load_all(db, FIXTURES / "companies.csv", FIXTURES / "links.csv", FIXTURES / "payments.csv")
+    return db_client
 
 
 @pytest.fixture(autouse=True)
@@ -106,8 +126,8 @@ def client() -> TestClient:
 
 
 @pytest.fixture
-def company_id(client) -> str:
-    return client.get("/companies").json()["items"][0]["id"]
+def company_id() -> str:
+    return MOCK_COMPANY_ID
 
 
 @pytest.fixture

@@ -1,8 +1,8 @@
-"""Слой моковых данных (заглушка вместо БД).
+"""Слой моковых данных для инсайтов, дайджеста, задач и отзывов (заглушка до B7).
 
-Данные читаются из data/mocks/*.json и живут в памяти процесса. Роуты работают
-только с функциями этого модуля, поэтому позже его можно заменить версией с БД
-с теми же функциями, не трогая роуты. Изменения (POST/PUT/DELETE) в файлы не пишутся.
+Данные читаются из data/mocks/*.json и живут в памяти процесса. Изменения в файлы не пишутся.
+Компании и профили для API живут в БД (company_service); моковые компании c-001…c-003
+остались только как владельцы моковых инсайтов и как вход агента.
 """
 
 import json
@@ -13,11 +13,12 @@ from pathlib import Path
 from typing import Any
 
 from app.core.errors import NotFoundError
-from app.schemas.company import Company, CompanyCreate, CompanyProfile
+from app.schemas.company import Company, CompanyProfile
 from app.schemas.digest import Digest, DigestPeriod
 from app.schemas.insight import Insight, InsightType
 from app.schemas.job import Job
 from app.schemas.qa import AskResult, Feedback, FeedbackRequest
+from app.services import company_service
 
 MOCKS_DIR = Path(__file__).resolve().parents[3] / "data" / "mocks"
 
@@ -61,11 +62,14 @@ def _new_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:8]}"
 
 
-def _require_company(company_id: str) -> Company:
-    company = _companies.get(company_id)
-    if company is None:
-        raise NotFoundError(f"Компания {company_id} не найдена")
-    return company
+def _require_company(company_id: str) -> None:
+    """Компания есть среди моковых (c-001…c-003) или в таблице companies, иначе 404.
+
+    У компаний из БД моковых инсайтов нет: их лента пустая, это не ошибка.
+    """
+    if company_id in _companies or company_service.company_exists(company_id):
+        return
+    raise NotFoundError(f"Компания {company_id} не найдена")
 
 
 def _require_insight(insight_id: str) -> Insight:
@@ -75,49 +79,15 @@ def _require_insight(insight_id: str) -> Insight:
     return insight
 
 
-# ---- компании ----
-
-
-def list_companies(limit: int, offset: int) -> tuple[list[Company], int]:
-    items = list(_companies.values())
-    return items[offset : offset + limit], len(items)
-
-
-def get_company(company_id: str) -> Company:
-    return _require_company(company_id)
-
-
-def create_company(data: CompanyCreate) -> Company:
-    company = Company(id=_new_id("c"), **data.model_dump())
-    _companies[company.id] = company
-    return company
-
-
-def delete_company(company_id: str) -> None:
-    _require_company(company_id)
-    del _companies[company_id]
-    _profiles.pop(company_id, None)
-    for insight_id in [i.id for i in _insights.values() if i.company_id == company_id]:
-        del _insights[insight_id]
-        _feedback.pop(insight_id, None)
-
-
-def get_profile(company_id: str) -> CompanyProfile:
-    company = _require_company(company_id)
+def _mock_profile(company_id: str) -> CompanyProfile:
+    """Профиль моковой компании для агента (эндпоинты профиля работают с БД)."""
     profile = _profiles.get(company_id)
     if profile is not None:
         return profile
-    # Профиль ещё не заполняли: известные данные компании есть, ручные поля пусты
+    company = _companies[company_id]
     return CompanyProfile(
         company_id=company_id, industry=company.industry, regions=[company.region]
     )
-
-
-def put_profile(company_id: str, profile: CompanyProfile) -> CompanyProfile:
-    _require_company(company_id)
-    saved = profile.model_copy(update={"company_id": company_id})
-    _profiles[company_id] = saved
-    return saved
 
 
 # ---- инсайты ----
@@ -207,18 +177,22 @@ def run_refresh(job_id: str) -> None:
     _set_status(job_id, "running")
     company_id, role = _job_refresh[job_id]
     company = _companies.get(company_id)
-    if company is None:
+    if company is None and not company_service.company_exists(company_id):
         _set_status(job_id, "failed", "Компания была удалена")
         return
     try:
         from app.ml_ports import agent_port
 
-        cards, run = agent_port.generate_insights(
-            company_id,
-            role,
-            company=company.model_dump(),
-            profile=get_profile(company_id).model_dump(),
-        )
+        if company is not None:
+            cards, run = agent_port.generate_insights(
+                company_id,
+                role,
+                company=company.model_dump(),
+                profile=_mock_profile(company_id).model_dump(),
+            )
+        else:
+            # компания из БД: агент сам читает её строку из таблицы companies
+            cards, run = agent_port.generate_insights(company_id, role)
         fresh = [Insight.model_validate(card) for card in cards]
     except Exception as exc:  # noqa: BLE001 — любой сбой агента превращаем в статус задачи
         logger.exception("Агент не смог обновить инсайты %s", company_id)

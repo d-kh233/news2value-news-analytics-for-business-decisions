@@ -226,21 +226,30 @@ def merged_pairs(conn: Connection, spec: CsvSpec) -> list[tuple[str, str, int]]:
 # --- перенос в основные таблицы ---
 
 
-def _upsert(conn: Connection, spec: CsvSpec, table: str, extra: dict[str, str]) -> int:
+def _upsert(
+    conn: Connection, spec: CsvSpec, table: str, extra: dict[str, str], update_where: str = ""
+) -> int:
     names, exprs = _typed_columns(spec)
     names += list(extra)
     exprs += list(extra.values())
     updates = ", ".join(f"{n} = EXCLUDED.{n}" for n in names if n not in spec.key)
+    where = f"WHERE {update_where}" if update_where else ""
     sql = f"""
         INSERT INTO {table} ({", ".join(names)})
         SELECT {", ".join(exprs)} FROM {spec.staging} s
-        ON CONFLICT ({", ".join(spec.key)}) DO UPDATE SET {updates}
+        ON CONFLICT ({", ".join(spec.key)}) DO UPDATE SET {updates} {where}
     """
     return conn.execute(text(sql)).rowcount
 
 
 def upsert_companies(conn: Connection, spec: CsvSpec) -> int:
-    return _upsert(conn, spec, "companies", {})
+    """Компании из CSV получают source='bank'; строки source='manual' не перезаписываются."""
+    extra = {
+        "source": "'bank'",
+        # пусто или не число («Не определено») — выручка неизвестна
+        "revenue_known": f"coalesce(s.revenue_company ~ '{NUMBER_RE}', false)",
+    }
+    return _upsert(conn, spec, "companies", extra, update_where="companies.source = 'bank'")
 
 
 def upsert_links(conn: Connection, spec: CsvSpec) -> int:
@@ -303,10 +312,15 @@ def count_new(conn: Connection, spec: CsvSpec, table: str) -> int:
 
 
 def delete_missing(conn: Connection, spec: CsvSpec, table: str) -> int:
-    """Удалить из таблицы строки, ключей которых нет в текущей загрузке."""
+    """Удалить из таблицы строки, ключей которых нет в текущей загрузке.
+
+    В companies удаляются только строки source='bank': созданные вручную в файле не бывает.
+    """
+    only_bank = "AND t.source = 'bank'" if table == "companies" else ""
     sql = f"""
         DELETE FROM {table} t
         WHERE NOT EXISTS (SELECT 1 FROM {spec.staging} s WHERE {_key_match(spec, "t", "s")})
+        {only_bank}
     """
     return conn.execute(text(sql)).rowcount
 
@@ -330,6 +344,11 @@ def null_counts(conn: Connection, model: type[Base]) -> dict[str, int]:
     table = model.__table__
     stmt = select(*[func.count().filter(c.is_(None)).label(c.name) for c in table.columns])
     return dict(conn.execute(stmt).mappings().one())
+
+
+def count_companies_by_source(conn: Connection, source: str) -> int:
+    stmt = select(func.count()).select_from(Company).where(Company.source == source)
+    return conn.execute(stmt).scalar_one()
 
 
 def count_revenue_equal(conn: Connection, value: int) -> int:

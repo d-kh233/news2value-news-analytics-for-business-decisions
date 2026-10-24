@@ -36,6 +36,8 @@ services:
       - ./data/mocks:/data/mocks:ro
       # CSV банка для scripts/load_csv.py (только чтение, в образ не попадают)
       - ./data/raw:/data/raw:ro
+      # демо-профили для scripts/load_demo_profiles.py
+      - ./data/demo_profiles:/data/demo_profiles:ro
 
 volumes:
   pgdata:

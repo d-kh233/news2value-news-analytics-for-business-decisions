@@ -13,7 +13,15 @@ from alembic.migration import MigrationContext
 from sqlalchemy import Engine, func, inspect, select
 from sqlalchemy.orm import Session
 
-from app.models import Base, Company, Payment, Person, PersonCompanyLink, RejectedRow
+from app.models import (
+    Base,
+    Company,
+    CompanyProfileRow,
+    Payment,
+    Person,
+    PersonCompanyLink,
+    RejectedRow,
+)
 from app.services.bank_loader import LoadReport, format_report, load_all
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -67,6 +75,7 @@ def test_migration_creates_tables(db_engine: Engine) -> None:
         "person_company_links",
         "payments",
         "rejected_rows",
+        "company_profiles",
         "alembic_version",
     } <= tables
 
@@ -353,3 +362,60 @@ def test_reload_removes_rows_missing_from_file(db: Engine, tmp_path: Path) -> No
     # отклонённые строки старого payments.csv не остались висеть
     assert _rejected(db, "payments.csv", "exact_duplicate") == []
     assert _rejected(db, "payments.csv", "ambiguous_company") == []
+
+
+# --- source и revenue_known (B3) ---
+
+
+def _add_manual_company(engine: Engine, company_id: str = "c-manual") -> None:
+    with Session(engine) as s, s.begin():
+        s.add(Company(synthetic_u=company_id, mainokved_name="IT", source="manual"))
+        s.add(CompanyProfileRow(company_id=company_id, manual_data={"name": "Ручная"}))
+
+
+def test_loaded_companies_are_bank_with_revenue_known(report: LoadReport, db: Engine) -> None:
+    u1, u4 = _get(db, Company, "U_1"), _get(db, Company, "U_4")
+
+    assert (u1.source, u1.revenue_known) == ("bank", True)
+    # «Не определено» — выручка неизвестна, как и пустая
+    assert (u4.source, u4.revenue_known, u4.revenue_company) == ("bank", False, None)
+
+
+def test_rerun_keeps_manual_companies(db: Engine, tmp_path: Path) -> None:
+    _load(db)
+    _add_manual_company(db)
+    # в новом файле только U_1: банковские U_2…U_9 удаляются, ручная остаётся
+    companies = tmp_path / "companies.csv"
+    lines = COMPANIES.read_text(encoding="utf-8").splitlines()
+    companies.write_text("\n".join(lines[:2]) + "\n", encoding="utf-8")
+
+    rep = load_all(db, companies, LINKS, PAYMENTS)
+
+    manual = _get(db, Company, "c-manual")
+    assert (manual.source, manual.mainokved_name) == ("manual", "IT")
+    assert _get(db, CompanyProfileRow, "c-manual").manual_data == {"name": "Ручная"}
+    assert rep.companies.removed == 8
+    assert rep.companies.manual_rows == 1
+    with Session(db) as s:
+        stmt = select(Company.source, func.count()).group_by(Company.source)
+        sources = {source: n for source, n in s.execute(stmt)}
+    assert sources == {"bank": 1, "manual": 1}
+
+
+def test_bank_row_does_not_overwrite_manual_with_same_id(db: Engine) -> None:
+    # id совпал случайно: строку source='manual' загрузка не перезаписывает
+    _add_manual_company(db, "U_1")
+
+    _load(db)
+
+    u1 = _get(db, Company, "U_1")
+    assert (u1.source, u1.mainokved_name, u1.revenue_company) == ("manual", "IT", None)
+
+
+def test_report_mentions_manual_rows(db: Engine) -> None:
+    _add_manual_company(db)
+
+    out = format_report(_load(db))
+
+    assert "из них source='manual': 1" in out
+    assert "синхронизацией не затронуты" in out

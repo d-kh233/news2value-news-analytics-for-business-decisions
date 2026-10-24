@@ -4,50 +4,61 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Query, Response
 
 from app.schemas.common import ErrorResponse, Page
-from app.schemas.company import Company, CompanyCreate, CompanyProfile
+from app.schemas.company import Company, CompanyCreate, CompanyProfile, CompanyProfileUpdate
 from app.schemas.digest import Digest, DigestPeriod
 from app.schemas.insight import Insight, InsightType, Role
 from app.schemas.job import JobAccepted
-from app.services import mock_store
+from app.services import company_service, mock_store
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
 NOT_FOUND = {404: {"model": ErrorResponse}}
+CONFLICT = {409: {"model": ErrorResponse}}
 
 Limit = Annotated[int, Query(ge=1, le=100, description="Сколько записей вернуть")]
 Offset = Annotated[int, Query(ge=0, description="Сколько записей пропустить")]
 
 
 @router.get("", response_model=Page[Company])
-def list_companies(limit: Limit = 20, offset: Offset = 0) -> Page[Company]:
-    items, total = mock_store.list_companies(limit, offset)
+def list_companies(
+    limit: Limit = 20,
+    offset: Offset = 0,
+    q: Annotated[
+        str | None,
+        Query(max_length=200, description="Поиск по названию, id или отрасли (без учёта регистра)"),
+    ] = None,
+) -> Page[Company]:
+    items, total = company_service.list_companies(limit, offset, q)
     return Page[Company](items=items, total=total, limit=limit, offset=offset)
 
 
 @router.post("", response_model=Company, status_code=201)
 def create_company(data: CompanyCreate) -> Company:
-    return mock_store.create_company(data)
+    return company_service.create_company(data)
 
 
 @router.get("/{company_id}", response_model=Company, responses=NOT_FOUND)
 def get_company(company_id: str) -> Company:
-    return mock_store.get_company(company_id)
+    return company_service.get_company(company_id)
 
 
-@router.delete("/{company_id}", status_code=204, responses=NOT_FOUND)
+@router.delete("/{company_id}", status_code=204, responses={**NOT_FOUND, **CONFLICT})
 def delete_company(company_id: str) -> Response:
-    mock_store.delete_company(company_id)
+    """Удаляет только компанию, созданную через POST (source=manual); банковскую — 409."""
+    company_service.delete_company(company_id)
     return Response(status_code=204)
 
 
 @router.get("/{company_id}/profile", response_model=CompanyProfile, responses=NOT_FOUND)
 def get_profile(company_id: str) -> CompanyProfile:
-    return mock_store.get_profile(company_id)
+    """Профиль: данные банка + ручные поля (ручные главнее), источник поля — в field_sources."""
+    return company_service.get_profile(company_id)
 
 
 @router.put("/{company_id}/profile", response_model=CompanyProfile, responses=NOT_FOUND)
-def put_profile(company_id: str, profile: CompanyProfile) -> CompanyProfile:
-    return mock_store.put_profile(company_id, profile)
+def put_profile(company_id: str, profile: CompanyProfileUpdate) -> CompanyProfile:
+    """Поля из тела сохраняются как ручные; остальные ручные поля остаются как были."""
+    return company_service.put_profile(company_id, profile)
 
 
 @router.get("/{company_id}/insights", response_model=Page[Insight], responses=NOT_FOUND)

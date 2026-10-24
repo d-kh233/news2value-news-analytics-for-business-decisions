@@ -60,6 +60,25 @@
               "title": "Offset"
             },
             "description": "Сколько записей пропустить"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Поиск по названию, id или отрасли (без учёта регистра)",
+              "title": "Q"
+            },
+            "description": "Поиск по названию, id или отрасли (без учёта регистра)"
           }
         ],
         "responses": {
@@ -181,6 +200,7 @@
           "companies"
         ],
         "summary": "Delete Company",
+        "description": "Удаляет только компанию, созданную через POST (source=manual); банковскую — 409.",
         "operationId": "delete_company_companies__company_id__delete",
         "parameters": [
           {
@@ -207,6 +227,16 @@
             },
             "description": "Not Found"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -226,6 +256,7 @@
           "companies"
         ],
         "summary": "Get Profile",
+        "description": "Профиль: данные банка + ручные поля (ручные главнее), источник поля — в field_sources.",
         "operationId": "get_profile_companies__company_id__profile_get",
         "parameters": [
           {
@@ -276,6 +307,7 @@
           "companies"
         ],
         "summary": "Put Profile",
+        "description": "Поля из тела сохраняются как ручные; остальные ручные поля остаются как были.",
         "operationId": "put_profile_companies__company_id__profile_put",
         "parameters": [
           {
@@ -293,7 +325,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CompanyProfile"
+                "$ref": "#/components/schemas/CompanyProfileUpdate"
               }
             }
           }
@@ -559,6 +591,7 @@
           "companies"
         ],
         "summary": "Refresh Insights",
+        "description": "Запустить агента: новые инсайты компании заменяют старые.",
         "operationId": "refresh_insights_companies__company_id__insights_refresh_post",
         "parameters": [
           {
@@ -569,6 +602,32 @@
               "type": "string",
               "title": "Company Id"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "owner",
+                    "ceo",
+                    "cfo",
+                    "treasurer",
+                    "accountant",
+                    "procurement"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Роль читателя; по умолчанию ceo",
+              "title": "Role"
+            },
+            "description": "Роль читателя; по умолчанию ceo"
           }
         ],
         "responses": {
@@ -895,6 +954,61 @@
           }
         }
       }
+    },
+    "/jobs/{job_id}/run": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Get Job Run",
+        "description": "План и трейс прогона агента по refresh-задаче (для панели трассировки).\n\n404, если задачи нет, она ещё не завершена или это не refresh.",
+        "operationId": "get_job_run_jobs__job_id__run_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Job Run Jobs  Job Id  Run Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -955,6 +1069,20 @@
           "revenue_bln_rub": {
             "type": "number",
             "title": "Revenue Bln Rub"
+          },
+          "revenue_known": {
+            "type": "boolean",
+            "title": "Revenue Known",
+            "default": true
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "bank",
+              "manual"
+            ],
+            "title": "Source",
+            "default": "bank"
           }
         },
         "type": "object",
@@ -1065,6 +1193,89 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Manual Data"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
+          "okved_code": {
+            "type": "string",
+            "title": "Okved Code",
+            "default": ""
+          },
+          "city": {
+            "type": "string",
+            "title": "City",
+            "default": ""
+          },
+          "revenue_bln_rub": {
+            "type": "number",
+            "title": "Revenue Bln Rub",
+            "default": 0.0
+          },
+          "revenue_known": {
+            "type": "boolean",
+            "title": "Revenue Known",
+            "default": true
+          },
+          "employees": {
+            "type": "string",
+            "title": "Employees",
+            "default": ""
+          },
+          "foreign_trade": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Foreign Trade"
+          },
+          "foreign_trade_countries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Foreign Trade Countries"
+          },
+          "group_id": {
+            "type": "string",
+            "title": "Group Id",
+            "default": ""
+          },
+          "group_size": {
+            "type": "integer",
+            "title": "Group Size",
+            "default": 0
+          },
+          "top_buyers": {
+            "items": {
+              "$ref": "#/components/schemas/Counterparty"
+            },
+            "type": "array",
+            "title": "Top Buyers"
+          },
+          "top_suppliers": {
+            "items": {
+              "$ref": "#/components/schemas/Counterparty"
+            },
+            "type": "array",
+            "title": "Top Suppliers"
+          },
+          "field_sources": {
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "manual"
+              ]
+            },
+            "type": "object",
+            "title": "Field Sources"
           }
         },
         "type": "object",
@@ -1072,6 +1283,206 @@
           "company_id"
         ],
         "title": "CompanyProfile"
+      },
+      "CompanyProfileUpdate": {
+        "properties": {
+          "company_id": {
+            "type": "string",
+            "title": "Company Id",
+            "default": ""
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry",
+            "default": ""
+          },
+          "regions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Regions"
+          },
+          "key_clients": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Clients"
+          },
+          "key_suppliers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Suppliers"
+          },
+          "raw_materials": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Raw Materials"
+          },
+          "currency_risks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Currency Risks"
+          },
+          "debt_load": {
+            "type": "string",
+            "title": "Debt Load",
+            "default": ""
+          },
+          "strategic_goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strategic Goals"
+          },
+          "bank_products": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Bank Products"
+          },
+          "manual_data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Manual Data"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
+          "okved_code": {
+            "type": "string",
+            "title": "Okved Code",
+            "default": ""
+          },
+          "city": {
+            "type": "string",
+            "title": "City",
+            "default": ""
+          },
+          "revenue_bln_rub": {
+            "type": "number",
+            "title": "Revenue Bln Rub",
+            "default": 0.0
+          },
+          "revenue_known": {
+            "type": "boolean",
+            "title": "Revenue Known",
+            "default": true
+          },
+          "employees": {
+            "type": "string",
+            "title": "Employees",
+            "default": ""
+          },
+          "foreign_trade": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Foreign Trade"
+          },
+          "foreign_trade_countries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Foreign Trade Countries"
+          },
+          "group_id": {
+            "type": "string",
+            "title": "Group Id",
+            "default": ""
+          },
+          "group_size": {
+            "type": "integer",
+            "title": "Group Size",
+            "default": 0
+          },
+          "top_buyers": {
+            "items": {
+              "$ref": "#/components/schemas/Counterparty"
+            },
+            "type": "array",
+            "title": "Top Buyers"
+          },
+          "top_suppliers": {
+            "items": {
+              "$ref": "#/components/schemas/Counterparty"
+            },
+            "type": "array",
+            "title": "Top Suppliers"
+          },
+          "field_sources": {
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "manual"
+              ]
+            },
+            "type": "object",
+            "title": "Field Sources"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CompanyProfileUpdate",
+        "description": "Тело PUT /companies/{id}/profile.\n\nРучными становятся только поля, которые есть в теле (даже пустые, например\n\"key_clients\": []). Остальные ручные поля сохраняются. company_id и field_sources\nв теле игнорируются. Неизвестное поле или неверный тип — 422."
+      },
+      "Counterparty": {
+        "properties": {
+          "company_id": {
+            "type": "string",
+            "title": "Company Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry",
+            "default": ""
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "is_known": {
+            "type": "boolean",
+            "title": "Is Known",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_id",
+          "name"
+        ],
+        "title": "Counterparty",
+        "description": "Контрагент из платежей: покупатель (платит компании) или поставщик (получает от неё)."
       },
       "Digest": {
         "properties": {
@@ -1271,6 +1682,70 @@
           "created_at": {
             "type": "string",
             "title": "Created At"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "used_profile_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Used Profile Fields"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "owner",
+                  "ceo",
+                  "cfo",
+                  "treasurer",
+                  "accountant",
+                  "procurement"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "generated_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "llm",
+                  "rules"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated By"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
           }
         },
         "type": "object",
@@ -1401,6 +1876,17 @@
       },
       "Source": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
           "title": {
             "type": "string",
             "title": "Title"
