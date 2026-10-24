@@ -18,9 +18,12 @@ import hashlib
 import json
 import os
 import time
+import urllib.error
 import urllib.request
 from datetime import date
 from pathlib import Path
+
+from llm.client import _reasoning_params
 
 from .config import Settings
 
@@ -83,19 +86,32 @@ class Gateway:
         if self.spent_today() >= self.s.llm_daily_budget_rub:
             raise BudgetExceeded(f"дневной лимит {self.s.llm_daily_budget_rub} ₽ исчерпан")
 
-        body = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+        body = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens,
+                # GLM и другие рассуждающие модели иначе тратят max_tokens на рассуждения и
+                # возвращают пустой или обрезанный ответ. На ключ записи не влияет.
+                **_reasoning_params(model)}
         if os.environ.get("LLM_JSON_MODE", "1") == "1":
             body["response_format"] = {"type": "json_object"}
-        req = urllib.request.Request(
-            f"{self.s.llm_base_url}/chat/completions", data=json.dumps(body).encode("utf-8"),
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.s.llm_api_key}"})
         try:
-            with urllib.request.urlopen(req, timeout=self.s.llm_timeout_s) as r:
-                resp = json.loads(r.read().decode("utf-8"))
+            resp = self._post(body)
+        except urllib.error.HTTPError as e:
+            if e.code != 400 or "reasoning" not in body:
+                self.stats["errors"] += 1
+                raise LLMUnavailable(f"ошибка вызова модели: {e}") from e
+            body.pop("reasoning")                      # API не принял параметр — повтор без него
+            try:
+                resp = self._post(body)
+            except Exception as e2:  # noqa: BLE001
+                self.stats["errors"] += 1
+                raise LLMUnavailable(f"ошибка вызова модели: {e2}") from e2
         except Exception as e:  # noqa: BLE001
             self.stats["errors"] += 1
             raise LLMUnavailable(f"ошибка вызова модели: {e}") from e
-        reply = resp["choices"][0]["message"]["content"]
+        reply = (resp["choices"][0]["message"].get("content") or "").strip()
+        if not reply:
+            # пустой ответ не записываем: повторный запуск вызовет модель заново
+            self.stats["errors"] += 1
+            raise LLMUnavailable(f"пустой ответ модели {model}")
         tokens = (resp.get("usage") or {}).get("total_tokens") or \
             (sum(len(m.get("content", "")) for m in messages) + len(reply)) // 3
         self._record(model, tokens)
@@ -103,3 +119,10 @@ class Gateway:
         rec.write_text(json.dumps({"model": model, "messages": messages, "reply": reply, "tokens": tokens},
                                   ensure_ascii=False, indent=1), encoding="utf-8")
         return reply
+
+    def _post(self, body: dict) -> dict:
+        req = urllib.request.Request(
+            f"{self.s.llm_base_url}/chat/completions", data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.s.llm_api_key}"})
+        with urllib.request.urlopen(req, timeout=self.s.llm_timeout_s) as r:
+            return json.loads(r.read().decode("utf-8"))
