@@ -4,7 +4,8 @@
 
 Каждый шаг пишется в trace: что вызвали, с чем, что получили, сколько заняло, был ли откат.
 Бэкенд вызывает run() из фоновой задачи refresh (backend/app/ml_ports/agent_port.py).
-Субботние задачи (критик CriticVerdict и повторный поиск по его extra_search) встраиваются в _analyze().
+Критик (llm.critic) проверяет каждую карточку; если он отвечает «данных не хватает» и предлагает,
+что поискать (extra_search), агент выполняет эти шаги один раз и пишет карточку заново (_repeat_search).
 """
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ from llm.okved.sensitivity import RU as FACTOR_RU
 
 from .config import Settings
 from .gateway import Gateway, LLMUnavailable
-from .generator import InsightContext, generate, to_backend
+from .generator import InsightContext, generate, mark_insufficient, to_backend
 from .profiles import ProfileStore
 from .roles import Role, get_role
 from .schemas import AgentResult, CompanyProfile, NewsItem, TraceStep
@@ -33,6 +34,7 @@ from .tools import NewsProvider, Tools
 
 MAX_PERIOD_DAYS = 90
 MACRO_FALLBACK_N = 2
+RELATED_NEWS_N = 2      # сколько связанных новостей добавляет повторный поиск
 DUP_JACCARD = 0.35      # общая доля основ заголовка+текста, выше — считаем перепечаткой одного события
 
 
@@ -118,7 +120,7 @@ class Orchestrator:
                           "selected": n.news_id in chosen, "duplicate_of": dups.get(n.news_id)}
                          for n, b in ranked]
 
-        insights = [self._analyze(trace, gw, llm_trace, profile, n, b, r, run_id) for n, b in selected]
+        insights = [self._analyze(trace, gw, llm_trace, profile, n, b, r, run_id, news) for n, b in selected]
 
         usage = {**gw.stats, "cache_hits": sum(1 for x in llm_trace if x.get("cached")),
                  "schema_retries": sum(1 for x in llm_trace if x.get("ok") is False), "calls_log": llm_trace}
@@ -205,29 +207,114 @@ class Orchestrator:
                 st.status = "fallback"
 
     def _analyze(self, trace: list[TraceStep], gw: Gateway, llm_trace: list, profile: CompanyProfile,
-                 news: NewsItem, b: ScoreBreakdown, role: Role, run_id: str) -> dict:
+                 news: NewsItem, b: ScoreBreakdown, role: Role, run_id: str, pool: list[NewsItem] = ()) -> dict:
         why = explain(profile, b)
         factors = [w["factor"] for w in why if w.get("factor")] or \
             [m.factor.value for m in (news.event.factor_moves if news.event else [])]
         query = f"{news.title}. " + " ".join(FACTOR_RU.get(f, f) for f in factors)
         with self._step(trace, f"Аналитика банка: {news.news_id}", "search_bank_analytics",
-                        query=query, factors=factors) as st:
-            hits, src = self.tools.search_bank_analytics(query, factors, k=self.s.theses_per_news)
+                        query=query, factors=factors, okved2=profile.okved2) as st:
+            hits, src = self.tools.search_bank_analytics(query, factors, k=self.s.theses_per_news,
+                                                         okved2=profile.okved2)
             st.output = {"source": src, "hits": [{"id": t.sid, "score": s} for t, s in hits]}
+            if not hits:
+                st.note = "в аналитике банка нет тезиса по теме события и отрасли компании"
+        use_critic = self.s.llm_use_critic and self.s.llm_mode != "stub"
+        ctx = InsightContext(profile=profile, news=news, breakdown=b, why=why, theses=[t for t, _ in hits], role=role)
         with self._step(trace, f"Интерпретация и самопроверка: {news.news_id}", "interpret",
-                        news_id=news.news_id, role=role.key, mode=self.s.llm_mode) as st:
-            ctx = InsightContext(profile=profile, news=news, breakdown=b, why=why, theses=[t for t, _ in hits], role=role)
+                        news_id=news.news_id, role=role.key, mode=self.s.llm_mode, critic=use_critic) as st:
             n0 = len(llm_trace)
-            ins, meta = generate(ctx, gw, self.s.llm_use_smart, llm_trace)
-            extra = {"run_id": run_id, "relevance": b.score, "score_parts": b.parts,
-                     "macro_sign": b.macro.get("sign", "neutral"), "validation_notes": meta.get("notes", [])}
-            card = to_backend(ins, ctx, self.tools.resolve_source(news), meta["path"], extra)
-            st.output = {**meta, "llm_calls": llm_trace[n0:], "insight_id": card["id"],
-                         "blocks": {k: len(getattr(ins, k)) for k in
-                                    ("what_happened", "why_it_matters", "consequences", "actions", "bank_view")}}
+            ins, meta = generate(ctx, gw, self.s.llm_use_smart, llm_trace, use_critic)
+            st.output = self._gen_output(meta, ins, llm_trace[n0:])
             if meta["path"] == "rules" and self.s.llm_mode != "stub":
                 st.status, st.note = "fallback", meta.get("fallback_reason")
-        return card
+
+        reviews = [meta["review"]] if meta.get("review") else []
+        if reviews and reviews[0]["verdict"] == "need_more_data":
+            ctx2 = self._repeat_search(trace, ctx, reviews[0], factors, pool)
+            if ctx2 is not None:
+                with self._step(trace, f"Карточка заново с новыми данными: {news.news_id}", "interpret",
+                                news_id=news.news_id, theses=[t.sid for t in ctx2.theses],
+                                related=[n.sid for n in ctx2.related]) as st:
+                    n0 = len(llm_trace)
+                    ins2, meta2 = generate(ctx2, gw, self.s.llm_use_smart, llm_trace, use_critic)
+                    st.output = self._gen_output(meta2, ins2, llm_trace[n0:])
+                    if meta2["path"] == "llm":
+                        ins, ctx = ins2, ctx2
+                        meta = {**meta2, "notes": meta["notes"] + ["повторный поиск: карточка переписана"]
+                                + meta2["notes"]}
+                        if meta2.get("review"):
+                            reviews.append(meta2["review"])
+                    else:   # второй проход не удался — оставляем первую карточку, она прошла автопроверки
+                        st.status, st.note = "fallback", meta2.get("fallback_reason")
+            if reviews[-1]["verdict"] == "need_more_data":
+                mark_insufficient(ins, reviews[-1])
+
+        extra = {"run_id": run_id, "relevance": b.score, "score_parts": b.parts,
+                 "macro_sign": b.macro.get("sign", "neutral"), "validation_notes": meta.get("notes", [])}
+        if reviews:
+            extra["review"] = {**{k: reviews[-1].get(k) for k in ("version", "verdict", "scores", "issues")},
+                               "rounds": [r.get("verdict") for r in reviews],
+                               "related_news": [n.sid for n in ctx.related]}
+        return to_backend(ins, ctx, self.tools.resolve_source(news, ctx.related), meta["path"], extra)
+
+    @staticmethod
+    def _gen_output(meta: dict, ins, calls: list) -> dict:
+        out = {k: v for k, v in meta.items() if k != "review"}
+        if meta.get("review"):
+            out["critic"] = {k: meta["review"].get(k) for k in ("verdict", "scores", "issues", "extra_search", "error")
+                             if meta["review"].get(k) is not None}
+        out["llm_calls"] = calls
+        out["blocks"] = {k: len(getattr(ins, k)) for k in
+                         ("what_happened", "why_it_matters", "consequences", "actions", "bank_view")}
+        return out
+
+    def _repeat_search(self, trace: list[TraceStep], ctx: InsightContext, review: dict, factors: list[str],
+                       pool: list[NewsItem]) -> InsightContext | None:
+        """Шаги, которые предложил критик (до двух), выполняем один раз. Нашлось новое — контекст для
+        второго прохода; не нашлось — None, карточка остаётся с пометкой «данных мало»."""
+        steps = (review.get("extra_search") or [])[:2]
+        news, profile = ctx.news, ctx.profile
+        with self._step(trace, f"Повторный поиск: {news.news_id}", "extra_search", steps=steps) as st:
+            have = {t.sid for t in ctx.theses}
+            theses, related, done = list(ctx.theses), list(ctx.related), []
+            for s in steps:
+                tool, q = s.get("tool"), _query_of(s)
+                if tool == "search_bank_analytics" and q:
+                    hits, _ = self.tools.search_bank_analytics(q, factors, k=self.s.theses_per_news,
+                                                               okved2=profile.okved2)
+                    new = [t for t, _ in hits if t.sid not in have]
+                    have |= {t.sid for t in new}
+                    theses += new
+                    done.append({"tool": tool, "query": q, "found": [t.sid for t in new]})
+                elif tool == "search_news" and q:
+                    new = self._related_news(news, q, pool, {n.news_id for n in related})
+                    related += new
+                    done.append({"tool": tool, "query": q, "found": [n.sid for n in new]})
+                elif tool == "get_company_profile":
+                    done.append({"tool": tool, "found": [], "note": "все признаки компании уже переданы модели"})
+                else:
+                    done.append({"tool": tool, "found": [], "note": "источник не подключён"})
+            st.output = {"steps": done}
+            if len(theses) == len(ctx.theses) and len(related) == len(ctx.related):
+                st.status, st.note = "skipped", "новых данных не нашлось — карточка остаётся с пометкой «данных мало»"
+                return None
+        return InsightContext(profile=profile, news=news, breakdown=ctx.breakdown, why=ctx.why, theses=theses,
+                              role=ctx.role, related=related)
+
+    @staticmethod
+    def _related_news(news: NewsItem, query: str, pool: list[NewsItem], skip: set[str]) -> list[NewsItem]:
+        """Новости того же периода по запросу критика (BM25); шум и сама новость не берутся."""
+        others = [n for n in pool if n.news_id != news.news_id and n.news_id not in skip
+                  and not (n.event and n.event.is_noise)]
+        if not others:
+            return []
+        raw = BM25([f"{n.title}. {n.text}" for n in others]).scores(query)
+        top = max(raw, default=0.0)
+        if top <= 0:
+            return []
+        ranked = sorted(zip(others, raw), key=lambda x: -x[1])
+        return [n for n, x in ranked if x >= 0.5 * top][:RELATED_NEWS_N]
 
     def _save(self, result: AgentResult) -> None:
         try:
@@ -236,3 +323,13 @@ class Orchestrator:
             (d / f"{result.run_id}.json").write_text(result.model_dump_json(indent=2), encoding="utf-8")
         except OSError:
             pass   # в контейнере с read-only файловой системой прогон не сохраняем — это не ошибка агента
+
+
+def _query_of(step: dict) -> str:
+    """Текст запроса из шага критика: args.query / q / topic, иначе все значения args, иначе goal."""
+    args = step.get("args") or {}
+    for k in ("query", "q", "topic", "text"):
+        if isinstance(args.get(k), str) and args[k].strip():
+            return args[k].strip()
+    vals = " ".join(str(v) for v in args.values() if isinstance(v, (str, int, float)))
+    return (vals or step.get("goal") or "").strip()
