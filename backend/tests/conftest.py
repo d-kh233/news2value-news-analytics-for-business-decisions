@@ -21,7 +21,7 @@ from app.services.bank_loader import load_all
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 BANK_TABLES = ["companies", "persons", "person_company_links", "payments", "rejected_rows"]
-DB_TABLES = [*BANK_TABLES, "company_profiles", "documents"]
+DB_TABLES = [*BANK_TABLES, "company_profiles", "documents", "insights", "pipeline_runs"]
 FIXTURES = Path(__file__).parent / "fixtures"
 # моковая компания с моковыми инсайтами (data/mocks); компании API живут в БД
 MOCK_COMPANY_ID = "c-001"

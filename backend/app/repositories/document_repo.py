@@ -82,3 +82,10 @@ def recent_news(session: Session, since: datetime, before: datetime, limit: int)
         .limit(limit)
     )
     return list(session.scalars(stmt))
+
+
+def existing_ids(session: Session, ids: list[int]) -> set[int]:
+    """Какие из id есть в documents (проверка ссылок инсайтов на документы)."""
+    if not ids:
+        return set()
+    return set(session.scalars(select(Document.id).where(Document.id.in_(ids))))

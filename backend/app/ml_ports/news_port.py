@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 NEWS_LIMIT = 100
 
 
-def _today() -> date:
+def agent_today() -> date:
     """«Сегодня» агента: AGENT_TODAY (YYYY-MM-DD), иначе текущая дата по UTC."""
     value = os.environ.get("AGENT_TODAY") or get_settings().agent_today
     return date.fromisoformat(value) if value else datetime.now(UTC).date()
@@ -59,7 +59,7 @@ def news_provider(company_id: str, period: int) -> list[dict[str, Any]]:
     from app.core.db import get_session
     from app.repositories import document_repo
 
-    today = _today()
+    today = agent_today()
     since = datetime.combine(today - timedelta(days=period), time.min, tzinfo=UTC)
     before = datetime.combine(today + timedelta(days=1), time.min, tzinfo=UTC)
     with get_session() as session:

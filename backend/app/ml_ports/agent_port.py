@@ -4,10 +4,14 @@
 (см. backend/Dockerfile); при локальном запуске из backend/ корень репозитория добавляется в путь.
 
 Профиль компании для агента — строка с колонками df_Uid_data_hack:
-  • компания из таблицы companies (SYNTHETIC_U) — строка БД как есть;
+  • компания из таблицы companies (SYNTHETIC_U) — строка БД как есть плюс manual_data из
+    company_profiles (сырьё, контрагенты, цели из демо-профилей и PUT; банковские поля главнее);
   • моковая или созданная через API компания — поля Company и CompanyProfile, ОКВЭД и флаги
     продуктов берутся из manual_data, а если флагов нет — угадываются по тексту bank_products;
     сырьё, контрагенты и валютные риски из профиля идут в поиск сущностей.
+
+Период: API принимает period = day | week, агент и news_provider — число дней. Переводим здесь
+(period_to_days), больше нигде эти два вида периода не встречаются.
 """
 
 import logging
@@ -22,6 +26,20 @@ logger = logging.getLogger(__name__)
 
 # Совпадает с llm/insight.py ROLES (тексты фокуса ролей — там)
 ROLES = ("owner", "ceo", "cfo", "treasurer", "accountant", "procurement")
+
+# period из API -> дни для агента и news_provider; без period — прежние 30 дней
+PERIOD_DAYS = {"day": 1, "week": 7}
+DEFAULT_PERIOD_DAYS = 30
+
+
+def period_to_days(period: str | None) -> int:
+    """Перевод period из API в дни: day -> 1, week -> 7, None -> 30 (как было до B5)."""
+    if period is None:
+        return DEFAULT_PERIOD_DAYS
+    if period not in PERIOD_DAYS:
+        raise ValueError(f"period={period!r}: допустимо {' | '.join(PERIOD_DAYS)}")
+    return PERIOD_DAYS[period]
+
 
 def _ensure_repo_on_path() -> None:
     here = Path(__file__).resolve()
@@ -42,17 +60,25 @@ def row_from_profile(company: dict[str, Any], profile: dict[str, Any]) -> dict[s
 
 
 def row_from_db(company_id: str) -> dict[str, Any] | None:
-    """Строка таблицы companies или None (нет БД или нет такой компании)."""
+    """Строка таблицы companies + manual_data профиля или None (нет БД или нет такой компании).
+
+    manual_data агент читает сам (CompanyProfile.from_row): ключи переводит в верхний регистр
+    и заполняет ими только пустые банковские поля.
+    """
     if not get_settings().database_url:
         return None
     from app.core.db import get_session
-    from app.repositories import company_repo
+    from app.repositories import company_repo, profile_repo
 
     with get_session() as session:
         c = company_repo.get_by_id(session, company_id)
         if c is None:
             return None
-        return {col.key: getattr(c, col.key) for col in c.__table__.columns}
+        row: dict[str, Any] = {col.key: getattr(c, col.key) for col in c.__table__.columns}
+        profile = profile_repo.get(session, company_id)
+        if profile is not None and profile.manual_data:
+            row["manual_data"] = dict(profile.manual_data)
+        return row
 
 
 def select_news_provider(news_source: str) -> Callable[[str, int], list[dict]] | None:
@@ -70,12 +96,16 @@ def generate_insights(
     *,
     company: dict[str, Any] | None = None,
     profile: dict[str, Any] | None = None,
-    period_days: int = 30,
+    period_days: int = DEFAULT_PERIOD_DAYS,
+    period: str | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Прогон агента. Возвращает (инсайты в схеме backend Insight, сводка прогона с трейсом).
 
     company/profile — моковая компания; без них компания ищется в таблице companies.
+    period — значение из API (day | week); если задан, он главнее period_days.
     """
+    if period is not None:
+        period_days = period_to_days(period)
     _ensure_repo_on_path()
     from agent.orchestrator import Orchestrator
     from agent.schemas import CompanyProfile

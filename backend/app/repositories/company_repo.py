@@ -59,3 +59,19 @@ def add(session: Session, company: Company) -> None:
 def delete(session: Session, company: Company) -> None:
     """Удалить компанию; её профиль удалит БД (ON DELETE CASCADE)."""
     session.delete(company)
+
+
+def first_of_distinct_industries(session: Session, n: int) -> list[Company]:
+    """По одной компании из n разных отраслей (первые 2 знака ОКВЭД), по возрастанию id.
+
+    Для проверки стыка с агентом (scripts/check_ml_contract.py) на непохожих компаниях.
+    """
+    okved2 = func.split_part(Company.mainokved_code, ".", 1)
+    ids = (
+        select(func.min(Company.synthetic_u).label("id"))
+        .where(Company.mainokved_code.is_not(None), Company.mainokved_code != "")
+        .group_by(okved2)
+        .subquery()
+    )
+    stmt = select(Company).join(ids, Company.synthetic_u == ids.c.id).order_by(Company.synthetic_u)
+    return list(session.scalars(stmt.limit(n)))

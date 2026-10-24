@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
     # Откуда агент берёт новости: mock — agent/data/mock_news.json, db — таблица documents (B4)
     news_source: Literal["mock", "db"] = "mock"
+    # Кто делает инсайты при refresh: real — агент (agent_port), fake — заглушка на совпадении
+    # слов (fake_port), если agent/llm не слиты или сломаны. Режим LLM внутри агента — LLM_MODE
+    ml_mode: Literal["fake", "real"] = "real"
     # «Сегодня» агента (YYYY-MM-DD); пусто — текущая дата. Им же пользуется news_provider
     agent_today: str = ""
 
