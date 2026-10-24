@@ -33,13 +33,21 @@ def read_companies(path: str) -> dict[str, dict]:
     return out
 
 
-def theses_for(event, theses: list[dict], limit: int = 3) -> list[dict]:
-    """Простой отбор тезисов банка по совпадению факторов (в агенте Юли — свой поиск)."""
+def theses_for(event, theses: list[dict], limit: int = 3, company: dict | None = None) -> list[dict]:
+    """Простой отбор тезисов банка: совпадение факторов события, а для отраслевых тезисов (поле okved) —
+    совпадение отрасли события или компании. В агенте Юли — свой поиск."""
+    from .okved.sensitivity import okved2
     factors = {fm.factor.value for fm in event.factor_moves}
-    hit = [t for t in theses if factors & set(t.get("factors", []))]
+    okveds = set(event.okved_hints) | ({okved2(company.get("MAINOKVED_CODE"))} if company else set())
+    def hit(t):
+        by_factor = bool(factors & set(t.get("factors", [])))
+        by_okved = bool(okveds & set(t.get("okved", [])))
+        return (by_okved, by_factor) if (by_factor or by_okved) else None
+    scored = sorted((h, i, t) for i, t in enumerate(theses) if (h := hit(t)))
+    scored = sorted(scored, key=lambda x: (not x[0][0], not x[0][1], x[1]))
     return [{"id": f"A:{t['thesis_id']}:1", "title": t["title"], "date": t.get("date"),
              "published_at": t.get("published_at"), "url": t.get("url"),
-             "text": f"{t['thesis']} ({t.get('figure', '')})"} for t in hit[:limit]]
+             "text": f"{t['thesis']} ({t.get('figure', '')})"} for _, _, t in scored[:limit]]
 
 
 def render(news, company, role, ins, impact) -> str:
@@ -86,7 +94,7 @@ def main() -> None:
                 events[nid] = extract_event(news[nid])
             ev = events[nid]
             trace: list = []
-            ins, impact = interpret(ev, news[nid]["text"], companies[cid], bank_chunks=theses_for(ev, theses),
+            ins, impact = interpret(ev, news[nid]["text"], companies[cid], bank_chunks=theses_for(ev, theses, company=companies[cid]),
                                     role=role, trace=trace)
             fixes = [t.get("error", "")[:200] for t in trace if t.get("ok") is False]
             parts.append(render(news[nid], companies[cid], role, ins, impact)

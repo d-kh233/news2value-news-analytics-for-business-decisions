@@ -1,5 +1,12 @@
 # llm/ — промпты, схемы и вызов моделей
 
+## Заморозка промптов (24.10, перед записью демо)
+
+Версии: извлечение `extract_event@v4`, интерпретация `insight@v4`, критик `critic@v2`. После записи ответов для жюри (`replay_cache/`) промпты не меняем: иначе записанные ответы перестанут совпадать с запросами и режим воспроизведения уйдёт в правила. Если правка всё же нужна — поднять версию и перезаписать демо.
+
+Проверка фактов в демо-инсайтах (без вызова моделей): `python -m llm.factcheck run_*.json --news agent/data/mock_news.json --theses agent/data/bank_theses.json`.
+
+
 Зона Prompt Engineer. Готово на чт 22.10: классификация и извлечение (Gemma), JSON-схемы, черновик карты ОКВЭД.
 
 ## Что здесь
@@ -32,6 +39,18 @@ out = generate_insight(news, company_row, bank_chunks=chunks, counterparties=cps
 - Возвращает dict ровно по схеме backend `Insight` + необязательные `details`, `used_profile_fields`, `prompt_version`, `generated_by`, `role`.
 - Модель видит список допустимых id источников. Если сослалась на несуществующий или не связала вывод с признаками компании — ей показывают ошибку и просят исправить.
 - Промпт: `prompts/insight.system.md`. Версия: `PROMPT_VERSION` в `backend_adapter.py`.
+
+## Самопроверка критиком (`critic.py`)
+
+```python
+from llm.critic import interpret_reviewed
+ins, impact, review = interpret_reviewed(event, news_text, company, bank_chunks=chunks, role="cfo",
+                                         extra_check=strict_check, complete=gateway_complete)
+```
+
+interpret → критик (GLM, `prompts/critic.system.md`) оценивает 1–5 по grounding, personalization, depth, actionability, bank_separation и ищет пересказ, общие фразы, вывод модели под видом позиции банка, незамеченное расхождение новости и аналитики банка → при `revise` одна доработка с замечаниями. `review["verdict"]`: pass | revised | need_more_data (в `extra_search` шаги поиска для агента) | revise_failed (остаётся первый вариант, он прошёл автопроверки). Стоимость: +1 вызов GLM, +1 при доработке.
+
+Оценка с критиком: `python3 -m llm.eval_run ... --critic`.
 
 ## Как встроить в бэкенд (Даша)
 
