@@ -38,6 +38,8 @@ services:
       - ./data/raw:/data/raw:ro
       # демо-профили для scripts/load_demo_profiles.py
       - ./data/demo_profiles:/data/demo_profiles:ro
+      # список источников для scripts/ingest.py (PDF берутся из /data/raw/analytics)
+      - ./config:/config:ro
 
 volumes:
   pgdata:

@@ -1009,6 +1009,121 @@
           }
         }
       }
+    },
+    "/documents": {
+      "get": {
+        "tags": [
+          "internal"
+        ],
+        "summary": "[internal] Собранные документы",
+        "description": "Служебный эндпоинт: документы из RSS и PDF, сначала свежие. Полный текст не отдаётся —\nтолько начало (text_preview) и длина. С фильтром по датам документы без даты не попадают.",
+        "operationId": "list_documents_documents_get",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DocumentKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "YYYY-MM-DD, дата публикации по UTC, включительно",
+              "title": "Date From"
+            },
+            "description": "YYYY-MM-DD, дата публикации по UTC, включительно"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "YYYY-MM-DD, дата публикации по UTC, включительно",
+              "title": "Date To"
+            },
+            "description": "YYYY-MM-DD, дата публикации по UTC, включительно"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Сколько записей вернуть",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Сколько записей вернуть"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Сколько записей пропустить",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Сколько записей пропустить"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Document_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1519,6 +1634,107 @@
         ],
         "title": "Digest"
       },
+      "Document": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DocumentKind"
+          },
+          "source_name": {
+            "type": "string",
+            "title": "Source Name"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "text_preview": {
+            "type": "string",
+            "title": "Text Preview"
+          },
+          "text_length": {
+            "type": "integer",
+            "title": "Text Length"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "content_hash": {
+            "type": "string",
+            "title": "Content Hash"
+          },
+          "fetched_at": {
+            "type": "string",
+            "title": "Fetched At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DocumentStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "source_name",
+          "url",
+          "title",
+          "text_preview",
+          "text_length",
+          "published_at",
+          "tags",
+          "content_hash",
+          "fetched_at",
+          "status"
+        ],
+        "title": "Document",
+        "description": "Документ без полного текста: начало текста и его длина."
+      },
+      "DocumentKind": {
+        "type": "string",
+        "enum": [
+          "external_news",
+          "bank_analytics"
+        ],
+        "title": "DocumentKind"
+      },
+      "DocumentStatus": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "empty_text",
+          "error"
+        ],
+        "title": "DocumentStatus"
+      },
       "ErrorResponse": {
         "properties": {
           "error": {
@@ -1842,6 +2058,37 @@
           "offset"
         ],
         "title": "Page[Company]"
+      },
+      "Page_Document_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Document"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[Document]"
       },
       "Page_Insight_": {
         "properties": {

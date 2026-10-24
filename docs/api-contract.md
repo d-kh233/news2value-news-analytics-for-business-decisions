@@ -74,7 +74,7 @@
 
 ### Что добавлено сверх списка лида
 
-Следующие схемы не входили в исходный список от лида, их добавили для ask, feedback и общих правил: `AskRequest`, `AskResult`, `FeedbackRequest`, `Feedback`, `ErrorResponse`. Кроме них добавлены вспомогательные `CompanyCreate` (тело `POST /companies`), `JobAccepted` (ответ 202 `{job_id}`) и `Page` (форма списка). Поле `manual_data` в `CompanyProfile` тоже добавлено по отдельному решению (см. «Профиль компании»). Также добавлен эндпоинт `GET /jobs/{job_id}/result`. Для агента (22.10) добавлены параметр `role` у `refresh`, необязательные поля инсайта (`details`, `used_profile_fields`, `role`, `generated_by`, `prompt_version`) и `GET /jobs/{job_id}/run`. В модуле B3 (24.10) добавлены необязательные поля `revenue_known` и `source` в `Company`, параметр поиска `q` у `GET /companies`, ответ 409 у `DELETE`, поля профиля из данных банка и `field_sources`. Старые поля не менялись.
+Следующие схемы не входили в исходный список от лида, их добавили для ask, feedback и общих правил: `AskRequest`, `AskResult`, `FeedbackRequest`, `Feedback`, `ErrorResponse`. Кроме них добавлены вспомогательные `CompanyCreate` (тело `POST /companies`), `JobAccepted` (ответ 202 `{job_id}`) и `Page` (форма списка). Поле `manual_data` в `CompanyProfile` тоже добавлено по отдельному решению (см. «Профиль компании»). Также добавлен эндпоинт `GET /jobs/{job_id}/result`. Для агента (22.10) добавлены параметр `role` у `refresh`, необязательные поля инсайта (`details`, `used_profile_fields`, `role`, `generated_by`, `prompt_version`) и `GET /jobs/{job_id}/run`. В модуле B3 (24.10) добавлены необязательные поля `revenue_known` и `source` в `Company`, параметр поиска `q` у `GET /companies`, ответ 409 у `DELETE`, поля профиля из данных банка и `field_sources`. Старые поля не менялись. В модуле B4 (24.10) добавлен служебный `GET /documents` (см. последний раздел) — фронтенду он не нужен.
 
 ---
 
@@ -356,3 +356,39 @@
 ```json
 {"insight_id": "i-001", "rating": "useful", "comment": "Пригодилось", "created_at": "2026-10-21T14:21:40Z"}
 ```
+
+---
+
+## Служебные эндпоинты (internal, не для фронтенда)
+
+Нужны бэкенду и команде, чтобы проверить сбор данных. В интерфейсе их не показывать; в `/docs` они в группе `internal`, у названия пометка `[internal]`. Форма ответа может меняться без предупреждения.
+
+### GET /documents — собранные документы (модуль B4)
+
+Документы из RSS-лент (`external_news`) и PDF-аналитики банка (`bank_analytics`), сначала свежие (по `published_at`; документы без даты — в конце). Полный текст не отдаётся — только первые 500 символов и длина.
+
+Параметры (все необязательные): `kind` — `external_news` или `bank_analytics`; `date_from`, `date_to` — `YYYY-MM-DD`, дата публикации по UTC, обе включительно; `limit` (1–100, по умолчанию 20), `offset`. С фильтром по датам документы без даты публикации не попадают. 422 — неверный `kind`, дата не в формате `YYYY-MM-DD`, `date_from` позже `date_to`.
+
+```json
+{
+  "items": [
+    {
+      "id": 42,
+      "kind": "external_news",
+      "source_name": "kommersant_economics",
+      "url": "https://www.kommersant.ru/doc/0000000",
+      "title": "Заголовок статьи",
+      "text_preview": "Первые 500 символов текста…",
+      "text_length": 2177,
+      "published_at": "2026-10-23T18:53:56Z",
+      "tags": ["economy"],
+      "content_hash": "3f0c…(sha256)",
+      "fetched_at": "2026-10-24T17:27:38Z",
+      "status": "ok"
+    }
+  ],
+  "total": 69, "limit": 20, "offset": 0
+}
+```
+
+`status`: `ok` — текст есть; `empty_text` — текст не извлёкся (например, PDF из картинок без текстового слоя); `error` — документ не удалось получить. `url` у PDF — `local://<папка>/<файл>`. Тег `text_from_summary` — статью скачать не удалось, текст взят из описания в RSS.

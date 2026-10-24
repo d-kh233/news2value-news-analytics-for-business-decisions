@@ -1,7 +1,9 @@
 import os
 from collections.abc import Iterator
+from dataclasses import dataclass, field
 from pathlib import Path
 
+import httpx
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -12,13 +14,14 @@ from sqlalchemy.exc import OperationalError
 from app.core import db as db_module
 from app.core.config import get_settings
 from app.core.db import outside_docker_url, to_sqlalchemy_url
+from app.ingestion.rss_parser import PoliteClient
 from app.main import app
 from app.services import mock_store
 from app.services.bank_loader import load_all
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 BANK_TABLES = ["companies", "persons", "person_company_links", "payments", "rejected_rows"]
-DB_TABLES = [*BANK_TABLES, "company_profiles"]
+DB_TABLES = [*BANK_TABLES, "company_profiles", "documents"]
 FIXTURES = Path(__file__).parent / "fixtures"
 # моковая компания с моковыми инсайтами (data/mocks); компании API живут в БД
 MOCK_COMPANY_ID = "c-001"
@@ -133,3 +136,59 @@ def company_id() -> str:
 @pytest.fixture
 def insight_id(client, company_id) -> str:
     return client.get(f"/companies/{company_id}/insights").json()["items"][0]["id"]
+
+
+INGESTION = FIXTURES / "ingestion"
+NEWS_SITE = "https://news.example.com"
+
+
+@dataclass
+class FakeWeb:
+    """Интернет для тестов сбора: адрес -> (код, тело) или "down" (нет связи), "timeout".
+
+    Запоминает адреса запросов, User-Agent и паузы — без настоящей сети и ожидания.
+    """
+
+    routes: dict[str, tuple[int, bytes] | str] = field(default_factory=dict)
+    requests: list[str] = field(default_factory=list)
+    user_agents: list[str] = field(default_factory=list)
+    sleeps: list[float] = field(default_factory=list)
+
+    def handle(self, request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        self.requests.append(url)
+        self.user_agents.append(request.headers.get("user-agent", ""))
+        route = self.routes.get(url)
+        if route == "down":
+            raise httpx.ConnectError("нет связи", request=request)
+        if route == "timeout":
+            raise httpx.ReadTimeout("таймаут", request=request)
+        if route is None:
+            return httpx.Response(404, content=b"not found")
+        status, body = route
+        return httpx.Response(status, content=body)
+
+    def client(self, delay_s: float = 0.0, timeout_s: float = 10.0) -> PoliteClient:
+        return PoliteClient(
+            "News2ValueTest/1.0",
+            timeout_s,
+            delay_s,
+            transport=httpx.MockTransport(self.handle),
+            sleep=self.sleeps.append,
+            # часы стоят: каждый следующий запрос к сайту ждёт полную паузу
+            clock=lambda: 0.0,
+        )
+
+
+@pytest.fixture
+def fake_web() -> FakeWeb:
+    """Тестовый сайт news.example.com: robots.txt, лента и одна статья (остальное — 404)."""
+    web = FakeWeb()
+    web.routes[f"{NEWS_SITE}/robots.txt"] = (200, (INGESTION / "robots.txt").read_bytes())
+    web.routes[f"{NEWS_SITE}/rss"] = (200, (INGESTION / "feed.xml").read_bytes())
+    web.routes[f"{NEWS_SITE}/economy/rate-decision"] = (
+        200,
+        (INGESTION / "article.html").read_bytes(),
+    )
+    web.routes[f"{NEWS_SITE}/private/insider"] = (200, b"<html>secret</html>")
+    return web

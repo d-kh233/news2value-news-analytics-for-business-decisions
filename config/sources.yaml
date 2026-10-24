@@ -1,0 +1,39 @@
+# Источники для сбора документов (модуль B4): scripts/ingest.py -> app/ingestion/runner.py
+# Финальный список RSS согласуем с аналитиком; это стартовый набор публичных лент.
+#
+# Общие настройки HTTP:
+#   user_agent — как робот представляется сайтам (по нему же проверяется robots.txt)
+#   timeout_s  — сколько секунд ждать ответа сайта
+#   delay_s    — пауза между запросами к одному сайту (больше, если robots.txt просит Crawl-delay)
+# У источника:
+#   tz_offset  — часовой пояс для дат без пояса (по умолчанию +03:00, Москва)
+#   max_items  — сколько последних записей ленты брать за запуск
+#   tags       — метки, которые получат все документы источника
+
+user_agent: "News2ValueBot/0.1 (+https://github.com/d-kh233/news2value-news-analytics-for-business-decisions)"
+timeout_s: 10
+delay_s: 1.0
+
+pdf:
+  # путь от корня репозитория; в контейнере api это /data/raw/analytics
+  - name: alfa_analytics
+    dir: data/raw/analytics
+    tags: [bank_analytics]
+
+rss:
+  # у Интерфакса нет отдельной экономической RSS (rubric=business ведёт сюда же): это общая
+  # лента, в ней есть и происшествия — нерелевантное отсеет отбор новостей агентом
+  - name: interfax
+    url: https://www.interfax.ru/rss
+    max_items: 20
+    tags: [general]
+
+  - name: kommersant_economics
+    url: https://www.kommersant.ru/rss/section-economics.xml
+    max_items: 20
+    tags: [economy]
+
+  - name: vedomosti_economics
+    url: https://www.vedomosti.ru/rss/rubric/economics
+    max_items: 20
+    tags: [economy]

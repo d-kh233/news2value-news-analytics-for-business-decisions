@@ -12,8 +12,11 @@
 
 import logging
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+
+from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +43,6 @@ def row_from_profile(company: dict[str, Any], profile: dict[str, Any]) -> dict[s
 
 def row_from_db(company_id: str) -> dict[str, Any] | None:
     """Строка таблицы companies или None (нет БД или нет такой компании)."""
-    from app.core.config import get_settings
-
     if not get_settings().database_url:
         return None
     from app.core.db import get_session
@@ -52,6 +53,15 @@ def row_from_db(company_id: str) -> dict[str, Any] | None:
         if c is None:
             return None
         return {col.key: getattr(c, col.key) for col in c.__table__.columns}
+
+
+def select_news_provider(news_source: str) -> Callable[[str, int], list[dict]] | None:
+    """NEWS_SOURCE: db — новости из таблицы documents; mock — None, агент берёт свои моки."""
+    if news_source == "db":
+        from app.ml_ports.news_port import news_provider
+
+        return news_provider
+    return None
 
 
 def generate_insights(
@@ -76,7 +86,8 @@ def generate_insights(
         row = row_from_db(company_id)
     if row is None:
         raise LookupError(f"Компания {company_id} не найдена ни в моках, ни в таблице companies")
-    result = Orchestrator().run(CompanyProfile.from_row(row, company_id), period_days, role=role)
+    orchestrator = Orchestrator(news_provider=select_news_provider(get_settings().news_source))
+    result = orchestrator.run(CompanyProfile.from_row(row, company_id), period_days, role=role)
     logger.info(
         "agent run %s: %d инсайтов, LLM %s", result.run_id, len(result.insights), result.llm_mode
     )
