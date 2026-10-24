@@ -16,7 +16,7 @@ from typing import Any, Callable, Iterable, Mapping, Optional
 from .backend_adapter import PROMPT_VERSION, SourceResolver, to_backend_insight
 from .client import MODELS, CompleteFn, call_json
 from .okved.sensitivity import macro_impact, okved2
-from .schemas import EventExtraction, Insight
+from .schemas import EventExtraction, Insight, Level
 
 SYSTEM_TEMPLATE = (Path(__file__).parent / "prompts" / "insight.system.md").read_text(encoding="utf-8")
 
@@ -135,8 +135,14 @@ def build_context(event: EventExtraction, news_text: str, company: Mapping,
 
     facts = company_facts(company)
     allowed |= {f["id"] for f in facts}
-    allowed.add("F:MAINOKVED_CODE")
     lines_company = [f"[{f['id']}] {f['text']}" for f in facts]
+    missing = []
+    if not _get(company, "MAINOKVED_CODE"):
+        missing.append("вид деятельности (ОКВЭД)")
+    if not any(f["id"].startswith("F:CL_PRODUCT_") for f in facts):
+        missing.append("продукты банка")
+    if missing:
+        lines_company.append("Нет данных: " + ", ".join(missing) + ". Не додумывай их; назови это в data_gaps.")
 
     lines_cp = []
     for cp in counterparties:
@@ -171,7 +177,7 @@ def build_context(event: EventExtraction, news_text: str, company: Mapping,
         _block("СОБЫТИЕ", lines_event),
         _block("КОМПАНИЯ", lines_company + lines_cp),
         _block("КАНАЛЫ ВЛИЯНИЯ (предварительный расчёт)", lines_impact),
-        _block("АНАЛИТИКА БАНКА", lines_bank),
+        _block("АНАЛИТИКА АЛЬФА-БАНКА (Центр макроэкономических исследований)", lines_bank),
         _block("СВЯЗАННЫЕ НОВОСТИ", lines_rel),
         f"## РОЛЬ ЧИТАТЕЛЯ\n{role_txt}",
         f"## ДОПУСТИМЫЕ ID ИСТОЧНИКОВ\n{', '.join(sorted(allowed))}",
@@ -186,10 +192,14 @@ def system_prompt(role: str = DEFAULT_ROLE) -> str:
 
 
 def check_sources(allowed: set[str]):
+    has_features = any(a[:2] in ("F:", "P:", "G:") for a in allowed)
+
     def check(ins: Insight) -> None:
         bad = sorted(s for s in ins.all_source_ids() if s not in allowed)
         if bad:
             raise ValueError(f"Ссылки на несуществующие источники: {bad}. Допустимы только: {sorted(allowed)}")
+        if not has_features:   # пустой профиль: опереться не на что, требование снимаем
+            return
         loose = [i for i, st in enumerate(ins.why_it_matters)
                  if not any(s[:2] in ("F:", "P:", "G:") for s in st.source_ids)]
         if loose:
@@ -203,26 +213,47 @@ _system = system_prompt
 _check_sources = check_sources
 
 
-def interpret(event: EventExtraction, news_text: str, company: Mapping, *, counterparties=(), bank_chunks=(),
-              related_news=(), role: str = DEFAULT_ROLE, complete: Optional[CompleteFn] = None,
-              model: Optional[str] = None, trace: Optional[list] = None,
-              extra_check: Optional[Callable[[Insight], None]] = None) -> tuple[Insight, dict]:
-    """extra_check(ins) — доп. проверка агента; бросает ValueError, модель увидит текст и исправит ответ."""
+def prepare(event: EventExtraction, news_text: str, company: Mapping, *, counterparties=(), bank_chunks=(),
+            related_news=(), role: str = DEFAULT_ROLE,
+            extra_check: Optional[Callable[[Insight], None]] = None):
+    """Сообщения для модели, проверка ответа, макровлияние и текст контекста (его же видит критик)."""
     user, allowed, impact = build_context(event, news_text, company, counterparties, bank_chunks, related_news, role)
     msgs = [{"role": "system", "content": system_prompt(role)}, {"role": "user", "content": user}]
     base = check_sources(allowed)
+
+    no_okved = not _get(company, "MAINOKVED_CODE")
+    has_features = any(a[:2] in ("F:", "P:", "G:") for a in allowed)
 
     def post_check(ins: Insight) -> None:
         base(ins)
         if extra_check is not None:
             extra_check(ins)
+        # пробелы в данных о компании фиксируем сами, не полагаясь на модель (ограничение 05 кейса)
+        if no_okved and not any("оквэд" in g.lower() or "вид деятельности" in g.lower() for g in ins.data_gaps):
+            ins.data_gaps.insert(0, "Не указан вид деятельности компании (ОКВЭД): влияние через отрасль не оценено")
+        if not has_features:
+            if not any("профил" in g.lower() for g in ins.data_gaps):
+                ins.data_gaps.insert(0, "Профиль компании пуст: вывод общий, без персонализации")
+            if ins.confidence.value == "high":
+                ins.confidence = Level.low
 
+    return msgs, post_check, impact, user
+
+
+def interpret(event: EventExtraction, news_text: str, company: Mapping, *, counterparties=(), bank_chunks=(),
+              related_news=(), role: str = DEFAULT_ROLE, complete: Optional[CompleteFn] = None,
+              model: Optional[str] = None, trace: Optional[list] = None,
+              extra_check: Optional[Callable[[Insight], None]] = None) -> tuple[Insight, dict]:
+    """extra_check(ins) — доп. проверка агента; бросает ValueError, модель увидит текст и исправит ответ.
+    С самопроверкой критиком — llm.critic.interpret_reviewed (та же сигнатура + review)."""
+    msgs, post_check, impact, _ = prepare(event, news_text, company, counterparties=counterparties,
+                                          bank_chunks=bank_chunks, related_news=related_news, role=role,
+                                          extra_check=extra_check)
     ins = call_json(Insight, msgs, model=model or MODELS["smart"], complete=complete, trace=trace,
                     post_check=post_check, temperature=0.2, max_tokens=4000)
     if trace is not None:
         trace.append({"step": "interpret", "prompt_version": PROMPT_VERSION, "role": role,
-                      "macro_impact": {"score": impact["score"], "sign": impact["sign"]},
-                      "allowed_sources": sorted(allowed)})
+                      "macro_impact": {"score": impact["score"], "sign": impact["sign"]}})
     return ins, impact
 
 

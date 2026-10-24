@@ -282,3 +282,57 @@ class TestProfileFields(unittest.TestCase):
         self.assertIn("F:CURRENCY_RISKS", txt)
         self.assertIn("F:KEY_SUPPLIERS", txt)
         self.assertNotIn("F:KEY_CLIENTS", txt)  # пустой список не показываем
+
+
+class TestCritic(unittest.TestCase):
+    def _event(self):
+        from llm.schemas import EventExtraction
+        return EventExtraction(**EXAMPLES[0]["answer"], news_id="42")
+
+    def test_pass(self):
+        from llm.critic import interpret_reviewed
+        ok = {"verdict": "pass", "scores": {"grounding": 5}, "issues": [], "extra_search": []}
+        fake = FakeLLM([json.dumps(GOOD_INSIGHT, ensure_ascii=False), json.dumps(ok)])
+        ins, _, r = interpret_reviewed(self._event(), "текст критик", COMPANY, bank_chunks=BANK, complete=fake, model="c1")
+        self.assertEqual(r["verdict"], "pass")
+        self.assertEqual(len(fake.calls), 2)
+
+    def test_revise_loop(self):
+        from llm.critic import interpret_reviewed
+        bad = {"verdict": "revise", "scores": {"depth": 2},
+               "issues": [{"field": "headline", "problem": "retelling", "comment": "Пересказ новости"}], "extra_search": []}
+        fixed = dict(GOOD_INSIGHT, headline="Кредит не подешевеет до конца года — пересмотрите график")
+        fake = FakeLLM([json.dumps(GOOD_INSIGHT, ensure_ascii=False), json.dumps(bad, ensure_ascii=False),
+                        json.dumps(fixed, ensure_ascii=False)])
+        ins, _, r = interpret_reviewed(self._event(), "текст критик 2", COMPANY, bank_chunks=BANK, complete=fake, model="c2")
+        self.assertEqual(r["verdict"], "revised")
+        self.assertTrue(ins.headline.startswith("Кредит не подешевеет до конца года"))
+        self.assertIn("Пересказ новости", fake.calls[2][-1]["content"])
+
+    def test_soft_critic_overruled(self):
+        from llm.critic import critique
+        from llm.schemas import Insight
+        soft = {"verdict": "pass", "scores": {}, "issues": [
+            {"field": "bank_view", "problem": "wrong_origin", "comment": "вывод модели помечен bank"}], "extra_search": []}
+        v = critique(Insight.model_validate(GOOD_INSIGHT), "ctx", complete=FakeLLM([json.dumps(soft, ensure_ascii=False)]), model="c3")
+        self.assertEqual(v.verdict, "revise")
+
+
+class TestIncompleteProfile(unittest.TestCase):
+    def test_empty_profile_honest(self):
+        from llm.insight import interpret
+        from llm.schemas import EventExtraction
+        ev = EventExtraction(**EXAMPLES[0]["answer"], news_id="42")
+        g = dict(GOOD_INSIGHT, confidence="high", why_it_matters=[{"text": "общий", "origin": "ai", "source_ids": ["N:42"]}],
+                 company_features_used=[], bank_view=[],
+                 consequences=[dict(GOOD_INSIGHT["consequences"][0], origin="ai", source_ids=[])])
+        ins, _ = interpret(ev, "пустой профиль", {"SYNTHETIC_U": "R-3"},
+                           complete=FakeLLM([json.dumps(g, ensure_ascii=False)]), model="ip1")
+        self.assertEqual(ins.confidence.value, "low")
+        self.assertTrue(any("ОКВЭД" in x for x in ins.data_gaps))
+
+    def test_okved_not_allowed_when_missing(self):
+        from llm.insight import build_context
+        from llm.schemas import EventExtraction
+        _, allowed, _ = build_context(EventExtraction(**EXAMPLES[0]["answer"], news_id="42"), "t", {"SYNTHETIC_U": "R-3"})
+        self.assertNotIn("F:MAINOKVED_CODE", allowed)

@@ -20,6 +20,7 @@ from pathlib import Path
 
 from .client import LLMCallError
 from .extract import extract_event
+from .critic import interpret_reviewed
 from .insight import interpret
 from .okved.sensitivity import macro_impact, okved2
 from .try_insight import read_companies, render, theses_for
@@ -61,6 +62,7 @@ def main() -> None:
     ap.add_argument("--theses", required=True)
     ap.add_argument("--out", default="../eval_report.md")
     ap.add_argument("--max-insights", type=int, default=22)
+    ap.add_argument("--critic", action="store_true", help="самопроверка критиком (+1–2 вызова GLM на инсайт)")
     a = ap.parse_args()
 
     data = json.loads(Path(a.set).read_text(encoding="utf-8"))
@@ -113,13 +115,23 @@ def main() -> None:
     pairs = [(n, cid, s) for n in data["news"] for cid, s in n["expected"].items() if n["id"] in events]
     pairs = pairs[:a.max_insights]
     checks, blocks, repaired, failed = [], [], 0, 0
+    verdicts: dict[str, int] = {}
+    crit_scores: dict[str, list] = {}
     for i, (n, cid, exp_sign) in enumerate(pairs):
         role = ROLES[i % len(ROLES)]
         ev = events[n["id"]]
         trace: list = []
         try:
-            ins, impact = interpret(ev, n["text"], companies[cid], bank_chunks=theses_for(ev, theses),
-                                    role=role, trace=trace)
+            review = None
+            if a.critic:
+                ins, impact, review = interpret_reviewed(ev, n["text"], companies[cid],
+                                                         bank_chunks=theses_for(ev, theses, company=companies[cid]), role=role, trace=trace)
+                verdicts[review["verdict"]] = verdicts.get(review["verdict"], 0) + 1
+                for kk, vv in (review["scores"] or {}).items():
+                    crit_scores.setdefault(kk, []).append(vv)
+            else:
+                ins, impact = interpret(ev, n["text"], companies[cid], bank_chunks=theses_for(ev, theses, company=companies[cid]),
+                                        role=role, trace=trace)
             fixes = [t.get("error", "")[:150] for t in trace if t.get("ok") is False]
             repaired += bool(fixes)
             ch = check_insight(ins, exp_sign)
@@ -127,7 +139,10 @@ def main() -> None:
             flags = [k for k, v in ch.items() if v is False] + ([f"общие фразы: {ch['generic']}"] if ch["generic"] else [])
             blocks.append(render(n, companies[cid], role, ins, impact)
                           + f"\n_Ожидалось: {exp_sign}. Проверки: {'всё ок' if not flags else ', '.join(flags)}_"
-                          + (f"\n_Исправлялось:_ {fixes}" if fixes else "") + "\n")
+                          + (f"\n_Исправлялось:_ {fixes}" if fixes else "")
+                          + (f"\n_Критик: {review['verdict']}, {review['scores']}, "
+                             f"{[i['field'] + ': ' + i['problem'] + ' — ' + i['comment'] for i in review['issues']]}_"
+                             if review else "") + "\n")
             print("инсайт", n["id"], cid, role)
         except (LLMCallError, OSError) as e:
             failed += 1
@@ -147,6 +162,9 @@ def main() -> None:
         ("Интерпретация: заголовок ≤ 16 слов", f"{share('headline_ok')}%"),
         ("Интерпретация: без общих фраз", f"{round(100 * sum(1 for c in checks if not c['generic']) / k)}%"),
     ]
+    if a.critic:
+        metrics.append(("Критик: вердикты", ", ".join(f"{kk} {vv}" for kk, vv in sorted(verdicts.items()))))
+        metrics += [(f"Критик: {kk} (ср., 1–5)", f"{sum(vv) / len(vv):.1f}") for kk, vv in sorted(crit_scores.items())]
     out = ["# Оценка на тестовом наборе\n", f"Новостей: {len(data['news'])}, компаний: {len(companies)}, "
            f"порог отбора: {THRESHOLD}.\n", "## Метрики\n", "| Метрика | Значение |", "|---|---|"]
     out += [f"| {m} | {v} |" for m, v in metrics]

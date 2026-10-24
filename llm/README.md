@@ -33,6 +33,18 @@ out = generate_insight(news, company_row, bank_chunks=chunks, counterparties=cps
 - Модель видит список допустимых id источников. Если сослалась на несуществующий или не связала вывод с признаками компании — ей показывают ошибку и просят исправить.
 - Промпт: `prompts/insight.system.md`. Версия: `PROMPT_VERSION` в `backend_adapter.py`.
 
+## Самопроверка критиком (`critic.py`)
+
+```python
+from llm.critic import interpret_reviewed
+ins, impact, review = interpret_reviewed(event, news_text, company, bank_chunks=chunks, role="cfo",
+                                         extra_check=strict_check, complete=gateway_complete)
+```
+
+interpret → критик (GLM, `prompts/critic.system.md`) оценивает 1–5 по grounding, personalization, depth, actionability, bank_separation и ищет пересказ, общие фразы, вывод модели под видом позиции банка, незамеченное расхождение новости и аналитики банка → при `revise` одна доработка с замечаниями. `review["verdict"]`: pass | revised | need_more_data (в `extra_search` шаги поиска для агента) | revise_failed (остаётся первый вариант, он прошёл автопроверки). Стоимость: +1 вызов GLM, +1 при доработке.
+
+Оценка с критиком: `python3 -m llm.eval_run ... --critic`.
+
 ## Как встроить в бэкенд (Даша)
 
 ```python
