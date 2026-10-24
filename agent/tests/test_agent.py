@@ -2,6 +2,7 @@
 
 Поддельный OpenAI-совместимый сервер играет модель: размечает новость примером промпт-инженера,
 а на интерпретацию сначала отвечает с выдуманным числом, чужим тезисом и чужим признаком.
+Критик отвечает по сценарию FakeModel.critic_script (по умолчанию — pass).
 """
 from __future__ import annotations
 
@@ -30,6 +31,21 @@ UTC_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 RAW_NEWS = [{"id": "B1", "title": "ЦБ сохранил ставку 14%",
              "text": "Банк России сохранил ключевую ставку на уровне 14% годовых. Регулятор допустил более долгое сохранение жёстких условий.",
              "date": "2026-10-20", "link": "https://example.org/b1", "source": "тест"}]
+RELATED = {"id": "B2", "title": "Банки ужесточили условия кредитов для малого бизнеса",
+           "text": "Крупные банки подняли ставки по кредитам малому бизнесу и ужесточили требования к заёмщикам.",
+           "date": "2026-10-02", "link": "https://example.org/b2", "source": "тест"}
+CRITIC_PASS = {"verdict": "pass", "scores": {"grounding": 5, "personalization": 4}, "issues": [], "extra_search": []}
+NEED_MORE = {"verdict": "need_more_data", "scores": {"grounding": 4, "personalization": 2},
+             "issues": [{"field": "why_it_matters[0]", "problem": "generic",
+                         "comment": "непонятно, как условия кредитования меняются для компаний такого размера"}],
+             "extra_search": [{"tool": "search_news", "args": {"query": "кредиты малому бизнесу ставки банков"},
+                               "goal": "как банки меняют условия кредитов"},
+                              {"tool": "get_counterparties", "args": {}, "goal": "кто покупатели компании"}]}
+
+
+def _kind(call: dict) -> str:
+    system = call["messages"][0]["content"]
+    return "extract" if "размечает новости" in system else "critic" if "строгий редактор" in system else "interpret"
 
 
 def _settings(tmp: str, **kw) -> Settings:
@@ -44,6 +60,7 @@ def _settings(tmp: str, **kw) -> Settings:
 
 class FakeModel(BaseHTTPRequestHandler):
     calls: list[dict] = []
+    critic_script: list[dict] = []      # ответы критика по очереди; кончились — pass
 
     def log_message(self, *a):
         pass
@@ -54,6 +71,8 @@ class FakeModel(BaseHTTPRequestHandler):
         msgs = body["messages"]
         if "размечает новости" in msgs[0]["content"]:
             reply = EXAMPLES[0]["answer"]                       # разметка: пример про ставку 14%
+        elif "строгий редактор" in msgs[0]["content"]:
+            reply = FakeModel.critic_script.pop(0) if FakeModel.critic_script else CRITIC_PASS
         else:
             user = msgs[-1]["content"] if len(msgs) == 2 else msgs[1]["content"]
             allowed = user.split("## ДОПУСТИМЫЕ ID ИСТОЧНИКОВ\n", 1)[1].split("\n", 1)[0].split(", ")
@@ -255,8 +274,9 @@ class TestLiveReplay(unittest.TestCase):
             FakeModel.calls.clear()
             live = _settings(d, llm_mode="live", llm_base_url=self.url, llm_api_key="test")
             r = Orchestrator(live, news_provider=lambda cid, period: RAW_NEWS).run("MOCK-002", 30, role="cfo")
-            kinds = ["extract" if "размечает" in c["messages"][0]["content"] else "interpret" for c in FakeModel.calls]
-            self.assertEqual(kinds, ["extract", "interpret", "interpret"])   # разметка, ответ, исправление
+            kinds = [_kind(c) for c in FakeModel.calls]
+            # разметка, ответ, исправление после автопроверки, критик
+            self.assertEqual(kinds, ["extract", "interpret", "interpret", "critic"])
             c = r.insights[0]
             self.assertEqual((c["id"], c["generated_by"], c["role"]), ("MOCK-002-B1-cfo", "llm", "cfo"))
             self.assertIn("14%", c["summary"])
@@ -271,6 +291,7 @@ class TestLiveReplay(unittest.TestCase):
             notes = d6["agent"]["validation_notes"]
             self.assertTrue(any("исправлено после самопроверки" in n for n in notes), notes)
             self.assertTrue(any("дословным тезисом" in n for n in notes), notes)
+            self.assertEqual(d6["agent"]["review"]["rounds"], ["pass"])
             self.assertEqual({s["source_kind"] for s in c["sources"]}, {"external", "bank_analytics"})
             self.assertIn("https://example.org/b1", [s["url"] for s in c["sources"]])
 
@@ -283,6 +304,61 @@ class TestLiveReplay(unittest.TestCase):
             strip = lambda x: {k: v for k, v in x.items() if k not in ("created_at", "details")}  # noqa: E731
             self.assertEqual(strip(c2), strip(c))
             self.assertEqual(c2["generated_by"], "llm")
+
+    def test_critic_needs_data_agent_searches_and_rewrites(self):
+        with tempfile.TemporaryDirectory() as d:
+            FakeModel.calls.clear()
+            FakeModel.critic_script = [NEED_MORE, CRITIC_PASS]
+            live = _settings(d, llm_mode="live", llm_base_url=self.url, llm_api_key="test")
+            r = Orchestrator(live, news_provider=lambda cid, period: RAW_NEWS + [RELATED]).run(
+                "MOCK-002", 30, top_k=1, role="cfo")
+            self.assertEqual(r.insights[0]["id"], "MOCK-002-B1-cfo")
+            kinds = [_kind(c) for c in FakeModel.calls]
+            self.assertEqual(kinds.count("critic"), 2)            # первый черновик и переписанная карточка
+            rs = next(t for t in r.trace if t.tool == "extra_search")
+            self.assertEqual(rs.status, "ok")
+            found = {x["tool"]: x for x in rs.output["steps"]}
+            self.assertEqual(found["search_news"]["found"], ["N:B2"])
+            self.assertEqual(found["get_counterparties"]["note"], "источник не подключён")
+            last_interpret = [c for c in FakeModel.calls if _kind(c) == "interpret"][-1]
+            self.assertIn("[N:B2]", last_interpret["messages"][1]["content"])   # модель увидела найденное
+            review = r.insights[0]["details"]["agent"]["review"]
+            self.assertEqual(review["rounds"], ["need_more_data", "pass"])
+            self.assertEqual(review["related_news"], ["N:B2"])
+            notes = r.insights[0]["details"]["agent"]["validation_notes"]
+            self.assertTrue(any("повторный поиск" in n for n in notes), notes)
+
+            # replay повторяет оба прохода без сети
+            FakeModel.calls.clear()
+            r2 = Orchestrator(_settings(d, llm_mode="replay"), news_provider=lambda cid, period: RAW_NEWS + [RELATED]
+                              ).run("MOCK-002", 30, top_k=1, role="cfo")
+            self.assertEqual(FakeModel.calls, [])
+            self.assertEqual(r2.insights[0]["details"]["agent"]["review"]["rounds"], ["need_more_data", "pass"])
+
+    def test_critic_needs_data_nothing_found_marks_low_confidence(self):
+        with tempfile.TemporaryDirectory() as d:
+            FakeModel.calls.clear()
+            FakeModel.critic_script = [{**NEED_MORE, "extra_search": NEED_MORE["extra_search"][1:]}]
+            live = _settings(d, llm_mode="live", llm_base_url=self.url, llm_api_key="test")
+            r = Orchestrator(live, news_provider=lambda cid, period: RAW_NEWS).run("MOCK-002", 30, role="cfo")
+            self.assertEqual([_kind(c) for c in FakeModel.calls].count("critic"), 1)   # переписывать нечем
+            self.assertEqual(next(t for t in r.trace if t.tool == "extra_search").status, "skipped")
+            c = r.insights[0]
+            self.assertEqual(c["generated_by"], "llm")
+            self.assertEqual(c["details"]["agent"]["review"]["rounds"], ["need_more_data"])
+            self.assertTrue(any("данных для уверенного вывода мало" in g for g in c["details"]["data_gaps"]))
+
+    def test_replay_without_critic_records_keeps_llm_card(self):
+        with tempfile.TemporaryDirectory() as d:
+            FakeModel.calls.clear()
+            live = _settings(d, llm_mode="live", llm_base_url=self.url, llm_api_key="test", llm_use_critic=False)
+            Orchestrator(live, news_provider=lambda cid, period: RAW_NEWS).run("MOCK-002", 30, role="cfo")
+            self.assertNotIn("critic", [_kind(c) for c in FakeModel.calls])
+            r = Orchestrator(_settings(d, llm_mode="replay"), news_provider=lambda cid, period: RAW_NEWS).run(
+                "MOCK-002", 30, role="cfo")
+            c = r.insights[0]
+            self.assertEqual(c["generated_by"], "llm")             # кэш без критика не роняет карточку на правила
+            self.assertEqual(c["details"]["agent"]["review"]["verdict"], "skipped")
 
     def test_replay_miss_falls_back_to_rules(self):
         with tempfile.TemporaryDirectory() as d:

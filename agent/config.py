@@ -32,6 +32,7 @@ class Settings:
     llm_base_url: str = ""
     llm_api_key: str = field(default="", repr=False)
     llm_use_smart: bool = False         # интерпретация на SMART-модели; в разработке False — бережём лимит
+    llm_use_critic: bool = True         # второй вызов проверяет карточку (+1–2 вызова на карточку); в stub не работает
     llm_cache_dir: str = str(REPO_ROOT / "replay_cache" / "llm")  # коммитим: нужен жюри для replay
     llm_daily_budget_rub: float = 500.0
     llm_price_rub_per_1k_tokens: float = 0.5   # оценка, уточнить по прайсу ключа
@@ -55,6 +56,7 @@ class Settings:
         s.llm_base_url = e("LLM_BASE_URL", s.llm_base_url).rstrip("/")
         s.llm_api_key = e("LLM_API_KEY", s.llm_api_key)
         s.llm_use_smart = e("LLM_USE_SMART", "0").lower() in ("1", "true", "yes")
+        s.llm_use_critic = e("LLM_USE_CRITIC", "1").lower() in ("1", "true", "yes")
         s.llm_cache_dir = e("LLM_CACHE_DIR", s.llm_cache_dir)
         s.llm_daily_budget_rub = float(e("LLM_DAILY_BUDGET_RUB", s.llm_daily_budget_rub))
         s.llm_price_rub_per_1k_tokens = float(e("LLM_PRICE_RUB_PER_1K", s.llm_price_rub_per_1k_tokens))

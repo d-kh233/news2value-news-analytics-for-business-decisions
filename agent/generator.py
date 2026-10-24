@@ -6,6 +6,9 @@
     новости, «банк» только со ссылкой на A:, «факт» — на N:;
   • правку после ответа (finalize): текст позиции банка заменяется дословным тезисом, id новости
     и компании выставляет код;
+  • критика (llm.critic.interpret_reviewed): второй вызов модели оценивает черновик и при «revise»
+    даёт одну доработку; при «need_more_data» агент сам ищет недостающее и пишет карточку заново
+    (orchestrator._repeat_search). Если критик не ответил — остаётся карточка, прошедшая автопроверки;
   • откат на правила, если модель недоступна или ответ так и не прошёл проверку.
 
 Итог переводится в формат бэкенда тем же адаптером, что у промпт-инженера (to_backend_insight).
@@ -13,13 +16,14 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from llm.backend_adapter import to_backend_insight
 from llm.client import MODELS, LLMCallError
+from llm.critic import CRITIC_VERSION, interpret_reviewed
 from llm.insight import interpret
 from llm.okved.sensitivity import RU as FACTOR_RU
-from llm.schemas import Action, Consequence, Insight, Origin, Statement
+from llm.schemas import Action, Consequence, Insight, Level, Origin, Statement
 
 from . import rules
 from .gateway import Gateway, LLMUnavailable
@@ -38,6 +42,13 @@ class InsightContext:
     why: list[dict]                 # scoring.explain() — для карточки по правилам и трейса
     theses: list[BankThesis]
     role: Role
+    related: list[NewsItem] = field(default_factory=list)   # связанные новости из повторного поиска
+
+    def related_news(self) -> list[dict]:
+        """Формат related_news для llm.insight."""
+        return [{"id": n.sid, "title": n.title, "date": n.published_at.isoformat(),
+                 "summary": n.event.summary if n.event and n.event.summary else _first_sentences(n.text)}
+                for n in self.related]
 
 
 # ---------- модель ----------
@@ -81,8 +92,26 @@ def finalize(ins: Insight, ctx: InsightContext) -> list[str]:
     return notes
 
 
-def generate(ctx: InsightContext, gw: Gateway, use_smart: bool, llm_trace: list) -> tuple[Insight, dict]:
-    """→ (карточка llm.schemas.Insight, мета для трейса: path = llm | rules, notes, fallback_reason)."""
+def _interpret(ctx: InsightContext, gw: Gateway, model: str, llm_trace: list, use_critic: bool):
+    """→ (Insight, review | None). Критик не ответил (нет в кэше replay, лимит, кривой JSON) — берём
+    карточку без критика: тот же первый вызов уже в кэше call_json, повторно он не оплачивается."""
+    kw = dict(bank_chunks=[t.as_chunk() for t in ctx.theses], related_news=ctx.related_news(),
+              role=ctx.role.key, complete=gw.complete, model=model, trace=llm_trace,
+              extra_check=strict_check(ctx))
+    review = None
+    if use_critic:
+        try:
+            ins, _impact, review = interpret_reviewed(ctx.news.event, ctx.news.text, ctx.profile.row, **kw)
+            return ins, review
+        except (LLMUnavailable, LLMCallError) as e:
+            review = {"version": CRITIC_VERSION, "verdict": "skipped", "error": str(e)[:300]}
+    ins, _impact = interpret(ctx.news.event, ctx.news.text, ctx.profile.row, **kw)
+    return ins, review
+
+
+def generate(ctx: InsightContext, gw: Gateway, use_smart: bool, llm_trace: list,
+             use_critic: bool = False) -> tuple[Insight, dict]:
+    """→ (карточка llm.schemas.Insight, мета для трейса: path = llm | rules, notes, fallback_reason, review)."""
     if gw.s.llm_mode == "stub":
         return build_from_rules(ctx), {"path": "rules", "notes": ["LLM_MODE=stub: карточка собрана по правилам"]}
     if ctx.news.event is None:
@@ -93,14 +122,14 @@ def generate(ctx: InsightContext, gw: Gateway, use_smart: bool, llm_trace: list)
     n0 = len(llm_trace)
     meta: dict = {"path": "llm", "model": model}
     try:
-        ins, _impact = interpret(ctx.news.event, ctx.news.text, ctx.profile.row,
-                                 bank_chunks=[t.as_chunk() for t in ctx.theses], role=ctx.role.key,
-                                 complete=gw.complete, model=model, trace=llm_trace,
-                                 extra_check=strict_check(ctx))
+        ins, review = _interpret(ctx, gw, model, llm_trace, use_critic)
         notes = finalize(ins, ctx)
         fails = [x.get("error") for x in llm_trace[n0:] if x.get("ok") is False]
         if fails:
             notes.insert(0, "исправлено после самопроверки: " + " | ".join(f[:200] for f in fails))
+        if review:
+            notes.append(_review_note(review))
+            meta["review"] = review
         return ins, {**meta, "notes": notes}
     except LLMUnavailable as e:
         reason = str(e)
@@ -108,6 +137,26 @@ def generate(ctx: InsightContext, gw: Gateway, use_smart: bool, llm_trace: list)
         reason = f"ответ не прошёл проверку: {str(e)[:300]}"
     return build_from_rules(ctx), {**meta, "path": "rules", "fallback_reason": reason,
                                    "notes": [f"модель недоступна или ответ отклонён ({reason}); карточка по правилам"]}
+
+
+def _review_note(review: dict) -> str:
+    v = review.get("verdict")
+    if v == "skipped":
+        return f"критик не ответил ({review.get('error', '')[:120]}) — карточка прошла только автопроверки"
+    issues = "; ".join(f"{i.get('field')}: {i.get('problem')}" for i in review.get("issues", []))
+    text = {"pass": "критик: замечаний нет", "revised": "критик: карточка доработана по замечаниям",
+            "revise_failed": "критик: доработка не прошла проверку, оставлен первый вариант",
+            "need_more_data": "критик: для вывода не хватает данных"}.get(v, f"критик: {v}")
+    return f"{text}" + (f" ({issues})" if issues else "")
+
+
+def mark_insufficient(ins: Insight, review: dict) -> None:
+    """Данных так и не хватило — честно говорим об этом в карточке, а не выдаём уверенный вывод."""
+    ins.confidence = Level("low")
+    why = next((i.get("comment") for i in review.get("issues", []) if i.get("comment")), "")
+    gap = "самопроверка: данных для уверенного вывода мало" + (f" — {why}" if why else "")
+    if gap not in ins.data_gaps:
+        ins.data_gaps.append(gap)
 
 
 def to_backend(ins: Insight, ctx: InsightContext, resolve_source, generated_by: str, extra: dict) -> dict:
