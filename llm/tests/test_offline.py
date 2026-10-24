@@ -336,3 +336,18 @@ class TestIncompleteProfile(unittest.TestCase):
         from llm.schemas import EventExtraction
         _, allowed, _ = build_context(EventExtraction(**EXAMPLES[0]["answer"], news_id="42"), "t", {"SYNTHETIC_U": "R-3"})
         self.assertNotIn("F:MAINOKVED_CODE", allowed)
+
+
+class TestFactcheck(unittest.TestCase):
+    def test_flags_invented_number_and_stale(self):
+        from llm.factcheck import check
+        src = {"N:M01": {"text": "ЦБ сохранил ставку 14% годовых", "date": __import__("datetime").date(2026, 10, 20)},
+               "A:BA-06": {"text": "Ставка 14,0%. Период дорогих денег продлевается", "date": __import__("datetime").date(2026, 7, 1)}}
+        card = {"id": "x", "title": "Ставка 14% надолго",
+                "details": {"what_happened": [{"text": "Ставка сохранена на 14%, инфляция 9%", "origin": "fact", "source_ids": ["N:M01"]}],
+                            "bank_view": [{"text": "Банк ждёт 14,0% до конца года", "origin": "bank", "source_ids": ["A:BA-06:1"]}],
+                            "why_it_matters": [], "consequences": [], "data_gaps": []}}
+        issues = check(card, src)
+        self.assertTrue(any("['9']" in i for i in issues))
+        self.assertTrue(any("старше новости" in i for i in issues))
+        self.assertFalse(any("Позиция банка: числа" in i for i in issues))   # 14,0 == 14
