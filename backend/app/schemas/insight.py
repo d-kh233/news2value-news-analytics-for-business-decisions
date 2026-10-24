@@ -11,6 +11,8 @@ Role = Literal["owner", "ceo", "cfo", "treasurer", "accountant", "procurement"]
 
 
 class Source(BaseModel):
+    # N:<id> — новость, A:<док>:<фрагмент> — аналитика банка; на него ссылаются source_ids в details
+    id: str | None = None
     title: str
     url: str
     published_at: UtcDatetime
