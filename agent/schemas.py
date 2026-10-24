@@ -116,6 +116,7 @@ class BankThesis(BaseModel):
     published_at: str
     url: str = ""
     factors: list[str] = Field(default_factory=list)
+    okved: list[str] = Field(default_factory=list)   # тезис про конкретные отрасли (2 знака); пусто — про всех
     chunk: int = 0
 
     @property
