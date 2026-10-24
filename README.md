@@ -101,9 +101,18 @@ python -m agent inspect-csv data/raw/df_Uid_data_hack.csv  # что из про�
 
 ### С моделью и запись кэша для жюри
 
-1. В `.env` задайте `LLM_BASE_URL`, `LLM_API_KEY` и `LLM_MODE=live`.
-2. Прогоните демо-компании во всех ролях, которые покажете. Например: `python -m agent run --company MOCK-002 --role cfo`, или кнопкой в интерфейсе.
-3. Каждый ответ модели запишется в `replay_cache/llm/`. Закоммитьте эту папку и переключитесь на `LLM_MODE=replay` с той же `AGENT_TODAY`.
+1. В `.env` задайте `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODE=live`, `AGENT_TODAY=2026-10-22`, `LLM_USE_SMART=1`, `LLM_USE_CRITIC=1`.
+2. Запишите все компании, которые есть в API (`c-001`, `c-002`, `c-003`), во всех шести ролях:
+   ```bash
+   python -m agent record-demo
+   ```
+   Это те же профили и параметры, с которыми агента вызывает бэкенд. Примерно 90 карточек; записанное повторно не оплачивается, прерванную запись можно просто запустить заново.
+3. Проверьте, что кэш полный, — без ключа и без новых вызовов:
+   ```bash
+   LLM_MODE=replay python -m agent record-demo
+   ```
+   Должно быть «Кэш полный».
+4. Закоммитьте `replay_cache/llm/`. На сервере — `LLM_MODE=replay` и те же `AGENT_TODAY`, `LLM_USE_SMART`, `LLM_USE_CRITIC` (для Render они уже в `render.yaml`). Другая дата или другая модель — другие запросы, и карточки пойдут по шаблонам.
 
 Лимит команды — 500 ₽ в день, расход виден в `replay_cache/llm/usage-ДАТА.json`.
 

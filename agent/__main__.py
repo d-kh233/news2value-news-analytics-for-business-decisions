@@ -6,6 +6,8 @@
   python -m agent inspect-csv data/raw/df_Uid_data_hack.csv  # что увидит модель по реальному файлу
   python -m agent roles
   python -m agent eval                                       # качество отбора на размеченном наборе
+  python -m agent record-demo                                # кэш для жюри: компании API × все роли
+  LLM_MODE=replay python -m agent record-demo                # проверка, что кэш полный
 """
 from __future__ import annotations
 
@@ -59,6 +61,9 @@ def main(argv: list[str] | None = None) -> int:
     ev.add_argument("--json", action="store_true")
     ic = sub.add_parser("inspect-csv")
     ic.add_argument("path")
+    rd = sub.add_parser("record-demo", help="прогон компаний из API (data/mocks) по ролям — запись или проверка кэша")
+    rd.add_argument("--roles", default=",".join(ROLES), help="через запятую; по умолчанию все")
+    rd.add_argument("--companies", default="", help="через запятую; по умолчанию все из data/mocks/companies.json")
     a = ap.parse_args(argv)
 
     if a.cmd == "roles":
@@ -80,6 +85,8 @@ def main(argv: list[str] | None = None) -> int:
         if not a.json:
             print_report(res)
         return 0
+    if a.cmd == "record-demo":
+        return _record_demo(s, a.roles, a.companies)
     if a.cmd == "companies":
         print(json.dumps(ProfileStore(s.companies_csv).list_brief(1000), ensure_ascii=False, indent=2))
         return 0
@@ -90,6 +97,44 @@ def main(argv: list[str] | None = None) -> int:
         print(res.model_dump_json(indent=2))
     else:
         _print_human(res)
+    return 0
+
+
+def _record_demo(s: Settings, roles: str, companies: str) -> int:
+    """Те же профили и параметры, что у бэкенда (agent_port.generate_insights, период 30 дней),
+    поэтому записанное здесь бэкенд в replay найдёт. live — пишет кэш, replay — проверяет, что всё есть."""
+    from .evaluate import _backend_profiles
+    from .orchestrator import Orchestrator
+
+    if s.llm_mode == "stub":
+        print("LLM_MODE=stub: модель не вызывается. Для записи — LLM_MODE=live, для проверки — replay.")
+        return 2
+    if not s.today:
+        print("Задайте AGENT_TODAY (дата, с которой будет работать сервер в replay), например 2026-10-22.")
+        return 2
+    profiles = _backend_profiles()
+    cids = [c.strip() for c in companies.split(",") if c.strip()] or list(profiles)
+    role_list = [r.strip() for r in roles.split(",") if r.strip()]
+    orch = Orchestrator(s)
+    print(f"LLM_MODE={s.llm_mode} · AGENT_TODAY={s.today} · smart={int(s.llm_use_smart)} · "
+          f"critic={int(s.llm_use_critic)} · {len(cids)} компаний × {len(role_list)} ролей")
+    total = by_rules = missed = 0
+    for cid in cids:
+        for role in role_list:
+            r = orch.run(profiles[cid], 30, role=role)
+            rules = [c["id"] for c in r.insights if c["generated_by"] != "llm"]
+            verdicts = [c["details"]["agent"].get("review", {}).get("verdict") for c in r.insights]
+            total, by_rules = total + len(r.insights), by_rules + len(rules)
+            missed += r.llm_usage.get("missed", 0)
+            print(f"  {cid:<6} {role:<12} карточек {len(r.insights)}, по шаблонам {len(rules)}, "
+                  f"критик {verdicts}, новых вызовов {r.llm_usage.get('calls', 0)}, из кэша {r.llm_usage.get('replayed', 0)}, "
+                  f"≈{r.llm_usage.get('cost_rub_est', 0)} ₽")
+    print(f"Итого карточек {total}, по шаблонам {by_rules}.")
+    if s.llm_mode == "replay":
+        if missed:
+            print(f"В кэше нет {missed} ответов: перезапустите с LLM_MODE=live (записанное повторно не оплачивается).")
+            return 1
+        print("Кэш полный: сервер в replay покажет те же карточки.")
     return 0
 
 

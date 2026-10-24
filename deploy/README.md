@@ -81,6 +81,32 @@ alias dc='docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml
 dc ps; dc logs -f api; dc restart api; dc down
 ```
 
+## Бесплатно на Render
+
+Если своего сервера нет. Бесплатный тариф Render без банковской карты: 512 МБ памяти, сервис засыпает после 15 минут без запросов и просыпается примерно за минуту. Настройки — в `render.yaml` в корне репозитория.
+
+Отличия от запуска на своём сервере:
+- нет базы — API работает на моках (`c-001`…), миграции не запускаются;
+- нет nginx — интерфейс и API на разных адресах, интерфейс ходит в API напрямую (`VITE_API_BASE_URL`), API разрешает этот адрес в `CORS_ORIGINS`.
+
+Шаги:
+1. Собрать `main` (см. «Что нужно заранее», п. 1) и запушить. Render берёт код из GitHub, `render.yaml` должен быть в той же ветке.
+2. Войти на render.com через GitHub, дать доступ к репозиторию.
+3. **New → Blueprint** → репозиторий → ветка `main` → **Apply**. Render создаст два сервиса: `news2value-api` и `news2value-web`.
+4. Подождать сборку (API — 5–10 минут), открыть `https://news2value-api.onrender.com/health` — должно быть `{"status":"ok"}`.
+5. Открыть `https://news2value-web.onrender.com` — это ссылка для жюри.
+
+Если Render выдал адреса с суффиксом (имя занято): в сервисе `news2value-web` поменять `VITE_API_BASE_URL` на адрес API, в `news2value-api` — `CORS_ORIGINS` на `["<адрес интерфейса>"]`, затем **Manual Deploy** у обоих.
+
+Проверка целиком — тем же скриптом, API указывается отдельно:
+```bash
+API=https://news2value-api.onrender.com ./deploy/check.sh https://news2value-web.onrender.com
+```
+
+Карточки от модели будут, только если в `main` закоммичен `replay_cache/llm/`, записанный с теми же `AGENT_TODAY`, `LLM_USE_SMART`, `LLM_USE_CRITIC`, что в `render.yaml` (корневой README, «С моделью и запись кэша для жюри»).
+
+Перед показом жюри откройте обе ссылки за пару минут — сервисы проснутся.
+
 ## Что проверено
 
 На 23.10 проверено:

@@ -37,7 +37,7 @@ class Gateway:
     def __init__(self, s: Settings):
         self.s = s
         self.dir = Path(s.llm_cache_dir)
-        self.stats = {"calls": 0, "replayed": 0, "tokens": 0, "cost_rub_est": 0.0, "errors": 0}
+        self.stats = {"calls": 0, "replayed": 0, "tokens": 0, "cost_rub_est": 0.0, "errors": 0, "missed": 0}
 
     # ---------- запись ответов ----------
     def _record_path(self, model: str, messages: list[dict], params: dict) -> Path:
@@ -77,6 +77,7 @@ class Gateway:
             self.stats["replayed"] += 1
             return json.loads(rec.read_text(encoding="utf-8"))["reply"]
         if self.s.llm_mode == "replay":
+            self.stats["missed"] += 1
             raise LLMUnavailable("нет записанного ответа, а в replay новые вызовы запрещены")
         if not (self.s.llm_base_url and self.s.llm_api_key):
             raise LLMUnavailable("LLM_BASE_URL / LLM_API_KEY не заданы")
