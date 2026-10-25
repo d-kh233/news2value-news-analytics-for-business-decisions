@@ -60,11 +60,58 @@ flowchart LR
 
 Таблицы и связи — [docs/data-model.md](docs/data-model.md).
 
+### Как агент приходит к выводу
+
+Оркестрация своя, без готовых агентных фреймворков (`agent/orchestrator.py`). На каждый запуск:
+
+1. **План** под компанию и роль читателя: какая отрасль, регион, продукты банка, что искать.
+2. **Поиск новостей** за период. Если ничего нет — окно расширяется, это видно в трейсе.
+3. **Разметка** новостей моделью: тип события, макрофакторы и их направление, отрасли. Чего модель не разметила — разметка по словарю.
+4. **Отбор**. Скор складывается из нескольких частей:
+   - связь с компанией: чувствительность отрасли к факторам (`llm/okved/okved_sensitivity.csv`), регион, сырьё, страны ВЭД, контрагенты;
+   - тип события и свежесть;
+   - веса роли читателя.
+
+   Дальше дубли схлопываются, порог 0.5, в ленте до 5 карточек.
+5. **Аналитика банка** к каждому событию: тезисы ЦМИ Альфа-Банка с учётом фактора и отрасли компании.
+6. **Карточка из 6 блоков** с разметкой «факт / позиция банка / вывод ИИ» у каждого утверждения.
+7. **Самопроверка**:
+   - кодом: числа, ссылки на источники, дословность позиции банка; при ошибке модель исправляет ответ;
+   - критиком: вторым вызовом модели, при замечаниях — одна доработка;
+   - если критику не хватает данных — агент один раз ищет недостающее (тезисы, связанные новости) и пишет карточку заново.
+
+   Модель недоступна или ответ не прошёл проверку — карточка по правилам с низкой уверенностью.
+
+Каждый шаг пишется в трейс со входом, выходом, временем и статусом (`ok` / `fallback` / `skipped`). Подробно — [agent/README.md](agent/README.md).
+
+## Безопасность
+
+Коротко, подробно — [docs/SECURITY.md](docs/SECURITY.md):
+
+- **Права.** Вход по JWT, пароли в bcrypt. Пользователь видит только свою компанию, на чужую — 403. При `AUTH_ENABLED=true` без токена — 401.
+- **Данные.** Секреты только в `.env`. Логи маскируют email, токены и ключи. Журнал `audit_log` хранит вызовы ML без текстов профилей и новостей. CSV кейса в git не попадают. На сервере база не открыта наружу, с доменом включается HTTPS.
+- **Действия ИИ.** Модель ничего не исполняет и не вызывает инструменты сама. Набор поисков зашит в коде, циклы ограничены, есть дневной лимит расхода. Каждый ответ проверяется кодом: схема, источники, числа, позиция банка. Каждый шаг виден в трейсе.
+
+## Качество и масштабирование
+
+Метрики, их текущие значения и мониторинг в эксплуатации — [llm/METRICS.md](llm/METRICS.md).
+
+| что меряем | значение |
+|---|---|
+| отбор: P@5 / R@5 / nDCG@5 на новостях, которых не было при разработке | 0,96 / 0,96 / 0,96 |
+| карточки: есть позиция банка | 100% |
+| карточки: «почему важно» опирается на признак компании | 100% |
+| шум (реклама, спорт, нерелевантное) не попал в ленту | 3 из 3 |
+
+Как пересчитать: `python -m agent eval` и `python -m llm.eval_run --critic`.
+
+Как растёт система: новые отрасли — строки в карте ОКВЭД, новые материалы банка — тезисы с факторами и отраслями, новые роли — словарь ролей. Модели задаются переменными окружения. Конвейер при этом не меняется.
+
 ## Что нужно на компьютере
 
 - **Docker** с Docker Compose v2 (Docker Desktop на Windows и macOS). Этого достаточно для запуска.
 - Для тестов и скриптов вне контейнера: **Python 3.12** и **[uv](https://docs.astral.sh/uv/)** (`pip install uv`).
-- Для фронтенда: **Node.js 20+** (ветка `feat/frontend`).
+- Для интерфейса без Docker (разработка): **Node.js 20+**.
 - Свободные порты 8000 (API) и 5432 (база; если занят — см. шаг 1).
 - Интернет нужен только для сборки образа. Демо-сценарий работает без него.
 
@@ -97,7 +144,7 @@ docker compose exec api python scripts/e2e_check.py
 - Логи: `docker compose logs -f api`, `docker compose logs -f worker`
 - Остановить: `docker compose down` (данные базы сохранятся)
 
-Фронтенд: в ветке `feat/frontend` выполните `cd frontend && npm install && npm run dev` → http://localhost:5173. Чтобы он работал с API, в `frontend/.env` нужно `VITE_USE_MOCKS=false`.
+Интерфейс: `cd frontend && npm install && npm run dev` → http://localhost:5173. Чтобы он работал с API, а не с моками, создайте `frontend/.env` со строкой `VITE_USE_MOCKS=false` (запросы на `/api` Vite передаёт в API на :8000). На сервере интерфейс собирается в контейнер `web` и открывается на том же адресе, что и API ([docs/DEPLOY.md](docs/DEPLOY.md)).
 
 Сервер (HTTPS, Caddy, откат) — [docs/DEPLOY.md](docs/DEPLOY.md).
 
@@ -184,11 +231,37 @@ docker compose exec api python scripts/e2e_check.py
 
 ### Модель и запись ответов для жюри (ML-команда)
 
-1. В `.env` задайте `LLM_BASE_URL`, `LLM_API_KEY` и `LLM_MODE=live`.
-2. Прогоните демо-компании во всех ролях, которые будут показаны: `docker compose exec api python scripts/run_pipeline.py --company U_67064 --role cfo --period week`.
-3. Ответы модели запишутся в `replay_cache/llm/`. Закоммитьте папку и переключитесь на `LLM_MODE=replay` с той же `AGENT_TODAY`.
+Жюри смотрит в `LLM_MODE=replay`: ответы модели берутся из `replay_cache/llm/`, ключ не нужен. Чтобы replay находил ответы, запросы к модели должны совпадать с записанными, поэтому запись и показ идут с одинаковыми настройками из шаблона: `NEWS_SOURCE=db`, `AGENT_TODAY=2026-10-25`, `LLM_USE_SMART=1`, `LLM_USE_CRITIC=1`, те же `LLM_MODEL_*`. От `AGENT_TODAY` считаются даты синтетических новостей, так что результат не зависит от того, в какой день жюри запускает сервис.
 
-Лимит команды — 500 ₽ в день, расход виден в `replay_cache/llm/usage-ДАТА.json`. Дополнительно можно ограничить токены в сутки через `LLM_DAILY_TOKEN_LIMIT`.
+Записать (один раз, нужен ключ):
+```bash
+# в .env: LLM_BASE_URL и LLM_API_KEY; остальное — как в шаблоне (LLM_MODE=replay оставить)
+# база — с нуля, как у жюри: id документов входят в запросы к модели
+docker compose down -v
+docker compose up -d --build
+docker compose exec api python scripts/seed_demo.py --source synthetic
+
+# демо-компании во всех ролях: сначала роли тестовых пользователей, потом остальные.
+# Прерванную запись можно запустить заново: записанное повторно не оплачивается
+docker compose exec -e LLM_MODE=live -e ML_AGENT_TIMEOUT_SECONDS=1800 api sh -c '
+  for pair in U_67064:cfo U_67064:owner U_19717:treasurer U_67064:ceo U_19717:ceo U_16346:ceo \
+              U_67064:treasurer U_67064:accountant U_67064:procurement U_19717:owner U_19717:cfo \
+              U_19717:accountant U_19717:procurement U_16346:owner U_16346:cfo U_16346:treasurer \
+              U_16346:accountant U_16346:procurement; do
+    python scripts/run_pipeline.py --company ${pair%%:*} --role ${pair##*:}
+  done' | tee record.log
+```
+
+Проверить без ключа и без новых вызовов — тот же цикл без `-e LLM_MODE=live ...`, вывод в `record-check.log`. Карточки должны быть от модели:
+```bash
+grep -c "  llm  " record-check.log     # сколько карточек от модели
+grep -c "  rules  " record-check.log   # должно быть 0 (или столько же, сколько при записи)
+```
+Затем закоммитить `replay_cache/llm/` — после решения команды, можно ли его публиковать: в записанных запросах есть строки профилей компаний.
+
+Папка `replay_cache/` подключена к контейнерам `api` и `worker` томом (`docker-compose.yml`), поэтому записанное сразу оказывается в репозитории. Лимит команды — 500 ₽ в день, расход виден в `replay_cache/llm/usage-ДАТА.json`; оценка — 0,1–0,2 ₽ на карточку с критиком. Дополнительно можно ограничить токены в сутки через `LLM_DAILY_TOKEN_LIMIT`.
+
+Без бэкенда (только агент, профили из CSV): `python -m agent run --company MOCK-002 --role cfo`; для запасного режима `USE_MOCKS=true` (компании `c-001`…`c-003`) — `python -m agent record-demo`.
 
 ## Тесты и проверки
 
@@ -200,7 +273,8 @@ ML_MODE=fake uv run pytest -q                       # то же в режиме 
 uv run ruff check .                                 # линтер
 ML_MODE=real uv run python scripts/check_ml_contract.py   # стык с агентом и real-адаптеры
 uv run python scripts/e2e_check.py                  # сквозной сценарий против запущенного API
-cd .. && backend/.venv/Scripts/python -m unittest llm.tests.test_offline agent.tests.test_agent  # ML без сети (Linux/macOS: backend/.venv/bin/python)
+cd .. && backend/.venv/Scripts/python -m unittest llm.tests.test_offline llm.tests.test_digest_qa agent.tests.test_agent agent.tests.test_heuristic  # ML без сети (Linux/macOS: backend/.venv/bin/python)
+backend/.venv/Scripts/python -m agent eval          # качество отбора на размеченном наборе
 ```
 
 Тесты с базой работают в отдельной базе `news2value_test` (создаётся сама). Если PostgreSQL не запущена, они пропускаются — `-rs` покажет, какие.
@@ -210,7 +284,9 @@ cd .. && backend/.venv/Scripts/python -m unittest llm.tests.test_offline agent.t
 - [docs/api-contract.md](docs/api-contract.md) — контракт API для фронтенда; [docs/openapi.json](docs/openapi.json) — машинная схема
 - [docs/data-model.md](docs/data-model.md) — таблицы и связи
 - [docs/SECURITY.md](docs/SECURITY.md) — что сделано и что нет в безопасности прототипа
-- [docs/DEPLOY.md](docs/DEPLOY.md) — деплой на сервер, обновление, логи, откат
+- [docs/DEPLOY.md](docs/DEPLOY.md) — деплой на сервер, обновление, логи, откат; [deploy/README.md](deploy/README.md) — что в папке `deploy/`
+- [agent/README.md](agent/README.md) — агент: шаги, отбор и его веса, тезисы банка, самопроверка, критик, режимы модели
+- [llm/README.md](llm/README.md) — промпты, схемы, карта ОКВЭД; [llm/METRICS.md](llm/METRICS.md) — метрики качества и мониторинг
 - [docs/ml-integration-notes.md](docs/ml-integration-notes.md) — стык бэкенда с агентом и найденные расхождения
 - [docs/llm-fixes-handoff.md](docs/llm-fixes-handoff.md) — что бэкенд временно сделал в `llm/` и `agent/`
 - [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — библиотеки, модели, данные, источники, смоделированные интеграции

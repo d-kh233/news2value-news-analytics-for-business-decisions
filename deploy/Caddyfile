@@ -1,14 +1,38 @@
-# Обратный прокси для docker-compose.prod.yml: всё, что пришло на сайт, — в API (api:8000).
-# SITE_ADDRESS — из DOMAIN в .env: домен (api.example.ru) — HTTPS с сертификатом Let's Encrypt,
+# Обратный прокси для docker-compose.prod.yml: один адрес для интерфейса и API.
+# SITE_ADDRESS — из DOMAIN в .env: домен (app.example.ru) — HTTPS с сертификатом Let's Encrypt,
 # по умолчанию :80 — обычный http по IP сервера.
-{$SITE_ADDRESS::80} {
-	encode gzip
+#
+#   /api/...                          → api:8000 без префикса /api (так ходит интерфейс)
+#   /health, /auth, /companies, /insights, /jobs, /documents, /feedback, /docs, /openapi.json
+#                                     → api:8000 как есть (Swagger, e2e_check.py, curl)
+#   всё остальное                     → web:80 (интерфейс React)
+# Пути интерфейса (/, /analytics/..., /accounts, /payments, /credits, /ved) с путями API не пересекаются.
+
+(to_api) {
 	reverse_proxy api:8000 {
 		# ответ агента бывает долгим, но refresh — фоновая задача, так что хватает минуты
 		transport http {
 			read_timeout 120s
 		}
 	}
+}
+
+{$SITE_ADDRESS::80} {
+	encode gzip
+
+	handle_path /api/* {
+		import to_api
+	}
+
+	@api path /health /auth/* /companies /companies/* /insights /insights/* /jobs/* /documents /documents/* /feedback /feedback/* /docs /docs/* /openapi.json /redoc
+	handle @api {
+		import to_api
+	}
+
+	handle {
+		reverse_proxy web:80
+	}
+
 	# не сообщать наружу, какой сервер стоит
 	header -Server
 	log {

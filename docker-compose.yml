@@ -52,6 +52,9 @@ services:
       - ./data/demo_profiles:/data/demo_profiles:ro
       # список источников для scripts/ingest.py (PDF берутся из /data/raw/analytics)
       - ./config:/config:ro
+      # записанные ответы моделей: при LLM_MODE=live новые пишутся сюда, в папку репозитория
+      # (их коммитят для replay); без тома запись осталась бы внутри контейнера
+      - ./replay_cache:/app/replay_cache
 
   # фоновые задачи (refresh): тот же образ, другая команда; задачи берёт из таблицы jobs
   worker:
@@ -62,6 +65,9 @@ services:
     command: ["python", "-m", "app.worker"]
     restart: unless-stopped
     env_file: .env
+    volumes:
+      # тот же кэш ответов моделей, что у api (refresh и ask выполняет worker)
+      - ./replay_cache:/app/replay_cache
     depends_on:
       # миграции накатывает api при старте — ждём, пока он поднимется
       api:
