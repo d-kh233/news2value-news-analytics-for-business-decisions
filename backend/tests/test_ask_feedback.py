@@ -7,7 +7,8 @@ def test_ask_flow(client, insight_id):
         f"/insights/{insight_id}/ask", json={"question": "Что делать в первую очередь?"}
     )
     assert r.status_code == 202
-    assert set(r.json()) == {"job_id"}
+    # с B7b в ответе ещё question_id (только добавление поля)
+    assert set(r.json()) == {"job_id", "question_id"}
     job_id = r.json()["job_id"]
 
     job = Job.model_validate(client.get(f"/jobs/{job_id}").json())
@@ -65,3 +66,27 @@ def test_feedback_validation_and_404(client, insight_id):
         client.post(f"/insights/{insight_id}/feedback", json={"rating": "meh"}).status_code == 422
     )
     assert client.post("/insights/nope/feedback", json={"rating": "useful"}).status_code == 404
+
+
+# ---- новые эндпоинты B7b на моках (USE_MOCKS=true) ----
+
+
+def test_mock_questions_history(client, insight_id):
+    r = client.post(f"/insights/{insight_id}/ask", json={"question": "  Что делать?  "})
+    body = client.get(f"/insights/{insight_id}/questions").json()
+    assert body["total"] == 1
+    q = body["items"][0]
+    assert q["id"] == r.json()["question_id"] and q["question"] == "Что делать?"
+    assert q["status"] == "done" and q["answer"] and q["job_id"] == r.json()["job_id"]
+    assert client.get("/insights/nope/questions").status_code == 404
+
+
+def test_mock_feedback_get_and_stats(client, insight_id):
+    url = f"/insights/{insight_id}/feedback"
+    assert client.get(url).status_code == 200 and client.get(url).json() is None
+    client.post(url, json={"rating": "not_useful", "reason": "unclear"})
+    mine = client.get(url).json()
+    assert mine["rating"] == "not_useful" and mine["reason"] == "unclear" and mine["updated_at"]
+    stats = client.get("/feedback/stats").json()
+    assert stats["total"] == 1 and stats["not_useful"] == 1 and stats["useful_share"] == 0.0
+    assert stats["by_reason"]["unclear"] == 1

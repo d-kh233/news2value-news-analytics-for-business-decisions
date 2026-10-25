@@ -1,0 +1,1476 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "News2Value API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies": {
+      "get": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "List Companies",
+        "operationId": "list_companies_companies_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Сколько записей вернуть",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Сколько записей вернуть"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Сколько записей пропустить",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Сколько записей пропустить"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Company_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "Create Company",
+        "operationId": "create_company_companies_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{company_id}": {
+      "get": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "Get Company",
+        "operationId": "get_company_companies__company_id__get",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "Delete Company",
+        "operationId": "delete_company_companies__company_id__delete",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{company_id}/profile": {
+      "get": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "Get Profile",
+        "operationId": "get_profile_companies__company_id__profile_get",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyProfile"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "Put Profile",
+        "operationId": "put_profile_companies__company_id__profile_put",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyProfile"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyProfile"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{company_id}/insights": {
+      "get": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "List Insights",
+        "operationId": "list_insights_companies__company_id__insights_get",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "risk",
+                    "opportunity",
+                    "event"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "name": "min_importance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 100,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Importance"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "YYYY-MM-DD, включительно",
+              "title": "Date From"
+            },
+            "description": "YYYY-MM-DD, включительно"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "YYYY-MM-DD, включительно",
+              "title": "Date To"
+            },
+            "description": "YYYY-MM-DD, включительно"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Сколько записей вернуть",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Сколько записей вернуть"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Сколько записей пропустить",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Сколько записей пропустить"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Insight_"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{company_id}/digest": {
+      "get": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "Get Digest",
+        "operationId": "get_digest_companies__company_id__digest_get",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "day",
+                "week"
+              ],
+              "type": "string",
+              "title": "Period"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Digest"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/companies/{company_id}/insights/refresh": {
+      "post": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "Refresh Insights",
+        "operationId": "refresh_insights_companies__company_id__insights_refresh_post",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/insights/{insight_id}": {
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "summary": "Get Insight",
+        "operationId": "get_insight_insights__insight_id__get",
+        "parameters": [
+          {
+            "name": "insight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Insight Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Insight"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/insights/{insight_id}/ask": {
+      "post": {
+        "tags": [
+          "insights"
+        ],
+        "summary": "Ask",
+        "operationId": "ask_insights__insight_id__ask_post",
+        "parameters": [
+          {
+            "name": "insight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Insight Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/insights/{insight_id}/feedback": {
+      "post": {
+        "tags": [
+          "insights"
+        ],
+        "summary": "Feedback",
+        "operationId": "feedback_insights__insight_id__feedback_post",
+        "parameters": [
+          {
+            "name": "insight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Insight Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feedback"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "200": {
+            "description": "Отзыв обновлён",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feedback"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Get Job",
+        "operationId": "get_job_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/result": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Get Job Result",
+        "description": "Результат задачи ask. Для refresh-задач результата нет — 404.",
+        "operationId": "get_job_result_jobs__job_id__result_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AskRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Question"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "AskRequest"
+      },
+      "AskResult": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Sources"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "sources"
+        ],
+        "title": "AskResult"
+      },
+      "Company": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "region": {
+            "type": "string",
+            "title": "Region"
+          },
+          "revenue_bln_rub": {
+            "type": "number",
+            "title": "Revenue Bln Rub"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "industry",
+          "region",
+          "revenue_bln_rub"
+        ],
+        "title": "Company"
+      },
+      "CompanyCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "region": {
+            "type": "string",
+            "title": "Region"
+          },
+          "revenue_bln_rub": {
+            "type": "number",
+            "title": "Revenue Bln Rub"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "industry",
+          "region",
+          "revenue_bln_rub"
+        ],
+        "title": "CompanyCreate",
+        "description": "Данные для создания компании (id назначает сервер)."
+      },
+      "CompanyProfile": {
+        "properties": {
+          "company_id": {
+            "type": "string",
+            "title": "Company Id"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry",
+            "default": ""
+          },
+          "regions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Regions"
+          },
+          "key_clients": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Clients"
+          },
+          "key_suppliers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Suppliers"
+          },
+          "raw_materials": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Raw Materials"
+          },
+          "currency_risks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Currency Risks"
+          },
+          "debt_load": {
+            "type": "string",
+            "title": "Debt Load",
+            "default": ""
+          },
+          "strategic_goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strategic Goals"
+          },
+          "bank_products": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Bank Products"
+          },
+          "manual_data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Manual Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_id"
+        ],
+        "title": "CompanyProfile"
+      },
+      "Digest": {
+        "properties": {
+          "company_id": {
+            "type": "string",
+            "title": "Company Id"
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "day",
+              "week"
+            ],
+            "title": "Period"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "insight_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Insight Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_id",
+          "period",
+          "summary",
+          "insight_ids"
+        ],
+        "title": "Digest"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "type": "string",
+            "title": "Error"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error",
+          "detail"
+        ],
+        "title": "ErrorResponse",
+        "description": "Единая форма всех ошибок."
+      },
+      "Feedback": {
+        "properties": {
+          "insight_id": {
+            "type": "string",
+            "title": "Insight Id"
+          },
+          "rating": {
+            "type": "string",
+            "enum": [
+              "useful",
+              "not_useful"
+            ],
+            "title": "Rating"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "insight_id",
+          "rating",
+          "created_at"
+        ],
+        "title": "Feedback"
+      },
+      "FeedbackRequest": {
+        "properties": {
+          "rating": {
+            "type": "string",
+            "enum": [
+              "useful",
+              "not_useful"
+            ],
+            "title": "Rating"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rating"
+        ],
+        "title": "FeedbackRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthResponse"
+      },
+      "Insight": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "company_id": {
+            "type": "string",
+            "title": "Company Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "risk",
+              "opportunity",
+              "event"
+            ],
+            "title": "Type"
+          },
+          "importance": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Importance"
+          },
+          "impact_on_company": {
+            "type": "string",
+            "title": "Impact On Company"
+          },
+          "recommended_action": {
+            "type": "string",
+            "title": "Recommended Action"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "company_id",
+          "title",
+          "summary",
+          "type",
+          "importance",
+          "impact_on_company",
+          "recommended_action",
+          "sources",
+          "created_at"
+        ],
+        "title": "Insight"
+      },
+      "Job": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "done",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "title": "Job"
+      },
+      "JobAccepted": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id"
+        ],
+        "title": "JobAccepted",
+        "description": "Ответ 202: задача принята и выполняется в фоне."
+      },
+      "Page_Company_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Company"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[Company]"
+      },
+      "Page_Insight_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Insight"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[Insight]"
+      },
+      "Source": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "published_at": {
+            "type": "string",
+            "title": "Published At"
+          },
+          "source_kind": {
+            "type": "string",
+            "enum": [
+              "external",
+              "bank_analytics"
+            ],
+            "title": "Source Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "url",
+          "published_at",
+          "source_kind"
+        ],
+        "title": "Source"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

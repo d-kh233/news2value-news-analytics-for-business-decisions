@@ -2,13 +2,14 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Query, Response
+from fastapi.exceptions import RequestValidationError
 
 from app.schemas.common import ErrorResponse, Page
 from app.schemas.company import Company, CompanyCreate, CompanyProfile, CompanyProfileUpdate
 from app.schemas.digest import Digest, DigestPeriod
-from app.schemas.insight import Insight, InsightType, Role
+from app.schemas.insight import InsightPage, InsightType, Role
 from app.schemas.job import JobAccepted
-from app.services import company_service, job_service, mock_store
+from app.services import company_service, insight_service, job_service
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
@@ -61,31 +62,45 @@ def put_profile(company_id: str, profile: CompanyProfileUpdate) -> CompanyProfil
     return company_service.put_profile(company_id, profile)
 
 
-@router.get("/{company_id}/insights", response_model=Page[Insight], responses=NOT_FOUND)
+@router.get("/{company_id}/insights", response_model=InsightPage, responses=NOT_FOUND)
 def list_insights(
     company_id: str,
     insight_type: Annotated[InsightType | None, Query(alias="type")] = None,
     min_importance: Annotated[int | None, Query(ge=0, le=100)] = None,
     date_from: Annotated[date | None, Query(description="YYYY-MM-DD, включительно")] = None,
     date_to: Annotated[date | None, Query(description="YYYY-MM-DD, включительно")] = None,
+    industry: Annotated[
+        str | None,
+        Query(
+            max_length=50,
+            description="Отрасль документа-источника: ОКВЭД (41 или okved:41) или тег (economy)",
+        ),
+    ] = None,
     limit: Limit = 20,
     offset: Offset = 0,
-) -> Page[Insight]:
-    items, total = mock_store.list_insights(
+) -> InsightPage:
+    """Лента: сначала важные, при равной важности — свежие. Пустая лента — 200 с подсказкой hint;
+    refresh_job_id — задача обновления, которая сейчас идёт."""
+    if date_from and date_to and date_from > date_to:
+        raise RequestValidationError(
+            [{"loc": ("query", "date_from"), "msg": "date_from позже date_to", "type": "value"}]
+        )
+    return insight_service.list_insights(
         company_id,
         insight_type=insight_type,
         min_importance=min_importance,
         date_from=date_from,
         date_to=date_to,
+        industry=industry,
         limit=limit,
         offset=offset,
     )
-    return Page[Insight](items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/{company_id}/digest", response_model=Digest, responses=NOT_FOUND)
 def get_digest(company_id: str, period: DigestPeriod) -> Digest:
-    return mock_store.get_digest(company_id, period)
+    """Самые важные инсайты за сутки или неделю (до 10) и их краткая сводка."""
+    return insight_service.get_digest(company_id, period)
 
 
 @router.post(

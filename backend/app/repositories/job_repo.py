@@ -11,22 +11,23 @@ from sqlalchemy.orm import Session
 from app.models import JobRow
 from app.models.job import ACTIVE_JOB_STATUSES
 
-# условие частичного индекса uq_jobs_active_company — текстом, как в миграции: Postgres
+# условие частичного индекса uq_jobs_active_company — текстом, как в миграции 0006: Postgres
 # сопоставляет ON CONFLICT с индексом по условию, а с параметрами запроса этого не сделать
-_ACTIVE = sql_text("status IN ('pending', 'running')")
+_ACTIVE_REFRESH = sql_text("kind = 'refresh' AND status IN ('pending', 'running')")
 
 
 def insert_pending(
     session: Session, job_id: str, company_id: str, kind: str, params: dict[str, Any]
 ) -> bool:
-    """Новая задача pending; False — у компании уже есть активная задача этого вида."""
-    stmt = (
-        insert(JobRow)
-        .values(id=job_id, company_id=company_id, kind=kind, params=params, status="pending")
-        .on_conflict_do_nothing(index_elements=["company_id", "kind"], index_where=_ACTIVE)
-        .returning(JobRow.id)
+    """Новая задача pending; False — у компании уже есть активный refresh (только для refresh)."""
+    stmt = insert(JobRow).values(
+        id=job_id, company_id=company_id, kind=kind, params=params, status="pending"
     )
-    return session.execute(stmt).scalar_one_or_none() is not None
+    if kind == "refresh":
+        stmt = stmt.on_conflict_do_nothing(
+            index_elements=["company_id", "kind"], index_where=_ACTIVE_REFRESH
+        )
+    return session.execute(stmt.returning(JobRow.id)).scalar_one_or_none() is not None
 
 
 def active_id(session: Session, company_id: str, kind: str) -> str | None:

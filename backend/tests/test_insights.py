@@ -74,7 +74,15 @@ def test_filter_dates_nothing_found(client, company_id):
         f"/companies/{company_id}/insights",
         params={"date_from": "2000-01-01", "date_to": "2000-01-02"},
     ).json()
-    assert body == {"items": [], "total": 0, "limit": 20, "offset": 0}
+    # с B7 в ответе ленты ещё hint и refresh_job_id; у моков они всегда null
+    assert body == {
+        "items": [],
+        "total": 0,
+        "limit": 20,
+        "offset": 0,
+        "hint": None,
+        "refresh_job_id": None,
+    }
 
 
 def test_combined_filters(client, company_id):

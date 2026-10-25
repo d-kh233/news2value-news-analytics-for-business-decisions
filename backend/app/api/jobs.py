@@ -5,7 +5,7 @@ from fastapi import APIRouter
 from app.api.companies import NOT_FOUND
 from app.schemas.job import Job
 from app.schemas.qa import AskResult
-from app.services import job_service, mock_store
+from app.services import job_service
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -17,8 +17,8 @@ def get_job(job_id: str) -> Job:
 
 @router.get("/{job_id}/result", response_model=AskResult, responses=NOT_FOUND)
 def get_job_result(job_id: str) -> AskResult:
-    """Результат задачи ask (моки до B7). Для refresh-задач результата нет — 404."""
-    return mock_store.get_job_result(job_id)
+    """Ответ задачи ask, когда она done. Для refresh-задач и неготовых — 404."""
+    return job_service.get_job_result(job_id)
 
 
 @router.get("/{job_id}/run", response_model=dict[str, Any], responses=NOT_FOUND)

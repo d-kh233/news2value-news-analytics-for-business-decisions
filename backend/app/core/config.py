@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     job_timeout_minutes: float = 10.0
     # Как часто worker проверяет таблицу jobs, секунды
     worker_poll_seconds: float = 1.0
+    # true — инсайты, дайджест, ask и feedback из моков data/mocks (как до B7): запасной вариант
+    # демо. По умолчанию false — всё из БД. Компании, профили и refresh всегда из БД
+    use_mocks: bool = False
+    # Авторизация (B8+B9). Пока входа нет: false — все запросы от пользователя demo (админ),
+    # true — 401 (заготовка app/core/auth.py)
+    auth_enabled: bool = False
 
 
 @lru_cache

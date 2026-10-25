@@ -6,12 +6,14 @@ from app.models.document import Document
 from app.models.insight import InsightRow, PipelineRun
 from app.models.job import JobRow, LlmCacheRow
 from app.models.profile import CompanyProfileRow
+from app.models.qa import FeedbackRow, QuestionRow
 
 __all__ = [
     "Base",
     "Company",
     "CompanyProfileRow",
     "Document",
+    "FeedbackRow",
     "InsightRow",
     "JobRow",
     "LlmCacheRow",
@@ -19,5 +21,6 @@ __all__ = [
     "Person",
     "PersonCompanyLink",
     "PipelineRun",
+    "QuestionRow",
     "RejectedRow",
 ]

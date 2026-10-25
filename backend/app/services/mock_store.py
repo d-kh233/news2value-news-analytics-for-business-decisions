@@ -16,7 +16,7 @@ from app.schemas.company import Company
 from app.schemas.digest import Digest, DigestPeriod
 from app.schemas.insight import Insight, InsightType
 from app.schemas.job import Job
-from app.schemas.qa import AskResult, Feedback, FeedbackRequest
+from app.schemas.qa import AskResult, Feedback, FeedbackRequest, Question
 from app.services import company_service
 
 MOCKS_DIR = Path(__file__).resolve().parents[3] / "data" / "mocks"
@@ -29,6 +29,8 @@ _job_kinds: dict[str, str] = {}  # job_id -> "ask"
 _job_questions: dict[str, str] = {}
 _job_insight: dict[str, str] = {}
 _ask_results: dict[str, AskResult] = {}
+_questions: dict[str, Question] = {}  # question_id -> вопрос (B7b)
+_job_question: dict[str, str] = {}  # job_id -> question_id
 
 
 def _read(name: str) -> list[dict[str, Any]]:
@@ -42,6 +44,8 @@ def reset() -> None:
     _job_questions.clear()
     _job_insight.clear()
     _ask_results.clear()
+    _questions.clear()
+    _job_question.clear()
     for item in _read("companies.json"):
         _companies[item["id"]] = Company.model_validate(item)
     for item in _read("insights.json"):
@@ -81,8 +85,12 @@ def list_insights(
     date_to: date | None,
     limit: int,
     offset: int,
+    industry: str | None = None,
 ) -> tuple[list[Insight], int]:
     _require_company(company_id)
+    if industry:
+        # у моковых инсайтов нет документов с тегами отраслей (фильтр industry — с B7)
+        return [], 0
     items = [i for i in _insights.values() if i.company_id == company_id]
     if insight_type is not None:
         items = [i for i in items if i.type == insight_type]
@@ -141,13 +149,24 @@ def _set_status(job_id: str, status: str, error: str | None = None) -> None:
     _jobs[job_id] = Job(id=job_id, status=status, error=error)  # type: ignore[arg-type]
 
 
-def start_ask(insight_id: str, question: str) -> str:
+def start_ask(insight_id: str, question: str) -> tuple[str, str]:
+    """Вопрос по моковому инсайту -> (job_id, question_id); ответ — run_ask в фоне."""
     _require_insight(insight_id)
     job_id = _create_job("ask")
     _job_questions[job_id] = question
     _ask_results[job_id] = AskResult(answer="", sources=[])
     _job_insight[job_id] = insight_id
-    return job_id
+    q = Question(
+        id=_new_id("q"),
+        insight_id=insight_id,
+        question=question,
+        status="pending",
+        job_id=job_id,
+        created_at=datetime.now(UTC).replace(microsecond=0),
+    )
+    _questions[q.id] = q
+    _job_question[job_id] = q.id
+    return job_id, q.id
 
 
 def run_ask(job_id: str) -> None:
@@ -163,6 +182,19 @@ def run_ask(job_id: str) -> None:
     )
     _ask_results[job_id] = AskResult(answer=answer, sources=insight.sources)
     _set_status(job_id, "done")
+    qid = _job_question.get(job_id)
+    if qid in _questions:
+        _questions[qid] = _questions[qid].model_copy(
+            update={"answer": answer, "sources": insight.sources, "status": "done"}
+        )
+
+
+def list_questions(insight_id: str, limit: int, offset: int) -> tuple[list[Question], int]:
+    _require_insight(insight_id)
+    items = sorted(
+        (q for q in _questions.values() if q.insight_id == insight_id), key=lambda q: q.created_at
+    )
+    return items[offset : offset + limit], len(items)
 
 
 def get_job(job_id: str) -> Job:
@@ -187,15 +219,37 @@ def get_job_result(job_id: str) -> AskResult:
 def save_feedback(insight_id: str, data: FeedbackRequest) -> tuple[Feedback, bool]:
     """Сохранить отзыв; второй элемент — True, если отзыв на инсайт первый."""
     _require_insight(insight_id)
-    created = insight_id not in _feedback
+    now = datetime.now(UTC).replace(microsecond=0)
+    old = _feedback.get(insight_id)
     feedback = Feedback(
         insight_id=insight_id,
         rating=data.rating,
         comment=data.comment,
-        created_at=datetime.now(UTC).replace(microsecond=0),
+        created_at=old.created_at if old else now,
+        reason=data.reason,
+        updated_at=now,
     )
     _feedback[insight_id] = feedback
-    return feedback, created
+    return feedback, old is None
+
+
+def get_feedback(insight_id: str) -> Feedback | None:
+    _require_insight(insight_id)
+    return _feedback.get(insight_id)
+
+
+def feedback_counts() -> list[dict]:
+    """Оценки моков в форме feedback_repo.counts: [{insight_type, rating, reason, n}]."""
+    return [
+        {
+            "insight_type": _insights[f.insight_id].type,
+            "rating": f.rating,
+            "reason": f.reason,
+            "n": 1,
+        }
+        for f in _feedback.values()
+        if f.insight_id in _insights
+    ]
 
 
 reset()

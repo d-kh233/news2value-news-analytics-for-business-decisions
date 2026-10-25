@@ -9,7 +9,8 @@ refresh всё равно заменяет все инсайты компани�
 пояснение там); failed — ошибка, текст в error. running дольше JOB_TIMEOUT_MINUTES — worker,
 вероятно, упал: задача и её запуск pipeline_runs получают failed (fail_stale).
 
-Задачи ask пока живут в mock_store (до B7): GET /jobs/{id} ищет сначала там, потом в БД.
+Задачи ask (B7b) — тоже в jobs: вопрос лежит в insight_questions, worker отвечает через
+qa_service.run_question. При USE_MOCKS=true задачи ask живут в mock_store, как до B7.
 """
 
 import logging
@@ -21,13 +22,15 @@ from typing import Any
 from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import NotFoundError
-from app.repositories import job_repo, pipeline_run_repo
+from app.repositories import job_repo, pipeline_run_repo, question_repo
 from app.schemas.job import Job
-from app.services import company_service, refresh
+from app.schemas.qa import AskResult
+from app.services import company_service, insight_service, qa_service, refresh
 
 logger = logging.getLogger(__name__)
 
 KIND_REFRESH = "refresh"
+KIND_ASK = qa_service.KIND_ASK
 # у POST .../refresh нет параметра period: окно агента — неделя, как в run_pipeline.py
 DEFAULT_PERIOD = "week"
 INSERT_ATTEMPTS = 3
@@ -68,18 +71,40 @@ def request_refresh(company_id: str, role: str | None) -> str:
 
 
 def get_job(job_id: str) -> Job:
-    # mock_store при импорте читает data/mocks — берём его здесь, чтобы worker без моков работал
-    from app.services import mock_store
+    if insight_service.use_mocks():
+        # mock_store при импорте читает data/mocks — берём его здесь, чтобы worker без моков работал
+        from app.services import mock_store
 
-    try:
-        return mock_store.get_job(job_id)  # задачи ask (моки до B7)
-    except NotFoundError:
-        pass
+        try:
+            return mock_store.get_job(job_id)  # задачи ask на моках
+        except NotFoundError:
+            pass
     with get_session() as session:
         row = job_repo.get(session, job_id)
         if row is None:
             raise NotFoundError(f"Задача {job_id} не найдена")
         return Job(id=row.id, status=row.status, error=row.error)  # type: ignore[arg-type]
+
+
+def get_job_result(job_id: str) -> AskResult:
+    """Ответ задачи ask, когда она done; refresh-задачи и неготовые — 404."""
+    if insight_service.use_mocks():
+        from app.services import mock_store
+
+        try:
+            return mock_store.get_job_result(job_id)
+        except NotFoundError:
+            pass
+    with get_session() as session:
+        job = job_repo.get(session, job_id)
+        if job is None:
+            raise NotFoundError(f"Задача {job_id} не найдена")
+        result = qa_service.result_for_job(session, job_id) if job.kind == KIND_ASK else None
+        if result is None:
+            raise NotFoundError(f"У задачи {job_id} нет результата")
+        if job.status != "done":
+            raise NotFoundError(f"Результат задачи {job_id} ещё не готов")
+        return AskResult.model_validate(result)
 
 
 def get_job_run(job_id: str) -> dict[str, Any]:
@@ -124,6 +149,9 @@ def _save_run_id(job_id: str, run_id: int) -> None:
 
 def execute(job: ClaimedJob) -> str:
     """Выполнить задачу и записать итог; вернуть итоговый статус (done | failed)."""
+    if job.kind == KIND_ASK:
+        status, error = qa_service.run_question(job.params)
+        return _finish(job.id, status, error)
     try:
         result = refresh.run_for_company(
             job.company_id,
@@ -137,11 +165,15 @@ def execute(job: ClaimedJob) -> str:
     except Exception as exc:  # noqa: BLE001 — любой сбой превращаем в статус задачи
         logger.exception("задача %s: сбой конвейера", job.id)
         status, error = "failed", f"{type(exc).__name__}: {exc}"[: refresh.ERROR_MAX_LEN]
+    return _finish(job.id, status, error)
+
+
+def _finish(job_id: str, status: str, error: str | None) -> str:
     with get_session() as session:
-        written = job_repo.finish(session, job.id, status, error)
+        written = job_repo.finish(session, job_id, status, error)
         session.commit()
     if not written:
-        logger.warning("задача %s уже не running — итог %s не записан", job.id, status)
+        logger.warning("задача %s уже не running — итог %s не записан", job_id, status)
     return status
 
 
@@ -153,6 +185,7 @@ def fail_stale() -> list[str]:
         marked = job_repo.fail_stale(session, timedelta(minutes=minutes), error)
         run_ids = [run_id for _, run_id in marked if run_id is not None]
         pipeline_run_repo.fail_running(session, run_ids, error)
+        question_repo.fail_for_jobs(session, [job_id for job_id, _ in marked])
         session.commit()
     for job_id, _ in marked:
         logger.warning("задача %s: %s", job_id, error)

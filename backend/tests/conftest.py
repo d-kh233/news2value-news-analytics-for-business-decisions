@@ -33,6 +33,8 @@ DB_TABLES = [
     "pipeline_runs",
     "jobs",
     "llm_cache",
+    "insight_questions",
+    "insight_feedback",
 ]
 FIXTURES = Path(__file__).parent / "fixtures"
 # моковая компания с моковыми инсайтами (data/mocks); компании API живут в БД
@@ -206,7 +208,9 @@ def news(db: Engine, bank_client) -> dict[str, int]:
 
 
 @pytest.fixture
-def client() -> TestClient:
+def client(env) -> TestClient:
+    """Клиент API на моках (USE_MOCKS=true): инсайты c-001…c-003, как до B7."""
+    env(USE_MOCKS="true")
     return TestClient(app)
 
 

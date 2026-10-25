@@ -20,9 +20,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
 
-JOB_KINDS = ("refresh",)
+JOB_KINDS = ("refresh", "ask")
 JOB_STATUSES = ("pending", "running", "done", "failed")
-# у компании одновременно не больше одной такой задачи каждого вида
+# у компании одновременно не больше одной такой задачи refresh (вопросов ask — сколько угодно)
 ACTIVE_JOB_STATUSES = ("pending", "running")
 
 
@@ -34,21 +34,23 @@ def _sql_list(values: tuple[str, ...]) -> str:
 class JobRow(Base):
     """Задача для worker: pending → running → done | failed.
 
-    params — параметры запуска ({role, period} у refresh), run_id — запись pipeline_runs,
-    которую создал конвейер (появляется, как только запуск начался).
+    params — параметры запуска ({role, period} у refresh, {question_id} у ask), run_id — запись
+    pipeline_runs, которую создал конвейер refresh (появляется, как только запуск начался).
     """
 
     __tablename__ = "jobs"
     __table_args__ = (
         CheckConstraint(f"kind IN {_sql_list(JOB_KINDS)}", name="ck_jobs_kind"),
         CheckConstraint(f"status IN {_sql_list(JOB_STATUSES)}", name="ck_jobs_status"),
-        # частичный уникальный индекс: вторая активная задача той же компании не вставится
+        # частичный уникальный индекс: второй активный refresh той же компании не вставится
         Index(
             "uq_jobs_active_company",
             "company_id",
             "kind",
             unique=True,
-            postgresql_where=sql_text(f"status IN {_sql_list(ACTIVE_JOB_STATUSES)}"),
+            postgresql_where=sql_text(
+                f"kind = 'refresh' AND status IN {_sql_list(ACTIVE_JOB_STATUSES)}"
+            ),
         ),
         Index("ix_jobs_status_created", "status", "created_at"),
     )
