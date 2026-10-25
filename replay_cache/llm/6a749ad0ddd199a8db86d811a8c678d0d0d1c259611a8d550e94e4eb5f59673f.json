@@ -1,0 +1,1 @@
+{"content": "{\"verdict\": \"pass\", \"scores\": {\"grounding\": 5, \"personalization\": 5, \"depth\": 4, \"actionability\": 5, \"bank_separation\": 5}, \"issues\": [{\"field\": \"why_it_matters[2]\", \"problem\": \"other\", \"comment\": \"Стилистическая тавтология «нагрузку на долговую нагрузку» — не мешает показу, можно переформулировать.\"}], \"extra_search\": []}"}

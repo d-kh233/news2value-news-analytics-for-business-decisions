@@ -1,0 +1,1332 @@
+{
+ "cost_rub_est": 513.7215,
+ "tokens": 1027443,
+ "log": [
+  {
+   "ts": "19:18:43",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2893,
+   "who": ""
+  },
+  {
+   "ts": "19:18:47",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2809,
+   "who": ""
+  },
+  {
+   "ts": "19:18:52",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2831,
+   "who": ""
+  },
+  {
+   "ts": "19:19:00",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2827,
+   "who": ""
+  },
+  {
+   "ts": "19:19:07",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2891,
+   "who": ""
+  },
+  {
+   "ts": "19:19:21",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2962,
+   "who": ""
+  },
+  {
+   "ts": "19:19:32",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2860,
+   "who": ""
+  },
+  {
+   "ts": "19:19:40",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2911,
+   "who": ""
+  },
+  {
+   "ts": "19:19:56",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2841,
+   "who": ""
+  },
+  {
+   "ts": "19:20:09",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2795,
+   "who": ""
+  },
+  {
+   "ts": "19:20:16",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2881,
+   "who": ""
+  },
+  {
+   "ts": "19:20:29",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2924,
+   "who": ""
+  },
+  {
+   "ts": "19:20:35",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 2812,
+   "who": ""
+  },
+  {
+   "ts": "19:20:50",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5386,
+   "who": ""
+  },
+  {
+   "ts": "19:20:55",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4408,
+   "who": ""
+  },
+  {
+   "ts": "19:21:12",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5347,
+   "who": ""
+  },
+  {
+   "ts": "19:21:19",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4369,
+   "who": ""
+  },
+  {
+   "ts": "19:21:32",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 6930,
+   "who": ""
+  },
+  {
+   "ts": "19:21:46",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5117,
+   "who": ""
+  },
+  {
+   "ts": "19:21:52",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4016,
+   "who": ""
+  },
+  {
+   "ts": "19:22:10",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5430,
+   "who": ""
+  },
+  {
+   "ts": "19:22:16",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4354,
+   "who": ""
+  },
+  {
+   "ts": "19:22:29",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4869,
+   "who": ""
+  },
+  {
+   "ts": "19:22:34",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3817,
+   "who": ""
+  },
+  {
+   "ts": "19:22:49",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5405,
+   "who": ""
+  },
+  {
+   "ts": "19:22:56",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4722,
+   "who": ""
+  },
+  {
+   "ts": "19:23:08",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 7256,
+   "who": ""
+  },
+  {
+   "ts": "19:23:23",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5184,
+   "who": ""
+  },
+  {
+   "ts": "19:23:28",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4029,
+   "who": ""
+  },
+  {
+   "ts": "19:23:43",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5108,
+   "who": ""
+  },
+  {
+   "ts": "19:23:49",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4065,
+   "who": ""
+  },
+  {
+   "ts": "19:24:03",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4889,
+   "who": ""
+  },
+  {
+   "ts": "19:24:09",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3763,
+   "who": ""
+  },
+  {
+   "ts": "19:24:25",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5372,
+   "who": ""
+  },
+  {
+   "ts": "19:24:31",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4328,
+   "who": ""
+  },
+  {
+   "ts": "19:24:45",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5183,
+   "who": ""
+  },
+  {
+   "ts": "19:24:53",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4337,
+   "who": ""
+  },
+  {
+   "ts": "19:25:08",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5210,
+   "who": ""
+  },
+  {
+   "ts": "19:25:14",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4126,
+   "who": ""
+  },
+  {
+   "ts": "19:25:32",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5640,
+   "who": ""
+  },
+  {
+   "ts": "19:25:36",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4429,
+   "who": ""
+  },
+  {
+   "ts": "19:25:51",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5442,
+   "who": ""
+  },
+  {
+   "ts": "19:26:03",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4562,
+   "who": ""
+  },
+  {
+   "ts": "19:26:15",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 7011,
+   "who": ""
+  },
+  {
+   "ts": "19:26:30",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5085,
+   "who": ""
+  },
+  {
+   "ts": "19:26:34",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3902,
+   "who": ""
+  },
+  {
+   "ts": "19:26:49",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5408,
+   "who": ""
+  },
+  {
+   "ts": "19:27:04",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 6867,
+   "who": ""
+  },
+  {
+   "ts": "19:27:17",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4453,
+   "who": ""
+  },
+  {
+   "ts": "19:27:33",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4938,
+   "who": ""
+  },
+  {
+   "ts": "19:27:41",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4122,
+   "who": ""
+  },
+  {
+   "ts": "19:27:56",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5172,
+   "who": ""
+  },
+  {
+   "ts": "19:28:07",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4139,
+   "who": ""
+  },
+  {
+   "ts": "19:28:23",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5081,
+   "who": ""
+  },
+  {
+   "ts": "19:28:32",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4133,
+   "who": ""
+  },
+  {
+   "ts": "19:28:48",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5451,
+   "who": ""
+  },
+  {
+   "ts": "19:28:54",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4350,
+   "who": ""
+  },
+  {
+   "ts": "19:29:08",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5084,
+   "who": ""
+  },
+  {
+   "ts": "19:29:17",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4254,
+   "who": ""
+  },
+  {
+   "ts": "19:29:34",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5309,
+   "who": ""
+  },
+  {
+   "ts": "19:29:40",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4166,
+   "who": ""
+  },
+  {
+   "ts": "19:29:57",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5364,
+   "who": ""
+  },
+  {
+   "ts": "19:30:04",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4474,
+   "who": ""
+  },
+  {
+   "ts": "19:30:19",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5058,
+   "who": ""
+  },
+  {
+   "ts": "19:30:25",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3865,
+   "who": ""
+  },
+  {
+   "ts": "19:30:40",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5330,
+   "who": ""
+  },
+  {
+   "ts": "19:30:47",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4247,
+   "who": ""
+  },
+  {
+   "ts": "19:31:05",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5454,
+   "who": ""
+  },
+  {
+   "ts": "19:31:11",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4413,
+   "who": ""
+  },
+  {
+   "ts": "19:31:26",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5247,
+   "who": ""
+  },
+  {
+   "ts": "19:31:33",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4228,
+   "who": ""
+  },
+  {
+   "ts": "19:31:48",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5128,
+   "who": ""
+  },
+  {
+   "ts": "19:31:54",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4047,
+   "who": ""
+  },
+  {
+   "ts": "19:32:12",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5339,
+   "who": ""
+  },
+  {
+   "ts": "19:32:17",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4210,
+   "who": ""
+  },
+  {
+   "ts": "19:32:32",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5129,
+   "who": ""
+  },
+  {
+   "ts": "19:32:43",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4462,
+   "who": ""
+  },
+  {
+   "ts": "19:32:48",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4580,
+   "who": ""
+  },
+  {
+   "ts": "19:33:01",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 6677,
+   "who": ""
+  },
+  {
+   "ts": "19:33:16",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5407,
+   "who": ""
+  },
+  {
+   "ts": "19:33:24",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4736,
+   "who": ""
+  },
+  {
+   "ts": "19:33:41",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5316,
+   "who": ""
+  },
+  {
+   "ts": "19:33:47",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4167,
+   "who": ""
+  },
+  {
+   "ts": "19:34:03",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5251,
+   "who": ""
+  },
+  {
+   "ts": "19:34:08",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4214,
+   "who": ""
+  },
+  {
+   "ts": "19:34:26",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5247,
+   "who": ""
+  },
+  {
+   "ts": "19:34:38",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 6779,
+   "who": ""
+  },
+  {
+   "ts": "19:34:44",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4156,
+   "who": ""
+  },
+  {
+   "ts": "19:34:59",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5048,
+   "who": ""
+  },
+  {
+   "ts": "19:35:03",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3906,
+   "who": ""
+  },
+  {
+   "ts": "19:35:20",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5655,
+   "who": ""
+  },
+  {
+   "ts": "19:35:33",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 7216,
+   "who": ""
+  },
+  {
+   "ts": "19:35:41",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4760,
+   "who": ""
+  },
+  {
+   "ts": "19:35:54",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4917,
+   "who": ""
+  },
+  {
+   "ts": "19:36:01",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3869,
+   "who": ""
+  },
+  {
+   "ts": "19:36:16",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5201,
+   "who": ""
+  },
+  {
+   "ts": "19:36:22",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4052,
+   "who": ""
+  },
+  {
+   "ts": "19:36:36",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5199,
+   "who": ""
+  },
+  {
+   "ts": "19:36:42",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4082,
+   "who": ""
+  },
+  {
+   "ts": "19:36:59",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5371,
+   "who": ""
+  },
+  {
+   "ts": "19:37:12",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 6894,
+   "who": ""
+  },
+  {
+   "ts": "19:37:17",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4244,
+   "who": ""
+  },
+  {
+   "ts": "19:37:33",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5421,
+   "who": ""
+  },
+  {
+   "ts": "19:37:39",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4628,
+   "who": ""
+  },
+  {
+   "ts": "19:37:54",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4964,
+   "who": ""
+  },
+  {
+   "ts": "19:37:58",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3985,
+   "who": ""
+  },
+  {
+   "ts": "19:38:13",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5137,
+   "who": ""
+  },
+  {
+   "ts": "19:38:18",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4007,
+   "who": ""
+  },
+  {
+   "ts": "19:38:33",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5119,
+   "who": ""
+  },
+  {
+   "ts": "19:38:38",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3993,
+   "who": ""
+  },
+  {
+   "ts": "19:38:53",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5296,
+   "who": ""
+  },
+  {
+   "ts": "19:39:05",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 6882,
+   "who": ""
+  },
+  {
+   "ts": "19:39:10",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4198,
+   "who": ""
+  },
+  {
+   "ts": "19:39:25",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5310,
+   "who": ""
+  },
+  {
+   "ts": "19:39:34",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4451,
+   "who": ""
+  },
+  {
+   "ts": "19:39:49",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5218,
+   "who": ""
+  },
+  {
+   "ts": "19:39:55",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4149,
+   "who": ""
+  },
+  {
+   "ts": "19:40:07",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 6635,
+   "who": ""
+  },
+  {
+   "ts": "19:40:23",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5396,
+   "who": ""
+  },
+  {
+   "ts": "19:40:29",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4219,
+   "who": ""
+  },
+  {
+   "ts": "19:40:43",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4981,
+   "who": ""
+  },
+  {
+   "ts": "19:40:49",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3848,
+   "who": ""
+  },
+  {
+   "ts": "19:41:02",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4722,
+   "who": ""
+  },
+  {
+   "ts": "19:41:06",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3707,
+   "who": ""
+  },
+  {
+   "ts": "19:41:20",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5098,
+   "who": ""
+  },
+  {
+   "ts": "19:41:24",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3947,
+   "who": ""
+  },
+  {
+   "ts": "19:41:38",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5183,
+   "who": ""
+  },
+  {
+   "ts": "19:41:46",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4109,
+   "who": ""
+  },
+  {
+   "ts": "19:42:00",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5398,
+   "who": ""
+  },
+  {
+   "ts": "19:42:08",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4488,
+   "who": ""
+  },
+  {
+   "ts": "19:42:20",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 6836,
+   "who": ""
+  },
+  {
+   "ts": "19:42:34",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5319,
+   "who": ""
+  },
+  {
+   "ts": "19:42:40",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4456,
+   "who": ""
+  },
+  {
+   "ts": "19:42:55",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5196,
+   "who": ""
+  },
+  {
+   "ts": "19:43:02",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4039,
+   "who": ""
+  },
+  {
+   "ts": "19:43:15",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5128,
+   "who": ""
+  },
+  {
+   "ts": "19:43:23",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4189,
+   "who": ""
+  },
+  {
+   "ts": "19:43:37",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5249,
+   "who": ""
+  },
+  {
+   "ts": "19:43:43",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4213,
+   "who": ""
+  },
+  {
+   "ts": "19:43:56",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4875,
+   "who": ""
+  },
+  {
+   "ts": "19:44:01",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3670,
+   "who": ""
+  },
+  {
+   "ts": "19:44:14",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4916,
+   "who": ""
+  },
+  {
+   "ts": "19:44:19",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3791,
+   "who": ""
+  },
+  {
+   "ts": "19:44:33",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5188,
+   "who": ""
+  },
+  {
+   "ts": "19:44:40",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4208,
+   "who": ""
+  },
+  {
+   "ts": "19:44:54",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5128,
+   "who": ""
+  },
+  {
+   "ts": "19:45:01",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4122,
+   "who": ""
+  },
+  {
+   "ts": "19:45:05",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4271,
+   "who": ""
+  },
+  {
+   "ts": "19:45:21",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5190,
+   "who": ""
+  },
+  {
+   "ts": "19:45:28",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4288,
+   "who": ""
+  },
+  {
+   "ts": "19:45:45",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5507,
+   "who": ""
+  },
+  {
+   "ts": "19:45:50",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4368,
+   "who": ""
+  },
+  {
+   "ts": "19:46:04",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4948,
+   "who": ""
+  },
+  {
+   "ts": "19:46:13",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3844,
+   "who": ""
+  },
+  {
+   "ts": "19:46:28",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5345,
+   "who": ""
+  },
+  {
+   "ts": "19:46:37",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4507,
+   "who": ""
+  },
+  {
+   "ts": "19:46:48",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 6826,
+   "who": ""
+  },
+  {
+   "ts": "19:47:03",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5388,
+   "who": ""
+  },
+  {
+   "ts": "19:47:08",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4304,
+   "who": ""
+  },
+  {
+   "ts": "19:47:22",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5338,
+   "who": ""
+  },
+  {
+   "ts": "19:47:27",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4209,
+   "who": ""
+  },
+  {
+   "ts": "19:47:40",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5038,
+   "who": ""
+  },
+  {
+   "ts": "19:47:45",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3926,
+   "who": ""
+  },
+  {
+   "ts": "19:47:59",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5340,
+   "who": ""
+  },
+  {
+   "ts": "19:48:04",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4247,
+   "who": ""
+  },
+  {
+   "ts": "19:48:18",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5148,
+   "who": ""
+  },
+  {
+   "ts": "19:48:23",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4019,
+   "who": ""
+  },
+  {
+   "ts": "19:48:36",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5275,
+   "who": ""
+  },
+  {
+   "ts": "19:48:41",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4106,
+   "who": ""
+  },
+  {
+   "ts": "19:48:55",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5224,
+   "who": ""
+  },
+  {
+   "ts": "19:48:59",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4263,
+   "who": ""
+  },
+  {
+   "ts": "19:49:14",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5146,
+   "who": ""
+  },
+  {
+   "ts": "19:49:20",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4078,
+   "who": ""
+  },
+  {
+   "ts": "19:49:32",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 6547,
+   "who": ""
+  },
+  {
+   "ts": "19:49:47",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5162,
+   "who": ""
+  },
+  {
+   "ts": "19:49:52",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4251,
+   "who": ""
+  },
+  {
+   "ts": "19:50:08",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5622,
+   "who": ""
+  },
+  {
+   "ts": "19:50:14",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4603,
+   "who": ""
+  },
+  {
+   "ts": "19:50:28",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5284,
+   "who": ""
+  },
+  {
+   "ts": "19:50:33",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4174,
+   "who": ""
+  },
+  {
+   "ts": "19:50:47",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5424,
+   "who": ""
+  },
+  {
+   "ts": "19:50:54",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4468,
+   "who": ""
+  },
+  {
+   "ts": "19:51:10",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5140,
+   "who": ""
+  },
+  {
+   "ts": "19:51:14",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3991,
+   "who": ""
+  },
+  {
+   "ts": "19:51:28",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5333,
+   "who": ""
+  },
+  {
+   "ts": "19:51:33",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4229,
+   "who": ""
+  },
+  {
+   "ts": "19:51:47",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5438,
+   "who": ""
+  },
+  {
+   "ts": "19:51:53",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4468,
+   "who": ""
+  },
+  {
+   "ts": "19:52:08",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5390,
+   "who": ""
+  },
+  {
+   "ts": "19:52:14",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4374,
+   "who": ""
+  },
+  {
+   "ts": "19:52:28",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5245,
+   "who": ""
+  },
+  {
+   "ts": "19:52:32",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4119,
+   "who": ""
+  },
+  {
+   "ts": "19:52:46",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5073,
+   "who": ""
+  },
+  {
+   "ts": "19:52:50",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3917,
+   "who": ""
+  },
+  {
+   "ts": "19:53:04",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5264,
+   "who": ""
+  },
+  {
+   "ts": "19:53:10",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4197,
+   "who": ""
+  },
+  {
+   "ts": "19:53:23",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4790,
+   "who": ""
+  },
+  {
+   "ts": "19:53:27",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3611,
+   "who": ""
+  },
+  {
+   "ts": "19:53:42",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5493,
+   "who": ""
+  },
+  {
+   "ts": "19:53:47",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4462,
+   "who": ""
+  },
+  {
+   "ts": "19:54:03",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5080,
+   "who": ""
+  },
+  {
+   "ts": "19:54:08",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4150,
+   "who": ""
+  },
+  {
+   "ts": "19:54:22",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5065,
+   "who": ""
+  },
+  {
+   "ts": "19:54:26",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 3903,
+   "who": ""
+  },
+  {
+   "ts": "19:54:40",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5304,
+   "who": ""
+  },
+  {
+   "ts": "19:54:44",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4163,
+   "who": ""
+  },
+  {
+   "ts": "19:54:58",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 5218,
+   "who": ""
+  },
+  {
+   "ts": "19:55:05",
+   "model": "z-ai/glm-5.3-flash",
+   "tokens": 4204,
+   "who": ""
+  },
+  {
+   "ts": "20:09:33",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3631,
+   "who": ""
+  },
+  {
+   "ts": "20:09:42",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3462,
+   "who": ""
+  },
+  {
+   "ts": "20:09:50",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3362,
+   "who": ""
+  },
+  {
+   "ts": "20:09:57",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3589,
+   "who": ""
+  },
+  {
+   "ts": "20:10:11",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3813,
+   "who": ""
+  },
+  {
+   "ts": "20:10:19",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3615,
+   "who": ""
+  },
+  {
+   "ts": "20:10:25",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3404,
+   "who": ""
+  },
+  {
+   "ts": "20:10:32",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3361,
+   "who": ""
+  },
+  {
+   "ts": "20:10:40",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3426,
+   "who": ""
+  },
+  {
+   "ts": "20:10:53",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3373,
+   "who": ""
+  },
+  {
+   "ts": "20:11:00",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3463,
+   "who": ""
+  },
+  {
+   "ts": "20:11:06",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3247,
+   "who": ""
+  },
+  {
+   "ts": "20:11:12",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3192,
+   "who": ""
+  }
+ ]
+}
