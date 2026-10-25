@@ -15,7 +15,7 @@
 
 Файлы: [docker-compose.prod.yml](../docker-compose.prod.yml) (что запускать), [deploy/Caddyfile](../deploy/Caddyfile) (настройки Caddy), `.env` (настройки и секреты, создаёте на сервере сами).
 
-> Что в какой файл в `deploy/` — в [deploy/README.md](../deploy/README.md).
+> Что в какой файл в `deploy/` — в [deploy/README.md](../deploy/README.md). Нет своего сервера — там же раздел «Бесплатно на Render» (`render.yaml`).
 
 ## 0. Что нужно заранее
 

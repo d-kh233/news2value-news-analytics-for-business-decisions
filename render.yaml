@@ -1,0 +1,81 @@
+# Бесплатный деплой на Render (render.com) — Blueprint: New → Blueprint → репозиторий, ветка main.
+# Пошагово — deploy/README.md, раздел «Бесплатно на Render».
+#
+# Бесплатный тариф Render: веб-сервис, PostgreSQL (живёт 30 дней) и статический сайт. Фонового worker
+# и консоли на нём нет, поэтому в одном контейнере API при старте:
+#   миграции → в фоне: демо-данные (seed_demo, повторный запуск дублей не создаёт) → worker; API — сразу.
+# Сервис засыпает после 15 минут без запросов и просыпается примерно за минуту.
+# Ответы модели — из записанного кэша (LLM_MODE=replay), ключ модели на Render не нужен.
+#
+# Адреса ниже — по именам сервисов. Если Render выдал адрес с суффиксом (имя занято),
+# поправьте FRONTEND_ORIGIN у API и VITE_API_BASE_URL у интерфейса и пересоберите оба.
+databases:
+  - name: news2value-db
+    plan: free
+    region: frankfurt
+    databaseName: news2value
+    user: news2value
+
+services:
+  - type: web
+    name: news2value-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    dockerCommand: "sh -c 'alembic upgrade head || exit 1; (python scripts/seed_demo.py --source synthetic; exec python -m app.worker) & exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}'"
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: news2value-db
+          property: connectionString
+      - key: FRONTEND_ORIGIN
+        value: https://news2value-web.onrender.com
+      # вход включён: эксперт входит тестовым пользователем (README, «Тестовые учётные записи»)
+      - key: AUTH_ENABLED
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      # пароль тестовых пользователей, не короче 8 символов — Render спросит при создании
+      - key: DEMO_USER_PASSWORD
+        sync: false
+      - key: ML_MODE
+        value: real
+      - key: NEWS_SOURCE
+        value: db
+      - key: USE_MOCKS
+        value: "false"
+      # те же настройки, с которыми записан кэш ответов модели (.env.example) — иначе карточки по шаблонам
+      - key: LLM_MODE
+        value: replay
+      - key: AGENT_TODAY
+        value: "2026-10-25"
+      - key: LLM_USE_SMART
+        value: "1"
+      - key: LLM_USE_CRITIC
+        value: "1"
+      - key: LOG_LEVEL
+        value: INFO
+
+  - type: web
+    name: news2value-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: VITE_USE_MOCKS
+        value: "false"
+      - key: VITE_API_BASE_URL
+        value: https://news2value-api.onrender.com
+      - key: VITE_DEMO_COMPANY_IDS
+        value: U_67064,U_19717,U_16346
+    routes:
+      # маршруты React (/analytics/...) открываются по прямой ссылке
+      - type: rewrite
+        source: /*
+        destination: /index.html
