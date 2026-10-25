@@ -35,7 +35,7 @@ class Settings:
     llm_use_critic: bool = True         # второй вызов проверяет карточку (+1–2 вызова на карточку); в stub не работает
     llm_cache_dir: str = str(REPO_ROOT / "replay_cache" / "llm")  # коммитим: нужен жюри для replay
     llm_daily_budget_rub: float = 500.0
-    llm_price_rub_per_1k_tokens: float = 0.5   # оценка, уточнить по прайсу ключа
+    llm_price_rub_per_1k_tokens: float = 0.025  # по факту 25.10: 23 ₽ по ключу при оценке 491 ₽ с ценой 0.5
     llm_timeout_s: float = 90.0
 
     # Агент
