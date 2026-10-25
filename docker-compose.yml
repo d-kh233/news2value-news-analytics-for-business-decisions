@@ -27,6 +27,9 @@ services:
     image: news2value-backend:local
     restart: unless-stopped
     env_file: .env
+    environment:
+      # запасной режим демо: инсайты, дайджест, ask и feedback из data/mocks (см. .env.example)
+      USE_MOCKS: ${USE_MOCKS:-false}
     depends_on:
       db:
         condition: service_healthy
