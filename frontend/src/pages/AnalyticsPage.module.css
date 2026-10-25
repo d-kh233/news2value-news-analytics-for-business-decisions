@@ -88,6 +88,11 @@
   color: var(--text-muted);
 }
 
+.emptyTitle {
+  color: var(--text);
+  font-weight: 700;
+}
+
 .resetButton {
   min-height: 40px;
   padding: 8px 16px;

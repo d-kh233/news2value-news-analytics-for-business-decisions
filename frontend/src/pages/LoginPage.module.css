@@ -1,0 +1,132 @@
+.page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px 16px;
+  background:
+    radial-gradient(80% 60% at 50% 0%, rgba(239, 49, 36, 0.18) 0%, rgba(239, 49, 36, 0) 70%),
+    var(--bg);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 420px;
+  padding: 28px;
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.accent {
+  color: var(--accent);
+}
+
+.caption {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.field input {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-weight: 400;
+}
+
+.error {
+  padding: 10px 12px;
+  border-radius: var(--radius-s);
+  background: var(--impact-high-bg);
+  color: var(--impact-high);
+  font-size: 14px;
+}
+
+.submit {
+  min-height: 48px;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--accent-strong);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submit:disabled {
+  opacity: 0.75;
+  cursor: progress;
+}
+
+.demo {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.demoTitle {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.demoList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.demoButton {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.demoButton:hover {
+  background: var(--surface-raised);
+}
+
+.demoEmail {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.demoLabel {
+  font-size: 12px;
+  color: var(--text-muted);
+}

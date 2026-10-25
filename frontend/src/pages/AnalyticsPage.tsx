@@ -6,7 +6,7 @@ import { InsightCard } from '../components/feed/InsightCard';
 import { RefreshAgentButton } from '../components/feed/RefreshAgentButton';
 import { useCurrentCompany } from '../state/CurrentCompany';
 import { applyFilters, defaultFilters, type FeedFilters, type SortOrder } from '../utils/filters';
-import { pluralEvents } from '../utils/format';
+import { formatRevenue, pluralEvents } from '../utils/format';
 import styles from './AnalyticsPage.module.css';
 
 /** Лента персонализированной аналитики выбранной компании. */
@@ -30,12 +30,11 @@ export function AnalyticsPage() {
           <h1 className={styles.title}>Персонализированная новостная аналитика</h1>
           {company && (
             <p className={styles.subtitle}>
-              {company.name} · {company.industry} · {company.region} · выручка{' '}
-              {company.revenue_bln_rub.toLocaleString('ru-RU')} млрд ₽
+              {[company.name, company.industry, company.region, formatRevenue(company)].filter(Boolean).join(' · ')}
             </p>
           )}
         </div>
-        <RefreshAgentButton />
+        <RefreshAgentButton runningJobId={state.status === 'success' ? state.data.refresh_job_id : null} />
       </header>
 
       <div className={styles.layout}>
@@ -66,6 +65,16 @@ export function AnalyticsPage() {
             <p className={styles.message} role="status">
               Загружаем события…
             </p>
+          ) : insights.length === 0 ? (
+            <div className={styles.message} role="status">
+              <p className={styles.emptyTitle}>
+                {state.data.hint ?? 'Для этой компании пока нет событий.'}
+              </p>
+              <p>
+                Нажмите «Обновить анализ» вверху — AI-агент найдёт свежие новости, отберёт важные для компании
+                и подготовит разбор каждой.
+              </p>
+            </div>
           ) : visible.length === 0 ? (
             <div className={styles.message}>
               <p>Под выбранные фильтры событий нет.</p>

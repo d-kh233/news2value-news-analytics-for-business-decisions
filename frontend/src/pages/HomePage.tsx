@@ -2,6 +2,7 @@ import { getAccounts, getCompanyProfile, getCurrentUser, listInsights } from '..
 import { useAsync } from '../api/useAsync';
 import { AccountsWidget, QuickActions } from '../components/home/AccountsWidget';
 import { InsightsEntryCard } from '../components/home/InsightsEntryCard';
+import { useAuth } from '../state/Auth';
 import { useCurrentCompany } from '../state/CurrentCompany';
 import type { Company } from '../types';
 import { formatToday } from '../utils/format';
@@ -20,6 +21,7 @@ async function loadHome(company: Company) {
 
 export function HomePage() {
   const { company, error: companiesError, insightsVersion } = useCurrentCompany();
+  const auth = useAuth();
   const state = useAsync(
     () => (company ? loadHome(company) : new Promise<never>(() => {})),
     [company?.id, insightsVersion],
@@ -43,13 +45,14 @@ export function HomePage() {
   }
 
   const { user, accounts, profile, insights } = state.data;
-  const firstName = user.name.split(' ')[0];
+  // При включённом входе имени пользователя в API нет — здороваемся без имени
+  const greeting = auth.user.auth_enabled ? 'Добрый день' : `Добрый день, ${user.name.split(' ')[0]}`;
 
   return (
     <div className={styles.page}>
       <header className={styles.greeting}>
         <p className={styles.date}>{formatToday()}</p>
-        <h1 className={styles.title}>Добрый день, {firstName}</h1>
+        <h1 className={styles.title}>{greeting}</h1>
       </header>
 
       <InsightsEntryCard

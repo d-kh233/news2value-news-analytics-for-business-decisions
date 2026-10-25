@@ -1,8 +1,11 @@
-import type { ReactNode } from 'react';
-import type { Statement } from '../../types';
+import { createContext, useContext, type ReactNode } from 'react';
+import type { Source, Statement } from '../../types';
 import { asSentence, sourceIdLabel } from '../../utils/labels';
 import { OriginChip } from '../ui/Tags';
 import styles from './Blocks.module.css';
+
+/** Источники текущей карточки — чтобы по id (N:doc-12, A:…) показать заголовок документа. */
+export const InsightSourcesContext = createContext<Source[]>([]);
 
 /** Пронумерованный блок карточки события (01–06). */
 export function Block({
@@ -30,7 +33,15 @@ export function Block({
 
 /** Ссылки утверждения на признаки компании и документы — короткими метками. */
 export function SourceRefs({ ids }: { ids: string[] }) {
-  const labels = [...new Set(ids.map(sourceIdLabel))];
+  const sources = useContext(InsightSourcesContext);
+  const labels = [
+    ...new Set(
+      ids.map((id) => {
+        const source = sources.find((s) => s.id === id);
+        return source ? `«${source.title}»` : sourceIdLabel(id);
+      }),
+    ),
+  ];
   if (labels.length === 0) return null;
   return (
     <p className={styles.refs}>

@@ -1,19 +1,40 @@
 import { Link } from 'react-router';
+import { getCurrentUser } from '../../api/client';
+import { useAsync } from '../../api/useAsync';
+import { useAuth } from '../../state/Auth';
 import { useCurrentCompany } from '../../state/CurrentCompany';
-import type { UserProfile } from '../../types';
+import type { UserRole } from '../../types';
 import { AlfaLogo } from '../ui/AlfaLogo';
 import styles from './AppHeader.module.css';
 
+const userRoleLabel: Record<UserRole, string> = {
+  owner: 'Собственник',
+  ceo: 'Генеральный директор',
+  cfo: 'Финансовый директор',
+  treasurer: 'Казначейство',
+  admin: 'Администратор',
+};
+
 function initials(name: string): string {
   return name
-    .split(' ')
-    .map((part) => part[0])
+    .split(/[\s.@]+/)
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase())
     .slice(0, 2)
     .join('');
 }
 
-export function AppHeader({ user }: { user?: UserProfile }) {
+export function AppHeader() {
   const { companies, company, selectCompany } = useCurrentCompany();
+  const { user, logout } = useAuth();
+  const demoProfile = useAsync(getCurrentUser, []);
+
+  // Вход включён — показываем того, кто вошёл; выключен — демо-пользователя интернет-банка
+  const person = user.auth_enabled
+    ? { name: user.email ?? user.id, role: user.role ? userRoleLabel[user.role] : '' }
+    : demoProfile.status === 'success'
+      ? { name: demoProfile.data.name, role: demoProfile.data.role }
+      : null;
 
   return (
     <header className={styles.header}>
@@ -31,29 +52,38 @@ export function AppHeader({ user }: { user?: UserProfile }) {
         {company && (
           <label className={styles.company}>
             <span className={styles.label}>Компания</span>
-            <select
-              className={styles.select}
-              aria-label="Компания-клиент"
-              value={company.id}
-              onChange={(event) => selectCompany(event.target.value)}
-            >
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            {companies.length > 1 ? (
+              <select
+                className={styles.select}
+                aria-label="Компания-клиент"
+                value={company.id}
+                onChange={(event) => selectCompany(event.target.value)}
+              >
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className={styles.value}>{company.name}</span>
+            )}
           </label>
         )}
-        {user && (
+        {person && (
           <div className={styles.user}>
             <span className={styles.avatar} aria-hidden="true">
-              {initials(user.name)}
+              {initials(person.name)}
             </span>
             <span className={styles.userText}>
-              <span className={styles.value}>{user.name}</span>
-              <span className={styles.label}>{user.role}</span>
+              <span className={styles.value}>{person.name}</span>
+              <span className={styles.label}>{person.role}</span>
             </span>
+            {user.auth_enabled && (
+              <button type="button" className={styles.logout} onClick={logout}>
+                Выйти
+              </button>
+            )}
           </div>
         )}
       </div>

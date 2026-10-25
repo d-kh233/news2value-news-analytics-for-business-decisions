@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import { listCompanies } from '../api/client';
+import { DEMO_COMPANY_IDS, USE_MOCKS, getCompany, listCompanies } from '../api/client';
 import { useAsync } from '../api/useAsync';
-import type { Company } from '../types';
+import type { Company, UserInfo } from '../types';
+import { useAuth } from './Auth';
 
 // Выбранная компания-клиент. Нужна на всех экранах: главная, лента, карточка события.
 
@@ -14,7 +15,7 @@ interface CurrentCompanyValue {
   /** Растёт после каждого обновления инсайтов агентом — экраны перезагружают данные. */
   insightsVersion: number;
   notifyInsightsChanged: () => void;
-  /** id последней задачи агента по компании — для панели трассировки. */
+  /** id последней задачи агента по компании. */
   lastRunJobId: string | null;
   setLastRunJobId: (companyId: string, jobId: string) => void;
 }
@@ -31,13 +32,29 @@ function readSavedId(): string | null {
   }
 }
 
+/**
+ * Какие компании показывать в переключателе.
+ * Обычный пользователь видит только свою компанию (сервер сам ограничивает GET /companies).
+ * Администратору (и при выключенном входе) показываем демо-компании с готовыми инсайтами:
+ * в данных банка тысячи компаний без названий, листать их в демо незачем.
+ */
+async function loadCompanies(user: UserInfo): Promise<Company[]> {
+  if (USE_MOCKS || !user.is_admin) {
+    return (await listCompanies(100, 0)).items;
+  }
+  const demo = await Promise.all(DEMO_COMPANY_IDS.map((id) => getCompany(id).catch(() => null)));
+  const found = demo.filter((c): c is Company => c !== null);
+  return found.length > 0 ? found : (await listCompanies(20, 0)).items;
+}
+
 export function CurrentCompanyProvider({ children }: { children: ReactNode }) {
-  const state = useAsync(() => listCompanies(100, 0), []);
+  const { user } = useAuth();
+  const state = useAsync(() => loadCompanies(user), [user.id]);
   const [selectedId, setSelectedId] = useState<string | null>(readSavedId);
   const [insightsVersion, setInsightsVersion] = useState(0);
   const [runJobs, setRunJobs] = useState<Record<string, string>>({});
 
-  const companies = state.status === 'success' ? state.data.items : [];
+  const companies = state.status === 'success' ? state.data : [];
   const company = companies.find((c) => c.id === selectedId) ?? companies[0] ?? null;
 
   function selectCompany(companyId: string) {

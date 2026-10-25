@@ -2,6 +2,29 @@
   min-height: 100vh;
 }
 
+.fullscreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 100vh;
+  padding: 24px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.retry {
+  min-height: 44px;
+  padding: 10px 20px;
+  border: 0;
+  border-radius: var(--radius-m);
+  background: var(--accent-strong);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .skipLink {
   position: absolute;
   left: 16px;

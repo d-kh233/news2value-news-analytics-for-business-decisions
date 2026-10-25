@@ -1,4 +1,14 @@
-import type { Account } from '../types';
+import type { Account, Company } from '../types';
+
+/**
+ * Выручка для подписи. У компаний из данных банка единицы не подтверждены (контракт API),
+ * поэтому «млрд ₽» пишем только для введённых вручную и моковых компаний.
+ */
+export function formatRevenue(company: Pick<Company, 'revenue_bln_rub' | 'revenue_known' | 'source'>): string {
+  if (company.revenue_known === false) return 'выручка: нет данных';
+  const value = company.revenue_bln_rub.toLocaleString('ru-RU');
+  return company.source === 'bank' ? `выручка ${value} (по данным банка)` : `выручка ${value} млрд ₽`;
+}
 
 const currencySymbol: Record<Account['currency'], string> = {
   RUB: '₽',

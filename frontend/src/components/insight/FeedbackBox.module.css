@@ -39,6 +39,40 @@
   background: var(--accent-soft);
 }
 
+.reasons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex-basis: 100%;
+}
+
+.reasonsLabel {
+  margin-right: 4px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.reason {
+  min-height: 34px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.reason:hover {
+  background: var(--surface-raised);
+}
+
+.reason[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .note {
   flex-basis: 100%;
   font-size: 14px;

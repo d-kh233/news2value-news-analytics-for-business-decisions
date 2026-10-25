@@ -1,6 +1,11 @@
 import { Link } from 'react-router';
 import type { Company, CompanyProfile, Insight } from '../../types';
-import { formatDate, pluralEvents } from '../../utils/format';
+import { formatDate, formatRevenue, pluralEvents } from '../../utils/format';
+
+/** «КИТАЙ» → «Китай» (страны ВЭД в данных банка записаны заглавными). */
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+}
 import { impactLevel, insightOrigins } from '../../utils/insight';
 import { whyItMattersText } from '../../utils/labels';
 import { Icon } from '../ui/Icon';
@@ -16,11 +21,12 @@ interface Props {
 
 /** Главная точка входа в сервис на главном экране Альфа-Бизнеса (критерий 09). */
 export function InsightsEntryCard({ company, profile, topInsights, total }: Props) {
+  const countries = profile.foreign_trade_countries ?? [];
   const profileFacts = [
     company.industry,
-    `выручка ${company.revenue_bln_rub.toLocaleString('ru-RU')} млрд ₽`,
+    formatRevenue(company),
     ...profile.bank_products.slice(0, 2),
-    profile.currency_risks[0],
+    countries.length > 0 ? `ВЭД: ${countries.slice(0, 2).map(capitalize).join(', ')}` : profile.currency_risks[0],
   ].filter(Boolean);
 
   return (
@@ -31,7 +37,9 @@ export function InsightsEntryCard({ company, profile, topInsights, total }: Prop
           Новостная аналитика · AI + эксперты Альфа-Банка
         </p>
         <h2 id="insights-title" className={styles.title}>
-          {pluralEvents(total)}, которые могут повлиять на ваш бизнес
+          {total > 0
+            ? `${pluralEvents(total)}, которые могут повлиять на ваш бизнес`
+            : 'Узнайте, какие события на рынке повлияют на ваш бизнес'}
         </h2>
         <p className={styles.subtitle}>
           Не пересказ новостей, а объяснение: что это значит именно для вашей компании, какие риски
@@ -66,7 +74,9 @@ export function InsightsEntryCard({ company, profile, topInsights, total }: Prop
           ))}
         </ol>
       ) : (
-        <p className={styles.empty}>Значимых событий для компании пока нет.</p>
+        <p className={styles.empty}>
+          AI-агент ещё не собирал события для компании. Откройте аналитику и нажмите «Обновить анализ».
+        </p>
       )}
 
       <div className={styles.footer}>

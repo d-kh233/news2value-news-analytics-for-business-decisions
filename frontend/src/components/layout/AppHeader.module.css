@@ -91,6 +91,23 @@
   gap: 10px;
 }
 
+.logout {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logout:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
 .avatar {
   display: grid;
   place-items: center;

@@ -22,7 +22,20 @@ export interface Company {
   name: string;
   industry: string;
   region: string;
+  /** Единицы у компаний банка не подтверждены — не подписывать «млрд ₽» (см. formatRevenue). */
   revenue_bln_rub: number;
+  /** false — выручка неизвестна, revenue_bln_rub = 0 — заглушка. */
+  revenue_known?: boolean;
+  /** bank — из данных банка, manual — создана через API. */
+  source?: 'bank' | 'manual';
+}
+
+export interface Counterparty {
+  company_id: string;
+  name: string;
+  industry: string;
+  amount: number | null;
+  is_known: boolean;
 }
 
 export interface CompanyProfile {
@@ -37,6 +50,20 @@ export interface CompanyProfile {
   strategic_goals: string[];
   bank_products: string[];
   manual_data: Record<string, unknown>;
+  // Поля из данных банка (B3). В старых моках их нет — все необязательные.
+  name?: string;
+  okved_code?: string;
+  city?: string;
+  revenue_bln_rub?: number;
+  revenue_known?: boolean;
+  employees?: string;
+  foreign_trade?: boolean | null;
+  foreign_trade_countries?: string[];
+  group_id?: string;
+  group_size?: number;
+  top_buyers?: Counterparty[];
+  top_suppliers?: Counterparty[];
+  field_sources?: Record<string, 'auto' | 'manual'>;
 }
 
 export type InsightType = 'risk' | 'opportunity' | 'event';
@@ -45,6 +72,8 @@ export type InsightType = 'risk' | 'opportunity' | 'event';
 export type SourceKind = 'external' | 'bank_analytics';
 
 export interface Source {
+  /** N:doc-<номер> — новость из базы, A:<док>:<фрагмент> — тезис банка. Есть не у всех источников. */
+  id?: string | null;
   title: string;
   url: string;
   published_at: string; // ISO в UTC с «Z»
@@ -164,12 +193,83 @@ export interface AgentRun {
 }
 
 export type FeedbackRating = 'useful' | 'not_useful';
+export type FeedbackReason = 'inaccurate' | 'irrelevant' | 'unclear' | 'other';
 
 export interface Feedback {
   insight_id: string;
   rating: FeedbackRating;
   comment: string | null;
   created_at: string;
+  reason?: FeedbackReason | null;
+  updated_at?: string | null;
+}
+
+// ---------- Вопросы по инсайту (B7b) ----------
+
+export interface AskAccepted extends JobAccepted {
+  question_id: string;
+}
+
+export interface Question {
+  id: string;
+  insight_id: string;
+  question: string;
+  answer: string | null;
+  sources: Source[];
+  status: Job['status'];
+  job_id: string | null;
+  created_at: string;
+}
+
+// ---------- Трассировка инсайта (GET /insights/{id}/trace, B8+B9) ----------
+
+export interface TraceSource extends Source {
+  document_id?: number | null;
+  source_name?: string | null;
+}
+
+export interface InsightTrace {
+  insight_id: string;
+  company_id: string;
+  run_id: number | string | null;
+  generator_run_id: string | null;
+  run_status: 'running' | 'done' | 'empty' | 'failed' | null;
+  role: string | null;
+  llm_mode: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  duration_ms: number | null;
+  steps: Partial<TraceStep>[];
+  sources: TraceSource[];
+  used_profile_fields: string[] | null;
+  prompt_version: string | null;
+  generated_by: 'llm' | 'rules' | 'fake' | null;
+}
+
+// ---------- Вход и права (B8+B9) ----------
+
+export type UserRole = 'owner' | 'ceo' | 'cfo' | 'treasurer' | 'admin';
+
+export interface UserInfo {
+  id: string;
+  email: string | null;
+  role: UserRole | null;
+  company_id: string | null;
+  is_admin: boolean;
+  auth_enabled: boolean;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: 'bearer';
+  expires_in: number;
+  user: UserInfo;
+}
+
+/** Лента инсайтов: страница + подсказка для пустой ленты и id идущего обновления. */
+export interface InsightPage extends Page<Insight> {
+  hint?: string | null;
+  refresh_job_id?: string | null;
 }
 
 export type InsightsQuery = {
