@@ -8,7 +8,18 @@ id компаний, которых нет в companies (внешние конт
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, DateTime, Index, Integer, Text, UniqueConstraint, func
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    true,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,9 +27,14 @@ from app.models.base import Base
 
 
 class Company(Base):
-    """Юрлицо (df_Uid_data_hack.csv). Названия колонок — как в CSV, в нижнем регистре."""
+    """Юрлицо (df_Uid_data_hack.csv). Названия колонок — как в CSV, в нижнем регистре.
+
+    source: 'bank' — строка из CSV банка (её синхронизирует load_csv.py),
+    'manual' — компания создана через POST /companies (load_csv.py её не трогает).
+    """
 
     __tablename__ = "companies"
+    __table_args__ = (CheckConstraint("source IN ('bank', 'manual')", name="ck_companies_source"),)
 
     synthetic_u: Mapped[str] = mapped_column(Text, primary_key=True)
     org_type: Mapped[str | None] = mapped_column(Text)
@@ -47,6 +63,9 @@ class Company(Base):
     group_id: Mapped[str | None] = mapped_column(Text, index=True)
     city: Mapped[str | None] = mapped_column(Text)
     region: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(10), server_default="bank")
+    # false — в CSV выручка пустая или не число: revenue_company = NULL, это не настоящий ноль
+    revenue_known: Mapped[bool] = mapped_column(server_default=true())
 
 
 class Person(Base):

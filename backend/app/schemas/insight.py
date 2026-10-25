@@ -2,7 +2,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.common import UtcDatetime
+from app.schemas.common import Page, UtcDatetime
 
 InsightType = Literal["risk", "opportunity", "event"]
 SourceKind = Literal["external", "bank_analytics"]
@@ -11,6 +11,8 @@ Role = Literal["owner", "ceo", "cfo", "treasurer", "accountant", "procurement"]
 
 
 class Source(BaseModel):
+    # N:<id> — новость, A:<док>:<фрагмент> — аналитика банка; на него ссылаются source_ids в details
+    id: str | None = None
     title: str
     url: str
     published_at: UtcDatetime
@@ -36,3 +38,14 @@ class Insight(BaseModel):
     role: Role | None = None
     generated_by: Literal["llm", "rules"] | None = None
     prompt_version: str | None = None
+
+
+class InsightPage(Page[Insight]):
+    """Лента инсайтов: обычная страница списка + подсказка для пустого состояния (B7).
+
+    hint — текст для пустой ленты (у компании ещё нет инсайтов); refresh_job_id — задача refresh,
+    которая сейчас выполняется (статус — GET /jobs/{id}). Оба поля необязательные.
+    """
+
+    hint: str | None = None
+    refresh_job_id: str | None = None

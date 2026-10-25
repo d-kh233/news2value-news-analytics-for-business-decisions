@@ -1,32 +1,43 @@
-"""Обновление инсайтов агентом: POST /companies/{id}/insights/refresh (агент в режиме stub)."""
+"""Обновление инсайтов агентом через задачу: POST .../refresh → worker → таблица insights.
+
+Агент в режиме LLM_MODE=stub на моковых новостях (NEWS_SOURCE=mock), компания — из БД.
+Лента GET .../insights до B7 читает моки, поэтому карточки проверяются в таблице insights.
+"""
 
 import re
 
+from app import worker
 from app.ml_ports import agent_port
+from app.repositories import insight_repo
 from app.schemas.insight import Insight
 
 UTC_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 BLOCKS = {"what_happened", "why_it_matters", "consequences", "actions", "bank_view"}
+DRINKS = "U_2"
 
 
 def _refresh(client, company_id, **params):
+    """Поставить задачу, выполнить её worker'ом; вернуть job_id и итоговый статус."""
     r = client.post(f"/companies/{company_id}/insights/refresh", params=params)
     assert r.status_code == 202
     job_id = r.json()["job_id"]
+    assert worker.run_once() is True
     return job_id, client.get(f"/jobs/{job_id}").json()
 
 
-def _insights(client, company_id):
-    r = client.get(f"/companies/{company_id}/insights", params={"limit": 100})
-    return r.json()["items"]
+def _saved(company_id: str) -> list[dict]:
+    from app.core.db import get_session
+
+    with get_session() as session:
+        return [row.payload for row in insight_repo.list_for_company(session, company_id)]
 
 
-def test_refresh_replaces_insights_with_agent_cards(client):
-    old_ids = {i["id"] for i in _insights(client, "c-001")}
-    job_id, job = _refresh(client, "c-001", role="cfo")
+def test_refresh_saves_agent_cards(bank_client, modes):
+    modes("real", "mock")
+    job_id, job = _refresh(bank_client, DRINKS, role="cfo")
     assert job["status"] == "done", job
-    items = _insights(client, "c-001")
-    assert items and not ({i["id"] for i in items} & old_ids)
+    items = _saved(DRINKS)
+    assert items
     for item in items:
         insight = Insight.model_validate(item)
         assert insight.role == "cfo" and insight.generated_by in ("llm", "rules")
@@ -34,35 +45,32 @@ def test_refresh_replaces_insights_with_agent_cards(client):
         assert insight.details["agent"]["run_id"]
         assert insight.sources and all(UTC_Z.match(s["published_at"]) for s in item["sources"])
         assert UTC_Z.match(item["created_at"])
-    # карточка открывается по id, панель трассировки получает план и шаги агента
-    assert client.get(f"/insights/{items[0]['id']}").status_code == 200
-    run = client.get(f"/jobs/{job_id}/run").json()
+    # панель трассировки получает план и шаги агента
+    run = bank_client.get(f"/jobs/{job_id}/run").json()
     assert run["role"] == "cfo" and len(run["trace"]) > 3 and run["plan"]
+    assert run["llm_mode"] == "stub" and "calls" in run["llm_usage"]
 
 
-def test_refresh_default_role_is_ceo(client):
-    _, job = _refresh(client, "c-003")
+def test_refresh_default_role_is_ceo(bank_client, modes):
+    modes("real", "mock")
+    _, job = _refresh(bank_client, DRINKS)
     assert job["status"] == "done"
-    assert {i["role"] for i in _insights(client, "c-003")} == {"ceo"}
+    assert {i["role"] for i in _saved(DRINKS)} == {"ceo"}
 
 
-def test_refresh_unknown_role_422(client):
-    r = client.post("/companies/c-001/insights/refresh", params={"role": "intern"})
-    assert r.status_code == 422
-    assert r.json()["error"] == "validation_error"
-
-
-def test_agent_failure_keeps_old_insights(client, monkeypatch):
-    before = _insights(client, "c-002")
+def test_agent_failure_keeps_old_insights(bank_client, modes, monkeypatch):
+    modes("real", "mock")
+    _refresh(bank_client, DRINKS)
+    before = _saved(DRINKS)
 
     def boom(*args, **kwargs):
         raise RuntimeError("модель недоступна")
 
     monkeypatch.setattr(agent_port, "generate_insights", boom)
-    job_id, job = _refresh(client, "c-002")
+    job_id, job = _refresh(bank_client, DRINKS)
     assert job["status"] == "failed" and "модель недоступна" in job["error"]
-    assert _insights(client, "c-002") == before
-    assert client.get(f"/jobs/{job_id}/run").status_code == 404
+    assert _saved(DRINKS) == before
+    assert bank_client.get(f"/jobs/{job_id}/run").status_code == 404
 
 
 def test_mock_insights_have_no_agent_fields(client, insight_id):
@@ -74,8 +82,11 @@ def test_mock_insights_have_no_agent_fields(client, insight_id):
 def test_row_from_profile_reads_manual_data_and_products():
     row = agent_port.row_from_profile(
         {"id": "c-9", "industry": "Логистика", "region": "Москва"},
-        {"bank_products": ["овердрафт", "лизинг"], "currency_risks": ["лизинг техники в евро"],
-         "manual_data": {"MAINOKVED_CODE": "49.41"}},
+        {
+            "bank_products": ["овердрафт", "лизинг"],
+            "currency_risks": ["лизинг техники в евро"],
+            "manual_data": {"MAINOKVED_CODE": "49.41"},
+        },
     )
     assert row["MAINOKVED_CODE"] == "49.41" and row["SYNTHETIC_U"] == "c-9"
     assert row["CL_PRODUCT_LOA_MARK"] == 1 and row["CL_PRODUCT_LEA_MARK"] == 1

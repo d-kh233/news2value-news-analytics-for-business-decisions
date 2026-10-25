@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Тестовая деловая лента</title>
+    <link>https://news.example.com/</link>
+    <description>Выдуманные новости для тестов сбора</description>
+    <item>
+      <title>Банк России сохранил ключевую ставку на уровне 14%</title>
+      <link>https://news.example.com/economy/rate-decision</link>
+      <description>Регулятор оставил ставку без изменений.</description>
+      <category>Экономика</category>
+      <pubDate>Tue, 20 Oct 2026 10:15:00 +0300</pubDate>
+    </item>
+    <item>
+      <title>Рубль ослаб к юаню</title>
+      <link>https://news.example.com/economy/ruble</link>
+      <description><![CDATA[<p>Рубль ослаб на 3% к юаню&nbsp;за неделю. Импортёры отмечают рост цен.</p>]]></description>
+      <pubDate>Mon, 19 Oct 2026 09:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Закрытый материал</title>
+      <link>https://news.example.com/private/insider</link>
+      <description>Описание закрытого материала из ленты.</description>
+      <pubDate>Sun, 18 Oct 2026 12:00:00 +0300</pubDate>
+    </item>
+  </channel>
+</rss>

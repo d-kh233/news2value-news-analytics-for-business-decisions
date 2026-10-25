@@ -7,13 +7,24 @@ def _all(client, company_id) -> list[dict]:
     return r.json()["items"]
 
 
-def test_every_company_has_6_to_8_varied_insights(client):
-    for company in client.get("/companies").json()["items"]:
-        items = _all(client, company["id"])
+MOCK_COMPANIES = ("c-001", "c-002", "c-003")
+
+
+def test_every_mock_company_has_6_to_8_varied_insights(client):
+    for company_id in MOCK_COMPANIES:
+        items = _all(client, company_id)
         assert 6 <= len(items) <= 8
         assert {i["type"] for i in items} == {"risk", "opportunity", "event"}
         assert len({i["importance"] for i in items}) > 3
-        assert all(i["company_id"] == company["id"] for i in items)
+        assert all(i["company_id"] == company_id for i in items)
+
+
+def test_company_from_db_has_empty_feed(bank_client):
+    """Инсайты на моках до B7: у компаний из БД лента пустая (200), а не ошибка."""
+    body = bank_client.get("/companies/U_1/insights").json()
+    assert body["items"] == [] and body["total"] == 0
+    digest = bank_client.get("/companies/U_1/digest", params={"period": "week"})
+    assert digest.status_code == 200 and digest.json()["insight_ids"] == []
 
 
 def test_list_insights_schema(client, company_id):
@@ -63,7 +74,15 @@ def test_filter_dates_nothing_found(client, company_id):
         f"/companies/{company_id}/insights",
         params={"date_from": "2000-01-01", "date_to": "2000-01-02"},
     ).json()
-    assert body == {"items": [], "total": 0, "limit": 20, "offset": 0}
+    # с B7 в ответе ленты ещё hint и refresh_job_id; у моков они всегда null
+    assert body == {
+        "items": [],
+        "total": 0,
+        "limit": 20,
+        "offset": 0,
+        "hint": None,
+        "refresh_job_id": None,
+    }
 
 
 def test_combined_filters(client, company_id):

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.schemas.common import ErrorResponse
-from app.services import mock_store
+from app.services import company_service
 
 UTC_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
@@ -36,7 +36,8 @@ def test_datetimes_are_utc_with_z(client, company_id, insight_id):
         assert UTC_Z.match(value), value
 
 
-def test_error_shape_is_uniform(client):
+def test_error_shape_is_uniform(db_client):
+    client = db_client
     for response in (
         client.get("/companies/nope"),
         client.get("/jobs/nope"),
@@ -57,7 +58,7 @@ def test_unexpected_exception_gives_500_internal_error(monkeypatch, caplog):
     def boom(*args, **kwargs):
         raise RuntimeError("секретная-деталь-сбоя")
 
-    monkeypatch.setattr(mock_store, "list_companies", boom)
+    monkeypatch.setattr(company_service, "list_companies", boom)
     safe_client = TestClient(app, raise_server_exceptions=False)
     with caplog.at_level(logging.ERROR):
         r = safe_client.get("/companies")

@@ -6,7 +6,7 @@ from alembic import context
 from sqlalchemy import create_engine
 
 from app.core.config import get_settings
-from app.core.db import to_sqlalchemy_url
+from app.core.db import outside_docker_url, to_sqlalchemy_url
 from app.models import Base
 
 config = context.config
@@ -19,10 +19,14 @@ target_metadata = Base.metadata
 
 def _url() -> str:
     # sqlalchemy.url задают тесты; иначе — DATABASE_URL из окружения / .env
-    url = config.get_main_option("sqlalchemy.url") or get_settings().database_url
+    url = config.get_main_option("sqlalchemy.url")
+    if url:
+        return to_sqlalchemy_url(url)
+    url = get_settings().database_url
     if not url:
         raise RuntimeError("DATABASE_URL не задан")
-    return to_sqlalchemy_url(url)
+    # вне Docker хост db подменяется на 127.0.0.1:POSTGRES_HOST_PORT
+    return outside_docker_url(url)
 
 
 def run_migrations_offline() -> None:

@@ -15,7 +15,8 @@
 - платежи: повторы пары PAYER + BENEFICIARY складываются (сумма и количество).
 
 Таблицы и rejected_rows после загрузки соответствуют последним файлам: строки,
-которых в файле больше нет, удаляются.
+которых в файле больше нет, удаляются. Исключение — компании source='manual'
+(созданы через POST /companies): синхронизация их не обновляет и не удаляет.
 """
 
 import csv
@@ -105,6 +106,7 @@ class FileReport:
     null_counts: dict[str, int] = field(default_factory=dict)  # колонка -> NULL в таблице
     table_rows: int = 0  # строк в таблице после загрузки
     revenue_eq_1000: int | None = None
+    manual_rows: int | None = None  # companies: строк source='manual' (не синхронизируются)
 
     @property
     def balanced(self) -> bool:
@@ -219,6 +221,7 @@ def load_all(
     with engine.begin() as conn:
         comp = _load_file(conn, Path(companies), COMPANIES_SPEC, Company, chunk_size)
         comp.revenue_eq_1000 = repo.count_revenue_equal(conn, SUSPICIOUS_REVENUE)
+        comp.manual_rows = repo.count_companies_by_source(conn, "manual")
 
         link = _load_file(conn, Path(links), LINKS_SPEC, PersonCompanyLink, chunk_size)
         link.unknown = {"synthetic_u": repo.unknown_link_companies(conn)}
@@ -258,6 +261,11 @@ def _file_section(r: FileReport) -> list[str]:
             lines.append(f"    ... и ещё {len(r.merged_pairs) - MAX_PAIRS_IN_REPORT}")
     lines.append(f"  проверка: прочитано = загружено + отклонено + сложено -> {status}")
     lines.append(f"  строк в таблице:     {r.table_rows}")
+    if r.manual_rows is not None:
+        lines.append(
+            f"  из них source='manual': {r.manual_rows} "
+            "(созданы через API, синхронизацией не затронуты)"
+        )
     for col, n in r.unknown.items():
         lines.append(f"  неизвестная компания ({col}): {n}")
     if r.revenue_eq_1000 is not None:

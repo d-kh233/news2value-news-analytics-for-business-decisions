@@ -26,13 +26,118 @@
         }
       }
     },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "description": "Вход: токен для заголовка Authorization: Bearer <access_token>.\n\nРаботает и при AUTH_ENABLED=false (токен тогда просто не проверяется).",
+        "operationId": "login_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Неверный email или пароль",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "На сервере не задан JWT_SECRET",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Me",
+        "description": "Кто я: роль и компания. При AUTH_ENABLED=false — пользователь demo (admin).",
+        "operationId": "me_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfo"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/companies": {
       "get": {
         "tags": [
           "companies"
         ],
         "summary": "List Companies",
+        "description": "Компании: admin видит все, остальные — только свою.",
         "operationId": "list_companies_companies_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "limit",
@@ -60,6 +165,25 @@
               "title": "Offset"
             },
             "description": "Сколько записей пропустить"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Поиск по названию, id или отрасли (без учёта регистра)",
+              "title": "Q"
+            },
+            "description": "Поиск по названию, id или отрасли (без учёта регистра)"
           }
         ],
         "responses": {
@@ -69,6 +193,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Page_Company_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Нужен вход (AUTH_ENABLED=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа к компании",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -90,7 +234,13 @@
           "companies"
         ],
         "summary": "Create Company",
+        "description": "Создать компанию вручную (только admin).",
         "operationId": "create_company_companies_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -108,6 +258,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Нужен вход (AUTH_ENABLED=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа к компании",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -132,6 +302,11 @@
         ],
         "summary": "Get Company",
         "operationId": "get_company_companies__company_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "company_id",
@@ -164,6 +339,26 @@
             },
             "description": "Not Found"
           },
+          "401": {
+            "description": "Нужен вход (AUTH_ENABLED=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа к компании",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -181,7 +376,13 @@
           "companies"
         ],
         "summary": "Delete Company",
+        "description": "Удаляет только компанию, созданную через POST (source=manual); банковскую — 409.\nТолько admin.",
         "operationId": "delete_company_companies__company_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "company_id",
@@ -207,6 +408,36 @@
             },
             "description": "Not Found"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "401": {
+            "description": "Нужен вход (AUTH_ENABLED=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа к компании",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -226,7 +457,13 @@
           "companies"
         ],
         "summary": "Get Profile",
+        "description": "Профиль: данные банка + ручные поля (ручные главнее), источник поля — в field_sources.",
         "operationId": "get_profile_companies__company_id__profile_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "company_id",
@@ -259,6 +496,26 @@
             },
             "description": "Not Found"
           },
+          "401": {
+            "description": "Нужен вход (AUTH_ENABLED=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа к компании",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -276,7 +533,13 @@
           "companies"
         ],
         "summary": "Put Profile",
+        "description": "Поля из тела сохраняются как ручные; остальные ручные поля остаются как были.",
         "operationId": "put_profile_companies__company_id__profile_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "company_id",
@@ -293,7 +556,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CompanyProfile"
+                "$ref": "#/components/schemas/CompanyProfileUpdate"
               }
             }
           }
@@ -319,6 +582,26 @@
             },
             "description": "Not Found"
           },
+          "401": {
+            "description": "Нужен вход (AUTH_ENABLED=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа к компании",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -338,7 +621,13 @@
           "companies"
         ],
         "summary": "List Insights",
+        "description": "Лента: сначала важные, при равной важности — свежие. Пустая лента — 200 с подсказкой hint;\nrefresh_job_id — задача обновления, которая сейчас идёт.",
         "operationId": "list_insights_companies__company_id__insights_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "company_id",
@@ -427,6 +716,25 @@
             "description": "YYYY-MM-DD, включительно"
           },
           {
+            "name": "industry",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Отрасль документа-источника: ОКВЭД (41 или okved:41) или тег (economy)",
+              "title": "Industry"
+            },
+            "description": "Отрасль документа-источника: ОКВЭД (41 или okved:41) или тег (economy)"
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -460,7 +768,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Page_Insight_"
+                  "$ref": "#/components/schemas/InsightPage"
                 }
               }
             }
@@ -474,6 +782,26 @@
               }
             },
             "description": "Not Found"
+          },
+          "401": {
+            "description": "Нужен вход (AUTH_ENABLED=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа к компании",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -494,7 +822,13 @@
           "companies"
         ],
         "summary": "Get Digest",
+        "description": "Самые важные инсайты за сутки или неделю (до 10) и их краткая сводка.",
         "operationId": "get_digest_companies__company_id__digest_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "company_id",
@@ -540,6 +874,26 @@
             },
             "description": "Not Found"
           },
+          "401": {
+            "description": "Нужен вход (AUTH_ENABLED=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа к компании",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -559,7 +913,13 @@
           "companies"
         ],
         "summary": "Refresh Insights",
+        "description": "Поставить задачу агенту: новые инсайты компании заменят старые (выполняет worker).\n\nЕсли у компании уже есть задача pending/running, возвращается её job_id.",
         "operationId": "refresh_insights_companies__company_id__insights_refresh_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "company_id",
@@ -569,6 +929,32 @@
               "type": "string",
               "title": "Company Id"
             }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "owner",
+                    "ceo",
+                    "cfo",
+                    "treasurer",
+                    "accountant",
+                    "procurement"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Роль читателя; по умолчанию роль пользователя, у admin — ceo",
+              "title": "Role"
+            },
+            "description": "Роль читателя; по умолчанию роль пользователя, у admin — ceo"
           }
         ],
         "responses": {
@@ -592,6 +978,26 @@
             },
             "description": "Not Found"
           },
+          "401": {
+            "description": "Нужен вход (AUTH_ENABLED=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа к компании",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -611,7 +1017,13 @@
           "insights"
         ],
         "summary": "Get Insight",
+        "description": "Полная карточка; источники-новости — с данными из собранных документов.",
         "operationId": "get_insight_insights__insight_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "insight_id",
@@ -644,6 +1056,84 @@
             },
             "description": "Not Found"
           },
+          "403": {
+            "description": "Нет доступа к инсайту",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/insights/{insight_id}/trace": {
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "summary": "Get Trace",
+        "description": "Как сделан инсайт: запуск refresh и его шаги со временем, источники, признаки профиля,\nверсия промптов и кто сгенерировал (llm | rules | fake).",
+        "operationId": "get_trace_insights__insight_id__trace_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "insight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Insight Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightTrace"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Нет доступа к инсайту",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -663,7 +1153,13 @@
           "insights"
         ],
         "summary": "Ask",
+        "description": "Вопрос по инсайту (до 500 символов, не больше 20 на инсайт). Ответ готовит фоновая\nзадача: статус — GET /jobs/{job_id}, ответ — GET /jobs/{job_id}/result и история questions.",
         "operationId": "ask_insights__insight_id__ask_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "insight_id",
@@ -691,7 +1187,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobAccepted"
+                  "$ref": "#/components/schemas/AskAccepted"
                 }
               }
             }
@@ -705,6 +1201,121 @@
               }
             },
             "description": "Not Found"
+          },
+          "403": {
+            "description": "Нет доступа к инсайту",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Лимит 20 вопросов к инсайту",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/insights/{insight_id}/questions": {
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "summary": "List Questions",
+        "description": "История вопросов пользователя по инсайту и ответов на них, старые первыми.",
+        "operationId": "list_questions_insights__insight_id__questions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "insight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Insight Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Сколько записей вернуть",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Сколько записей вернуть"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Сколько записей пропустить",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Сколько записей пропустить"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Question_"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Нет доступа к инсайту",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -725,7 +1336,13 @@
           "insights"
         ],
         "summary": "Feedback",
+        "description": "Оценка инсайта: одна на пользователя, повторная обновляет прежнюю (200 вместо 201).",
         "operationId": "feedback_insights__insight_id__feedback_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "insight_id",
@@ -768,6 +1385,16 @@
             },
             "description": "Not Found"
           },
+          "403": {
+            "description": "Нет доступа к инсайту",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Отзыв обновлён",
             "content": {
@@ -789,6 +1416,117 @@
             }
           }
         }
+      },
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "summary": "My Feedback",
+        "description": "Оценка текущего пользователя (подсветить кнопку); null — ещё не оценивал.",
+        "operationId": "my_feedback_insights__insight_id__feedback_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "insight_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Insight Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Feedback"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response My Feedback Insights  Insight Id  Feedback Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Нет доступа к инсайту",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/feedback/stats": {
+      "get": {
+        "tags": [
+          "feedback"
+        ],
+        "summary": "Stats",
+        "description": "Метрики качества по оценкам (только admin): всего, доля useful, причины, типы инсайтов.",
+        "operationId": "stats_feedback_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackStats"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Только для администратора",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/jobs/{job_id}": {
@@ -798,6 +1536,11 @@
         ],
         "summary": "Get Job",
         "operationId": "get_job_jobs__job_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "job_id",
@@ -830,6 +1573,26 @@
             },
             "description": "Not Found"
           },
+          "401": {
+            "description": "Нужен вход (AUTH_ENABLED=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа к компании",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -849,8 +1612,13 @@
           "jobs"
         ],
         "summary": "Get Job Result",
-        "description": "Результат задачи ask. Для refresh-задач результата нет — 404.",
+        "description": "Ответ задачи ask, когда она done. Для refresh-задач и неготовых — 404.",
         "operationId": "get_job_result_jobs__job_id__result_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "job_id",
@@ -883,6 +1651,226 @@
             },
             "description": "Not Found"
           },
+          "401": {
+            "description": "Нужен вход (AUTH_ENABLED=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа к компании",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/run": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Get Job Run",
+        "description": "План и трейс прогона агента по refresh-задаче (для панели трассировки).\n\n404, если задачи нет, она ещё не завершена или это не refresh.",
+        "operationId": "get_job_run_jobs__job_id__run_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Job Run Jobs  Job Id  Run Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Нужен вход (AUTH_ENABLED=true)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Нет доступа к компании",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents": {
+      "get": {
+        "tags": [
+          "internal"
+        ],
+        "summary": "[internal] Собранные документы",
+        "description": "Служебный эндпоинт (только admin): документы из RSS и PDF, сначала свежие. Полный текст\nне отдаётся — только начало (text_preview) и длина. С фильтром по датам документы без даты\nне попадают.",
+        "operationId": "list_documents_documents_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/DocumentKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "YYYY-MM-DD, дата публикации по UTC, включительно",
+              "title": "Date From"
+            },
+            "description": "YYYY-MM-DD, дата публикации по UTC, включительно"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "YYYY-MM-DD, дата публикации по UTC, включительно",
+              "title": "Date To"
+            },
+            "description": "YYYY-MM-DD, дата публикации по UTC, включительно"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Сколько записей вернуть",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Сколько записей вернуть"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Сколько записей пропустить",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Сколько записей пропустить"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Document_"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -899,10 +1887,30 @@
   },
   "components": {
     "schemas": {
+      "AskAccepted": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "question_id"
+        ],
+        "title": "AskAccepted",
+        "description": "Ответ 202 на ask: задача и вопрос (его ответ появится в истории questions)."
+      },
       "AskRequest": {
         "properties": {
           "question": {
             "type": "string",
+            "maxLength": 500,
             "minLength": 1,
             "title": "Question"
           }
@@ -955,6 +1963,20 @@
           "revenue_bln_rub": {
             "type": "number",
             "title": "Revenue Bln Rub"
+          },
+          "revenue_known": {
+            "type": "boolean",
+            "title": "Revenue Known",
+            "default": true
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "bank",
+              "manual"
+            ],
+            "title": "Source",
+            "default": "bank"
           }
         },
         "type": "object",
@@ -1065,6 +2087,89 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Manual Data"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
+          "okved_code": {
+            "type": "string",
+            "title": "Okved Code",
+            "default": ""
+          },
+          "city": {
+            "type": "string",
+            "title": "City",
+            "default": ""
+          },
+          "revenue_bln_rub": {
+            "type": "number",
+            "title": "Revenue Bln Rub",
+            "default": 0.0
+          },
+          "revenue_known": {
+            "type": "boolean",
+            "title": "Revenue Known",
+            "default": true
+          },
+          "employees": {
+            "type": "string",
+            "title": "Employees",
+            "default": ""
+          },
+          "foreign_trade": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Foreign Trade"
+          },
+          "foreign_trade_countries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Foreign Trade Countries"
+          },
+          "group_id": {
+            "type": "string",
+            "title": "Group Id",
+            "default": ""
+          },
+          "group_size": {
+            "type": "integer",
+            "title": "Group Size",
+            "default": 0
+          },
+          "top_buyers": {
+            "items": {
+              "$ref": "#/components/schemas/Counterparty"
+            },
+            "type": "array",
+            "title": "Top Buyers"
+          },
+          "top_suppliers": {
+            "items": {
+              "$ref": "#/components/schemas/Counterparty"
+            },
+            "type": "array",
+            "title": "Top Suppliers"
+          },
+          "field_sources": {
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "manual"
+              ]
+            },
+            "type": "object",
+            "title": "Field Sources"
           }
         },
         "type": "object",
@@ -1072,6 +2177,206 @@
           "company_id"
         ],
         "title": "CompanyProfile"
+      },
+      "CompanyProfileUpdate": {
+        "properties": {
+          "company_id": {
+            "type": "string",
+            "title": "Company Id",
+            "default": ""
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry",
+            "default": ""
+          },
+          "regions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Regions"
+          },
+          "key_clients": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Clients"
+          },
+          "key_suppliers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Suppliers"
+          },
+          "raw_materials": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Raw Materials"
+          },
+          "currency_risks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Currency Risks"
+          },
+          "debt_load": {
+            "type": "string",
+            "title": "Debt Load",
+            "default": ""
+          },
+          "strategic_goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strategic Goals"
+          },
+          "bank_products": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Bank Products"
+          },
+          "manual_data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Manual Data"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
+          "okved_code": {
+            "type": "string",
+            "title": "Okved Code",
+            "default": ""
+          },
+          "city": {
+            "type": "string",
+            "title": "City",
+            "default": ""
+          },
+          "revenue_bln_rub": {
+            "type": "number",
+            "title": "Revenue Bln Rub",
+            "default": 0.0
+          },
+          "revenue_known": {
+            "type": "boolean",
+            "title": "Revenue Known",
+            "default": true
+          },
+          "employees": {
+            "type": "string",
+            "title": "Employees",
+            "default": ""
+          },
+          "foreign_trade": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Foreign Trade"
+          },
+          "foreign_trade_countries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Foreign Trade Countries"
+          },
+          "group_id": {
+            "type": "string",
+            "title": "Group Id",
+            "default": ""
+          },
+          "group_size": {
+            "type": "integer",
+            "title": "Group Size",
+            "default": 0
+          },
+          "top_buyers": {
+            "items": {
+              "$ref": "#/components/schemas/Counterparty"
+            },
+            "type": "array",
+            "title": "Top Buyers"
+          },
+          "top_suppliers": {
+            "items": {
+              "$ref": "#/components/schemas/Counterparty"
+            },
+            "type": "array",
+            "title": "Top Suppliers"
+          },
+          "field_sources": {
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "manual"
+              ]
+            },
+            "type": "object",
+            "title": "Field Sources"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CompanyProfileUpdate",
+        "description": "Тело PUT /companies/{id}/profile.\n\nРучными становятся только поля, которые есть в теле (даже пустые, например\n\"key_clients\": []). Остальные ручные поля сохраняются. company_id и field_sources\nв теле игнорируются. Неизвестное поле или неверный тип — 422."
+      },
+      "Counterparty": {
+        "properties": {
+          "company_id": {
+            "type": "string",
+            "title": "Company Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry",
+            "default": ""
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "is_known": {
+            "type": "boolean",
+            "title": "Is Known",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_id",
+          "name"
+        ],
+        "title": "Counterparty",
+        "description": "Контрагент из платежей: покупатель (платит компании) или поставщик (получает от неё)."
       },
       "Digest": {
         "properties": {
@@ -1107,6 +2412,107 @@
           "insight_ids"
         ],
         "title": "Digest"
+      },
+      "Document": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DocumentKind"
+          },
+          "source_name": {
+            "type": "string",
+            "title": "Source Name"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "text_preview": {
+            "type": "string",
+            "title": "Text Preview"
+          },
+          "text_length": {
+            "type": "integer",
+            "title": "Text Length"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "content_hash": {
+            "type": "string",
+            "title": "Content Hash"
+          },
+          "fetched_at": {
+            "type": "string",
+            "title": "Fetched At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DocumentStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "source_name",
+          "url",
+          "title",
+          "text_preview",
+          "text_length",
+          "published_at",
+          "tags",
+          "content_hash",
+          "fetched_at",
+          "status"
+        ],
+        "title": "Document",
+        "description": "Документ без полного текста: начало текста и его длина."
+      },
+      "DocumentKind": {
+        "type": "string",
+        "enum": [
+          "external_news",
+          "bank_analytics"
+        ],
+        "title": "DocumentKind"
+      },
+      "DocumentStatus": {
+        "type": "string",
+        "enum": [
+          "ok",
+          "empty_text",
+          "error"
+        ],
+        "title": "DocumentStatus"
       },
       "ErrorResponse": {
         "properties": {
@@ -1155,6 +2561,34 @@
           "created_at": {
             "type": "string",
             "title": "Created At"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "inaccurate",
+                  "irrelevant",
+                  "unclear",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
           }
         },
         "type": "object",
@@ -1186,6 +2620,23 @@
               }
             ],
             "title": "Comment"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "inaccurate",
+                  "irrelevant",
+                  "unclear",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
           }
         },
         "type": "object",
@@ -1193,6 +2644,64 @@
           "rating"
         ],
         "title": "FeedbackRequest"
+      },
+      "FeedbackStats": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "useful": {
+            "type": "integer",
+            "title": "Useful"
+          },
+          "not_useful": {
+            "type": "integer",
+            "title": "Not Useful"
+          },
+          "useful_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Useful Share"
+          },
+          "by_reason": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "By Reason"
+          },
+          "by_type": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TypeStats"
+            },
+            "propertyNames": {
+              "enum": [
+                "risk",
+                "opportunity",
+                "event"
+              ]
+            },
+            "type": "object",
+            "title": "By Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "useful",
+          "not_useful",
+          "by_reason",
+          "by_type"
+        ],
+        "title": "FeedbackStats",
+        "description": "Метрики качества по оценкам: доля useful — 0..1 (null, если оценок нет)."
       },
       "HTTPValidationError": {
         "properties": {
@@ -1271,6 +2780,70 @@
           "created_at": {
             "type": "string",
             "title": "Created At"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "used_profile_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Used Profile Fields"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "owner",
+                  "ceo",
+                  "cfo",
+                  "treasurer",
+                  "accountant",
+                  "procurement"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "generated_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "llm",
+                  "rules"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated By"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
           }
         },
         "type": "object",
@@ -1287,6 +2860,229 @@
           "created_at"
         ],
         "title": "Insight"
+      },
+      "InsightPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Insight"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "refresh_job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refresh Job Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "InsightPage",
+        "description": "Лента инсайтов: обычная страница списка + подсказка для пустого состояния (B7).\n\nhint — текст для пустой ленты (у компании ещё нет инсайтов); refresh_job_id — задача refresh,\nкоторая сейчас выполняется (статус — GET /jobs/{id}). Оба поля необязательные."
+      },
+      "InsightTrace": {
+        "properties": {
+          "insight_id": {
+            "type": "string",
+            "title": "Insight Id"
+          },
+          "company_id": {
+            "type": "string",
+            "title": "Company Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "generator_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generator Run Id"
+          },
+          "run_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "running",
+                  "done",
+                  "empty",
+                  "failed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Status"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "llm_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Mode"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/TraceStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/TraceSource"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "used_profile_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used Profile Fields"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          },
+          "generated_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "llm",
+                  "rules",
+                  "fake"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "insight_id",
+          "company_id",
+          "steps",
+          "sources"
+        ],
+        "title": "InsightTrace"
       },
       "Job": {
         "properties": {
@@ -1337,6 +3133,56 @@
         "title": "JobAccepted",
         "description": "Ответ 202: задача принята и выполняется в фоне."
       },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "LoginResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "const": "bearer",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserInfo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "expires_in",
+          "user"
+        ],
+        "title": "LoginResponse"
+      },
       "Page_Company_": {
         "properties": {
           "items": {
@@ -1368,11 +3214,11 @@
         ],
         "title": "Page[Company]"
       },
-      "Page_Insight_": {
+      "Page_Document_": {
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/Insight"
+              "$ref": "#/components/schemas/Document"
             },
             "type": "array",
             "title": "Items"
@@ -1397,10 +3243,121 @@
           "limit",
           "offset"
         ],
-        "title": "Page[Insight]"
+        "title": "Page[Document]"
+      },
+      "Page_Question_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Question"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "Page[Question]"
+      },
+      "Question": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "insight_id": {
+            "type": "string",
+            "title": "Insight Id"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "done",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "insight_id",
+          "question",
+          "status",
+          "created_at"
+        ],
+        "title": "Question",
+        "description": "Вопрос по инсайту и ответ (answer — null, пока задача не done)."
       },
       "Source": {
         "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
           "title": {
             "type": "string",
             "title": "Title"
@@ -1430,6 +3387,245 @@
           "source_kind"
         ],
         "title": "Source"
+      },
+      "TraceSource": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "source_kind": {
+            "type": "string",
+            "enum": [
+              "external",
+              "bank_analytics"
+            ],
+            "title": "Source Kind"
+          },
+          "source_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "url",
+          "source_kind"
+        ],
+        "title": "TraceSource",
+        "description": "Источник инсайта. document_id и source_name — если это собранный документ (documents)."
+      },
+      "TraceStep": {
+        "properties": {
+          "step": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "tool": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "output": {
+            "title": "Output"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "TraceStep",
+        "description": "Шаг запуска — как его записал генератор (TraceStep агента или шаг заглушки).\n\nОбязательных полей нет: шаги приходят от ML-части как есть, лишние поля сохраняются.\nduration_ms — время шага в миллисекундах."
+      },
+      "TypeStats": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "useful_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Useful Share"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total"
+        ],
+        "title": "TypeStats"
+      },
+      "UserInfo": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "owner",
+                  "ceo",
+                  "cfo",
+                  "treasurer",
+                  "admin"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "company_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Id"
+          },
+          "is_admin": {
+            "type": "boolean",
+            "title": "Is Admin"
+          },
+          "auth_enabled": {
+            "type": "boolean",
+            "title": "Auth Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "is_admin",
+          "auth_enabled"
+        ],
+        "title": "UserInfo"
       },
       "ValidationError": {
         "properties": {
@@ -1470,6 +3666,13 @@
           "type"
         ],
         "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "description": "Токен из POST /auth/login",
+        "scheme": "bearer"
       }
     }
   }
