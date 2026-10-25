@@ -37,12 +37,19 @@ const companies = companiesJson as Company[];
 const profiles = profilesJson as CompanyProfile[];
 const agentInsights = agentInsightsJson as unknown as Insight[];
 const agentRuns = agentRunsJson as unknown as Record<string, AgentRun>;
+const DEFAULT_ROLE: Role = 'ceo';
 
-let insights: Insight[] = insightsJson as Insight[];
+// Для скриншотов и демо: адрес с ?preset=agent сразу открывает ленту с карточками агента
+// (как будто «Обновить анализ» уже нажали для всех компаний, роль — финдиректор).
+const PRESET_AGENT =
+  typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preset') === 'agent';
+
+let insights: Insight[] = PRESET_AGENT
+  ? companies.flatMap((c) => agentResultFor(c.id, 'cfo'))
+  : (insightsJson as Insight[]);
 
 const AGENT_RUN_MS = 2500; // сколько «думает» агент в моках
 const ASK_RUN_MS = 1500; // сколько готовится ответ на вопрос
-const DEFAULT_ROLE: Role = 'ceo';
 const QUESTIONS_PER_INSIGHT = 20;
 
 type MockJob =
