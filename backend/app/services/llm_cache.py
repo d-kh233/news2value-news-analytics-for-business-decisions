@@ -21,6 +21,7 @@ from collections.abc import Callable
 from typing import Any
 
 from app.core.config import get_settings
+from app.core.context import mark_cache_hit
 from app.core.db import get_session
 from app.repositories import llm_cache_repo
 
@@ -78,13 +79,16 @@ def cached(
                 return fn(*args, **kwargs)
             if hit is not None:
                 logger.debug("кэш %s: попадание %s", name, key[:12])
+                mark_cache_hit()  # журнал audit_log запишет status=cache_hit
                 return hit
 
             value = fn(*args, **kwargs)
             try:
                 validate(value)
             except Exception as exc:  # noqa: BLE001 — любой непрошедший проверку ответ
-                logger.warning("кэш %s: ответ не прошёл проверку, не сохраняем: %s", name, exc)
+                logger.warning(
+                    "кэш %s: ответ не прошёл проверку, не сохраняем: %s", name, str(exc)[:300]
+                )
                 return value
             try:
                 _put(key, value)

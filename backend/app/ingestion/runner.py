@@ -140,7 +140,7 @@ def _store(session: Session, report: SourceReport, draft: Draft, tz: timezone) -
     if values["status"] == "ok":
         # отрасли по ключевым словам (okved:NN) дописываются к тегам источника
         values["tags"] = tagging_port.with_industry_tags(
-            values["tags"], values["title"], values["text"]
+            values["tags"], values["title"], values["text"], ref=values["content_hash"][:16]
         )
     outcome = _save(session, values)
     session.commit()

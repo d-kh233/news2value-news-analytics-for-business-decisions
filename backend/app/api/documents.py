@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 from fastapi.exceptions import RequestValidationError
 
+from app.core.auth import AdminUser
 from app.schemas.common import Page
 from app.schemas.document import Document, DocumentKind
 from app.services import document_service
@@ -18,6 +19,7 @@ Offset = Annotated[int, Query(ge=0, description="Сколько записей �
 
 @router.get("", response_model=Page[Document], summary="[internal] Собранные документы")
 def list_documents(
+    _: AdminUser,
     kind: DocumentKind | None = None,
     date_from: Annotated[
         date | None, Query(description="YYYY-MM-DD, дата публикации по UTC, включительно")
@@ -28,8 +30,9 @@ def list_documents(
     limit: Limit = 20,
     offset: Offset = 0,
 ) -> Page[Document]:
-    """Служебный эндпоинт: документы из RSS и PDF, сначала свежие. Полный текст не отдаётся —
-    только начало (text_preview) и длина. С фильтром по датам документы без даты не попадают.
+    """Служебный эндпоинт (только admin): документы из RSS и PDF, сначала свежие. Полный текст
+    не отдаётся — только начало (text_preview) и длина. С фильтром по датам документы без даты
+    не попадают.
     """
     if date_from and date_to and date_from > date_to:
         raise RequestValidationError(

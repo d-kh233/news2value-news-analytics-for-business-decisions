@@ -25,6 +25,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 
 from app.core.config import get_settings
+from app.ml_ports.audit import audited
 from app.models import Document
 from app.services.llm_cache import cached
 
@@ -104,6 +105,11 @@ def _check_news(items: list[dict[str, Any]]) -> None:
             raise ValueError(f"новость {item.get('id')}: нет полей {sorted(missing)}")
 
 
+def _news_refs(company_id: str, period: int) -> tuple[str, dict[str, Any]]:
+    return company_id, {"company_id": company_id, "period_days": period}
+
+
+@audited("news.get_relevant_news", _news_refs)
 @cached("get_relevant_news", version=_prompt_version, validate=_check_news, context=_news_context)
 def get_relevant_news(company_id: str, period: int) -> list[dict[str, Any]]:
     """news_provider под кэшем llm_cache — его получают агент и заглушка при NEWS_SOURCE=db."""

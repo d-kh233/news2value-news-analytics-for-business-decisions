@@ -16,7 +16,7 @@ from typing import Any
 from app.core.auth import User, ensure_can_see
 from app.core.db import get_session
 from app.core.errors import ConflictError, NotFoundError
-from app.ml_ports import qa_port
+from app.ml_ports import loader
 from app.repositories import insight_repo, job_repo, question_repo
 from app.schemas.common import Page
 from app.schemas.insight import Source
@@ -61,7 +61,8 @@ def ask(
                 f"Лимит {QUESTIONS_PER_INSIGHT} вопросов к инсайту {insight_id} исчерпан"
             )
         job_id, question_id = _new_id("job"), _new_id("q")
-        job_repo.insert_pending(session, job_id, company_id, KIND_ASK, {"question_id": question_id})
+        params = {"question_id": question_id, "user_id": user.id}
+        job_repo.insert_pending(session, job_id, company_id, KIND_ASK, params)
         question_repo.add(
             session,
             {
@@ -137,7 +138,7 @@ def run_question(params: dict[str, Any]) -> tuple[str, str | None]:
             question_id, f"Инсайта {insight_id} больше нет (инсайты компании обновил refresh)"
         )
     try:
-        result = qa_port.answer_question(insight, text, history)
+        result = loader.get_ports().answer_question(insight, text, history)
         sources = [Source.model_validate(s).model_dump(mode="json") for s in result["sources"]]
     except Exception as exc:  # noqa: BLE001 — любой сбой превращаем в статус вопроса и задачи
         logger.exception("вопрос %s: ответ не получен", question_id)

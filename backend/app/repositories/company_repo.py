@@ -1,5 +1,7 @@
 """Компании (таблица companies): банковские (source='bank') и созданные вручную ('manual')."""
 
+from collections.abc import Iterable
+
 from sqlalchemy import exists, func, or_, select
 from sqlalchemy.orm import Session
 
@@ -21,13 +23,20 @@ def _escape_like(value: str) -> str:
 
 
 def list_companies(
-    session: Session, limit: int = 20, offset: int = 0, q: str | None = None
+    session: Session,
+    limit: int = 20,
+    offset: int = 0,
+    q: str | None = None,
+    only_ids: Iterable[str] | None = None,
 ) -> tuple[list[Company], int]:
     """Страница компаний (по возрастанию id) и общее число найденных.
 
     q — поиск без учёта регистра по id, ручному названию, отрасли (ОКВЭД) и коду ОКВЭД.
+    only_ids — только эти компании (доступные пользователю); None — все.
     """
     stmt = select(Company)
+    if only_ids is not None:
+        stmt = stmt.where(Company.synthetic_u.in_(list(only_ids)))
     if q:
         pattern = f"%{_escape_like(q)}%"
         manual = CompanyProfileRow.manual_data

@@ -44,6 +44,14 @@ class UnauthorizedError(Exception):
         self.detail = detail
 
 
+class ServiceUnavailableError(Exception):
+    """Сервис не настроен или временно недоступен (превращается в 503)."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail)
+        self.detail = detail
+
+
 def _response(status: int, error: str, detail: str) -> JSONResponse:
     body = ErrorResponse(error=error, detail=detail)
     return JSONResponse(status_code=status, content=body.model_dump())
@@ -63,6 +71,10 @@ async def _forbidden(_: Request, exc: ForbiddenError) -> JSONResponse:
 
 async def _unauthorized(_: Request, exc: UnauthorizedError) -> JSONResponse:
     return _response(401, "unauthorized", exc.detail)
+
+
+async def _unavailable(_: Request, exc: ServiceUnavailableError) -> JSONResponse:
+    return _response(503, "service_unavailable", exc.detail)
 
 
 async def _http_error(_: Request, exc: StarletteHTTPException) -> JSONResponse:
@@ -89,6 +101,7 @@ def register_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(ConflictError, _conflict)
     app.add_exception_handler(ForbiddenError, _forbidden)
     app.add_exception_handler(UnauthorizedError, _unauthorized)
+    app.add_exception_handler(ServiceUnavailableError, _unavailable)
     app.add_exception_handler(StarletteHTTPException, _http_error)
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(Exception, _unexpected)

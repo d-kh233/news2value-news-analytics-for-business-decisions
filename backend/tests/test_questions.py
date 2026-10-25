@@ -139,7 +139,7 @@ def test_foreign_insight_403(card, as_user):
     as_user(User(id="u1", company_ids=frozenset({"U_1"})))
     r = _ask(card)
     assert r.status_code == 403
-    assert r.json() == {"error": "forbidden", "detail": "Нет доступа к инсайтам этой компании"}
+    assert r.json() == {"error": "forbidden", "detail": "Нет доступа к этой компании"}
     assert card.get(f"/insights/{INSIGHT}/questions").status_code == 403
     as_user(User(id="u2", company_ids=frozenset({"U_6"})))
     assert _ask(card).status_code == 202

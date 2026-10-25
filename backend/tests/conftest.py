@@ -35,6 +35,8 @@ DB_TABLES = [
     "llm_cache",
     "insight_questions",
     "insight_feedback",
+    "users",
+    "audit_log",
 ]
 FIXTURES = Path(__file__).parent / "fixtures"
 # моковая компания с моковыми инсайтами (data/mocks); компании API живут в БД

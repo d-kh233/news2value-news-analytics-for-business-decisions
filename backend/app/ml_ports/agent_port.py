@@ -21,6 +21,8 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import get_settings
+from app.core.context import add_tokens
+from app.ml_ports.audit import audited
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +119,16 @@ def select_news_provider(news_source: str) -> Callable[[str, int], list[dict]] |
     return None
 
 
+def insights_refs(company_id: str, role: str | None = None, **kw: Any) -> tuple[str, dict]:
+    """id входных данных прогона для журнала: компания, роль, период."""
+    return company_id, {
+        "company_id": company_id,
+        "role": role,
+        "period": kw.get("period") or kw.get("period_days"),
+    }
+
+
+@audited("agent.generate_insights", insights_refs, uses_llm=True)
 def generate_insights(
     company_id: str,
     role: str | None = None,
@@ -148,6 +160,7 @@ def generate_insights(
     logger.info(
         "agent run %s: %d инсайтов, LLM %s", result.run_id, len(result.insights), result.llm_mode
     )
+    add_tokens((result.llm_usage or {}).get("tokens"))
     summary = {
         "run_id": result.run_id,
         "role": result.role,

@@ -5,18 +5,23 @@ USE_MOCKS=true — всё как до B7 (services/mock_store.py, сортиро
 documents (по document_ids). Роуты зовут только этот модуль.
 """
 
+import logging
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
+from app.core.auth import User, ensure_can_see
 from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import NotFoundError
-from app.ml_ports import digest_port, tagging_port
+from app.ml_ports import digest_port, loader, tagging_port
+from app.ml_ports.base import MLError
 from app.models import Document
 from app.repositories import document_repo, insight_repo, job_repo
 from app.schemas.digest import Digest, DigestPeriod
 from app.schemas.insight import Insight, InsightPage, InsightType
 from app.services import company_service
+
+logger = logging.getLogger(__name__)
 
 HINT_EMPTY = "Инсайты ещё не собраны, нажмите «Обновить»"
 HINT_RUNNING = "Инсайты собираются…"
@@ -130,20 +135,25 @@ def with_document_sources(payload: dict[str, Any], docs: list[Document]) -> dict
     return {**payload, "sources": sources}
 
 
-def _db_insight(insight_id: str) -> Insight:
+def _db_insight(insight_id: str, user: User | None = None) -> Insight:
+    """Карточка из БД; user — проверить право на компанию инсайта (403)."""
     with get_session() as session:
         row = insight_repo.get(session, insight_id)
         if row is None:
             raise NotFoundError(f"Инсайт {insight_id} не найден")
+        if user is not None:
+            ensure_can_see(user, row.company_id)
         found = document_repo.get_many(session, list(row.document_ids or []))
         docs = [found[i] for i in row.document_ids or [] if i in found]
         return Insight.model_validate(with_document_sources(dict(row.payload), docs))
 
 
-def get_insight(insight_id: str) -> Insight:
+def get_insight(insight_id: str, user: User) -> Insight:
     if use_mocks():
-        return _mocks().get_insight(insight_id)
-    return _db_insight(insight_id)
+        insight = _mocks().get_insight(insight_id)
+        ensure_can_see(user, insight.company_id)
+        return insight
+    return _db_insight(insight_id, user)
 
 
 def db_insight_payload(insight_id: str) -> dict[str, Any]:
@@ -162,9 +172,14 @@ def get_digest(company_id: str, period: DigestPeriod) -> Digest:
     with get_session() as session:
         rows = insight_repo.top_since(session, company_id, since, DIGEST_TOP)
         items = [[r.id, r.importance] for r in rows]
+        payloads = [dict(r.payload) for r in rows]
     if not items:
         return Digest(company_id=company_id, period=period, summary=DIGEST_EMPTY, insight_ids=[])
-    result = digest_port.digest_summary(company_id, period, items)
+    try:
+        result = loader.get_ports().digest_summary(company_id, period, items)
+    except MLError as exc:  # таймаут или сбой модели — дайджест всё равно отдаём
+        logger.warning("дайджест %s/%s: %s — склейка заголовков", company_id, period, exc)
+        result = {"summary": digest_port.fake_summary(period, payloads)}
     return Digest(
         company_id=company_id,
         period=period,

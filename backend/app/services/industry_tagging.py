@@ -28,7 +28,9 @@ def tag_documents(engine: Engine) -> TagReport:
     with Session(engine) as session, session.begin():
         for doc in document_repo.ok_documents(session):
             report.total += 1
-            tags = tagging_port.with_industry_tags(list(doc.tags or []), doc.title, doc.text)
+            tags = tagging_port.with_industry_tags(
+                list(doc.tags or []), doc.title, doc.text, ref=f"doc-{doc.id}"
+            )
             industry = [t for t in tags if t.startswith("okved:")]
             if industry:
                 report.tagged += 1

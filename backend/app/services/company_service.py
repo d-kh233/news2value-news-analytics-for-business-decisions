@@ -77,9 +77,12 @@ def company_exists(company_id: str) -> bool:
         return company_repo.company_exists(session, company_id)
 
 
-def list_companies(limit: int, offset: int, q: str | None = None) -> tuple[list[Company], int]:
+def list_companies(
+    limit: int, offset: int, q: str | None = None, only_ids: frozenset[str] | None = None
+) -> tuple[list[Company], int]:
+    """only_ids — компании, которые видит пользователь (None — все)."""
     with get_session() as session:
-        rows, total = company_repo.list_companies(session, limit, offset, q)
+        rows, total = company_repo.list_companies(session, limit, offset, q, only_ids)
         manual = profile_repo.manual_data_by_ids(session, (c.synthetic_u for c in rows))
         return [_card(c, manual.get(c.synthetic_u, {})) for c in rows], total
 

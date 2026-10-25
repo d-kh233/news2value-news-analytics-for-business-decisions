@@ -9,14 +9,17 @@ ML_MODE=real — answer_question из llm/ через шлюз агента (llm
 ML_MODE=fake — сразу заглушка: ответ-шаблон и все источники инсайта.
 
 Под кэшем llm_cache (CACHE_ENABLED): ключ — карточка, вопрос, история и PROMPT_VERSION
-(qa@v0 у модели, qa-fake@v0 у заглушки). Аудит (audited из B8+B9) ставится строкой над @cached.
+(qa@v0 у модели, qa-fake@v0 у заглушки). Каждый вызов пишется в audit_log (audited, B8+B9);
+дневной лимит токенов исчерпан — TokenLimitExceeded: задача ask получает failed с пояснением.
 """
 
 import logging
 from typing import Any
 
 from app.core.config import get_settings
+from app.core.context import add_tokens
 from app.ml_ports import llm_call
+from app.ml_ports.audit import audited, real_mode
 from app.services.llm_cache import cached
 
 logger = logging.getLogger(__name__)
@@ -52,7 +55,10 @@ def _real_answer(
 
     complete, _ = llm_call.gateway()
     company = llm_call.company_row(insight.get("company_id", ""))
-    ans = llm_answer(insight, question, history, company_profile=company, complete=complete)
+    try:
+        ans = llm_answer(insight, question, history, company_profile=company, complete=complete)
+    finally:
+        add_tokens(llm_call.tokens_spent(complete))
     return {"answer": ans.answer, "sources": answer_sources(insight, ans)}
 
 
@@ -64,6 +70,12 @@ def _check(value: Any) -> None:
         raise ValueError("модель недоступна, ответ заглушки")
 
 
+def _refs(insight: dict[str, Any], question: str, history: list[dict[str, Any]]):
+    company_id = insight.get("company_id")
+    return company_id, {"insight_id": insight.get("id"), "history_len": len(history)}
+
+
+@audited("llm.answer_question", _refs, uses_llm=real_mode)
 @cached("answer_question", version=prompt_version, validate=_check)
 def answer_question(
     insight: dict[str, Any], question: str, history: list[dict[str, Any]]

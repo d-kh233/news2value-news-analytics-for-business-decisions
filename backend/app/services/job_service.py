@@ -19,7 +19,9 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
+from app.core.auth import User, ensure_can_see
 from app.core.config import get_settings
+from app.core.context import acting_user
 from app.core.db import get_session
 from app.core.errors import NotFoundError
 from app.repositories import job_repo, pipeline_run_repo, question_repo
@@ -50,11 +52,14 @@ def _new_id() -> str:
     return f"job-{uuid.uuid4().hex[:8]}"
 
 
-def request_refresh(company_id: str, role: str | None) -> str:
-    """Поставить refresh компании; если активная задача уже есть — вернуть её id."""
+def request_refresh(company_id: str, role: str | None, user_id: str | None = None) -> str:
+    """Поставить refresh компании; если активная задача уже есть — вернуть её id.
+
+    user_id — кто попросил (в params задачи): worker пишет его в журнал audit_log.
+    """
     if not company_service.company_exists(company_id):
         raise NotFoundError(f"Компания {company_id} не найдена")
-    params = {"role": role, "period": DEFAULT_PERIOD}
+    params = {"role": role, "period": DEFAULT_PERIOD, "user_id": user_id}
     for _ in range(INSERT_ATTEMPTS):
         with get_session() as session:
             job_id = _new_id()
@@ -70,7 +75,16 @@ def request_refresh(company_id: str, role: str | None) -> str:
     raise RuntimeError(f"Не удалось поставить refresh компании {company_id}")
 
 
-def get_job(job_id: str) -> Job:
+def _job_row(session: Any, job_id: str, user: User) -> Any:
+    """Задача из БД; 404 — нет, 403 — задача чужой компании."""
+    row = job_repo.get(session, job_id)
+    if row is None:
+        raise NotFoundError(f"Задача {job_id} не найдена")
+    ensure_can_see(user, row.company_id)
+    return row
+
+
+def get_job(job_id: str, user: User) -> Job:
     if insight_service.use_mocks():
         # mock_store при импорте читает data/mocks — берём его здесь, чтобы worker без моков работал
         from app.services import mock_store
@@ -80,13 +94,11 @@ def get_job(job_id: str) -> Job:
         except NotFoundError:
             pass
     with get_session() as session:
-        row = job_repo.get(session, job_id)
-        if row is None:
-            raise NotFoundError(f"Задача {job_id} не найдена")
+        row = _job_row(session, job_id, user)
         return Job(id=row.id, status=row.status, error=row.error)  # type: ignore[arg-type]
 
 
-def get_job_result(job_id: str) -> AskResult:
+def get_job_result(job_id: str, user: User) -> AskResult:
     """Ответ задачи ask, когда она done; refresh-задачи и неготовые — 404."""
     if insight_service.use_mocks():
         from app.services import mock_store
@@ -96,9 +108,7 @@ def get_job_result(job_id: str) -> AskResult:
         except NotFoundError:
             pass
     with get_session() as session:
-        job = job_repo.get(session, job_id)
-        if job is None:
-            raise NotFoundError(f"Задача {job_id} не найдена")
+        job = _job_row(session, job_id, user)
         result = qa_service.result_for_job(session, job_id) if job.kind == KIND_ASK else None
         if result is None:
             raise NotFoundError(f"У задачи {job_id} нет результата")
@@ -107,12 +117,10 @@ def get_job_result(job_id: str) -> AskResult:
         return AskResult.model_validate(result)
 
 
-def get_job_run(job_id: str) -> dict[str, Any]:
+def get_job_run(job_id: str, user: User) -> dict[str, Any]:
     """План и трейс прогона по завершённой (done) задаче refresh — для панели трассировки."""
     with get_session() as session:
-        job = job_repo.get(session, job_id)
-        if job is None:
-            raise NotFoundError(f"Задача {job_id} не найдена")
+        job = _job_row(session, job_id, user)
         run = pipeline_run_repo.get(session, job.run_id) if job.run_id is not None else None
         if job.status != "done" or run is None:
             raise NotFoundError(f"У задачи {job_id} нет завершённого прогона")
@@ -149,6 +157,12 @@ def _save_run_id(job_id: str, run_id: int) -> None:
 
 def execute(job: ClaimedJob) -> str:
     """Выполнить задачу и записать итог; вернуть итоговый статус (done | failed)."""
+    # кто поставил задачу — для журнала audit_log (у старых задач и скриптов — пусто)
+    with acting_user(job.params.get("user_id")):
+        return _execute(job)
+
+
+def _execute(job: ClaimedJob) -> str:
     if job.kind == KIND_ASK:
         status, error = qa_service.run_question(job.params)
         return _finish(job.id, status, error)

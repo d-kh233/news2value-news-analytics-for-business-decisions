@@ -9,17 +9,40 @@ Worker'ов можно запустить несколько: задачу за�
 (repositories/job_repo.py), одну задачу два worker'а не возьмут.
 SIGTERM / SIGINT (docker compose stop, Ctrl+C) — новых задач не брать, текущую доделать.
 Если процесс убит посреди задачи, её через JOB_TIMEOUT_MINUTES пометит failed любой worker.
+
+Пульс (B8+B9): отдельный поток раз в HEARTBEAT_SECONDS обновляет время файла
+WORKER_HEARTBEAT_FILE — по нему healthcheck в docker-compose.prod.yml видит, что процесс жив
+(в том числе во время долгой задачи).
 """
 
 import logging
+import os
 import signal
 import threading
+from pathlib import Path
 
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 from app.services import job_service
 
 logger = logging.getLogger("app.worker")
+
+HEARTBEAT_SECONDS = 10.0
+
+
+def heartbeat_file() -> Path:
+    return Path(os.environ.get("WORKER_HEARTBEAT_FILE", "/tmp/worker-heartbeat"))
+
+
+def heartbeat(stop: threading.Event, every: float = HEARTBEAT_SECONDS) -> None:
+    """Пока worker работает, обновлять время файла-пульса."""
+    path = heartbeat_file()
+    while not stop.is_set():
+        try:
+            path.touch()
+        except OSError:
+            logger.warning("не удалось обновить файл-пульс %s", path, exc_info=True)
+        stop.wait(every)
 
 
 def run_once() -> bool:
@@ -64,6 +87,7 @@ def main() -> None:
         settings.job_timeout_minutes,
         settings.ml_mode,
     )
+    threading.Thread(target=heartbeat, args=(stop,), daemon=True, name="heartbeat").start()
     run(stop)
     logger.info("worker остановлен")
 

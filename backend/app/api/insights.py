@@ -1,25 +1,32 @@
-from typing import Annotated
-
-from fastapi import APIRouter, BackgroundTasks, Depends, Response
+from fastapi import APIRouter, BackgroundTasks, Response
 
 from app.api.companies import NOT_FOUND, Limit, Offset
-from app.core.auth import User, current_user
+from app.core.auth import CurrentUser
 from app.schemas.common import ErrorResponse, Page
 from app.schemas.insight import Insight
 from app.schemas.qa import AskAccepted, AskRequest, Feedback, FeedbackRequest, Question
-from app.services import feedback_service, insight_service, qa_service
+from app.schemas.trace import InsightTrace
+from app.services import feedback_service, insight_service, qa_service, trace_service
 
 router = APIRouter(prefix="/insights", tags=["insights"])
 
 FORBIDDEN = {403: {"model": ErrorResponse, "description": "Нет доступа к инсайту"}}
 CONFLICT = {409: {"model": ErrorResponse, "description": "Лимит 20 вопросов к инсайту"}}
-CurrentUser = Annotated[User, Depends(current_user)]
 
 
-@router.get("/{insight_id}", response_model=Insight, responses=NOT_FOUND)
-def get_insight(insight_id: str) -> Insight:
+@router.get("/{insight_id}", response_model=Insight, responses={**NOT_FOUND, **FORBIDDEN})
+def get_insight(insight_id: str, user: CurrentUser) -> Insight:
     """Полная карточка; источники-новости — с данными из собранных документов."""
-    return insight_service.get_insight(insight_id)
+    return insight_service.get_insight(insight_id, user)
+
+
+@router.get(
+    "/{insight_id}/trace", response_model=InsightTrace, responses={**NOT_FOUND, **FORBIDDEN}
+)
+def get_trace(insight_id: str, user: CurrentUser) -> InsightTrace:
+    """Как сделан инсайт: запуск refresh и его шаги со временем, источники, признаки профиля,
+    версия промптов и кто сгенерировал (llm | rules | fake)."""
+    return trace_service.get_trace(insight_id, user)
 
 
 @router.post(

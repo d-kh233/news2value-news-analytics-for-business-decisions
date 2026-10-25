@@ -7,14 +7,17 @@ ML_MODE=fake — сразу заглушка: склейка заголовко�
 
 Под кэшем llm_cache (CACHE_ENABLED): ключ — компания, период, пары (id, важность) инсайтов и
 PROMPT_VERSION (digest@v0 у модели, digest-fake@v0 у заглушки). Инсайты читаются из таблицы по id.
-Аудит (audited из B8+B9) ставится строкой над @cached у digest_summary — сигнатура не меняется.
+Каждый вызов пишется в audit_log (audited, B8+B9): компания, id инсайтов, токены модели.
+Дневной лимит токенов исчерпан — заглушка, как при недоступной модели.
 """
 
 import logging
 from typing import Any
 
 from app.core.config import get_settings
+from app.core.context import add_tokens
 from app.ml_ports import llm_call
+from app.ml_ports.audit import TokenLimitExceeded, audited, check_token_limit
 from app.services.llm_cache import cached
 
 logger = logging.getLogger(__name__)
@@ -49,7 +52,12 @@ def _real_summary(company_id: str, period: str, insights: list[dict[str, Any]]) 
     from llm.digest import generate_digest
 
     complete, _ = llm_call.gateway()
-    digest = generate_digest(insights, llm_call.company_row(company_id), period, complete=complete)
+    try:
+        digest = generate_digest(
+            insights, llm_call.company_row(company_id), period, complete=complete
+        )
+    finally:
+        add_tokens(llm_call.tokens_spent(complete))
     return f"{digest.title.rstrip('.')}. {digest.overview}"
 
 
@@ -70,6 +78,12 @@ def _check(value: Any) -> None:
         raise ValueError("модель недоступна, ответ заглушки")
 
 
+def _refs(company_id: str, period: str, items: list[list[Any]]) -> tuple[str, dict[str, Any]]:
+    ids = [i for i, _ in items]
+    return company_id, {"company_id": company_id, "period": period, "insight_ids": ids}
+
+
+@audited("llm.generate_digest", _refs)
 @cached("generate_digest", version=prompt_version, validate=_check)
 def digest_summary(company_id: str, period: str, items: list[list[Any]]) -> dict[str, str]:
     """items — [[id инсайта, важность], ...], самые важные первыми. → {summary, generated_by}."""
@@ -77,7 +91,8 @@ def digest_summary(company_id: str, period: str, items: list[list[Any]]) -> dict
     if get_settings().ml_mode == "fake":
         return {"summary": fake_summary(period, insights), "generated_by": "fake"}
     try:
+        check_token_limit()
         return {"summary": _real_summary(company_id, period, insights), "generated_by": "llm"}
-    except llm_call.unavailable_errors() as exc:
+    except (TokenLimitExceeded, *llm_call.unavailable_errors()) as exc:
         logger.warning("дайджест %s/%s: модель недоступна (%s) — заглушка", company_id, period, exc)
         return {"summary": fake_summary(period, insights), "generated_by": "fallback"}

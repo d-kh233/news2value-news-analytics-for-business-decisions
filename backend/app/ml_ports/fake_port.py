@@ -26,7 +26,8 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import get_settings
-from app.ml_ports.agent_port import ROLES, period_to_days
+from app.ml_ports.agent_port import ROLES, insights_refs, period_to_days
+from app.ml_ports.audit import audited
 from app.ml_ports.news_port import agent_today, get_relevant_news
 from app.schemas.insight import Insight
 from app.services.llm_cache import cached
@@ -176,6 +177,11 @@ def _card(
     }
 
 
+def _card_refs(company_id: str, role: str, news: dict[str, Any], *_: Any, **__: Any):
+    return company_id, {"company_id": company_id, "role": role, "news_id": str(news.get("id"))}
+
+
+@audited("fake.generate_insight", _card_refs)
 @cached("generate_insight", version=lambda: PROMPT_VERSION, validate=Insight.model_validate)
 def generate_insight(
     company_id: str,
@@ -206,6 +212,7 @@ def _step(n: int, name: str, inp: dict, out: Any, status: str, ms: int, note: st
     }
 
 
+@audited("fake.generate_insights", insights_refs)
 def generate_insights(
     company_id: str,
     role: str | None = None,

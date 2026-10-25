@@ -1,8 +1,13 @@
-# Контекст сборки api — корень репозитория. В образ идут только backend/, llm/, agent/, replay_cache/
+# Контекст сборки api — корень репозитория. В образ идут backend/, llm/, agent/, replay_cache/, config/
+# и data/synthetic, data/demo_profiles, data/mocks
 .git
 .env
 frontend
 data
+# из data в образ идут только данные из git (backend/Dockerfile); data/raw — никогда
+!data/synthetic
+!data/demo_profiles
+!data/mocks
 docs
 runs
 .llm_cache

@@ -4,6 +4,8 @@ from typing import Annotated
 from fastapi import APIRouter, Query, Response
 from fastapi.exceptions import RequestValidationError
 
+from app.core.auth import AdminUser, CompanyUser, CurrentUser
+from app.ml_ports.agent_port import ROLES
 from app.schemas.common import ErrorResponse, Page
 from app.schemas.company import Company, CompanyCreate, CompanyProfile, CompanyProfileUpdate
 from app.schemas.digest import Digest, DigestPeriod
@@ -15,13 +17,19 @@ router = APIRouter(prefix="/companies", tags=["companies"])
 
 NOT_FOUND = {404: {"model": ErrorResponse}}
 CONFLICT = {409: {"model": ErrorResponse}}
+# ответы при AUTH_ENABLED=true: нет токена — 401, чужая компания или не admin — 403
+AUTH = {
+    401: {"model": ErrorResponse, "description": "Нужен вход (AUTH_ENABLED=true)"},
+    403: {"model": ErrorResponse, "description": "Нет доступа к компании"},
+}
 
 Limit = Annotated[int, Query(ge=1, le=100, description="Сколько записей вернуть")]
 Offset = Annotated[int, Query(ge=0, description="Сколько записей пропустить")]
 
 
-@router.get("", response_model=Page[Company])
+@router.get("", response_model=Page[Company], responses=AUTH)
 def list_companies(
+    user: CurrentUser,
     limit: Limit = 20,
     offset: Offset = 0,
     q: Annotated[
@@ -29,42 +37,46 @@ def list_companies(
         Query(max_length=200, description="Поиск по названию, id или отрасли (без учёта регистра)"),
     ] = None,
 ) -> Page[Company]:
-    items, total = company_service.list_companies(limit, offset, q)
+    """Компании: admin видит все, остальные — только свою."""
+    items, total = company_service.list_companies(limit, offset, q, user.company_ids)
     return Page[Company](items=items, total=total, limit=limit, offset=offset)
 
 
-@router.post("", response_model=Company, status_code=201)
-def create_company(data: CompanyCreate) -> Company:
+@router.post("", response_model=Company, status_code=201, responses=AUTH)
+def create_company(data: CompanyCreate, _: AdminUser) -> Company:
+    """Создать компанию вручную (только admin)."""
     return company_service.create_company(data)
 
 
-@router.get("/{company_id}", response_model=Company, responses=NOT_FOUND)
-def get_company(company_id: str) -> Company:
+@router.get("/{company_id}", response_model=Company, responses={**NOT_FOUND, **AUTH})
+def get_company(company_id: str, _: CompanyUser) -> Company:
     return company_service.get_company(company_id)
 
 
-@router.delete("/{company_id}", status_code=204, responses={**NOT_FOUND, **CONFLICT})
-def delete_company(company_id: str) -> Response:
-    """Удаляет только компанию, созданную через POST (source=manual); банковскую — 409."""
+@router.delete("/{company_id}", status_code=204, responses={**NOT_FOUND, **CONFLICT, **AUTH})
+def delete_company(company_id: str, _: AdminUser) -> Response:
+    """Удаляет только компанию, созданную через POST (source=manual); банковскую — 409.
+    Только admin."""
     company_service.delete_company(company_id)
     return Response(status_code=204)
 
 
-@router.get("/{company_id}/profile", response_model=CompanyProfile, responses=NOT_FOUND)
-def get_profile(company_id: str) -> CompanyProfile:
+@router.get("/{company_id}/profile", response_model=CompanyProfile, responses={**NOT_FOUND, **AUTH})
+def get_profile(company_id: str, _: CompanyUser) -> CompanyProfile:
     """Профиль: данные банка + ручные поля (ручные главнее), источник поля — в field_sources."""
     return company_service.get_profile(company_id)
 
 
-@router.put("/{company_id}/profile", response_model=CompanyProfile, responses=NOT_FOUND)
-def put_profile(company_id: str, profile: CompanyProfileUpdate) -> CompanyProfile:
+@router.put("/{company_id}/profile", response_model=CompanyProfile, responses={**NOT_FOUND, **AUTH})
+def put_profile(company_id: str, profile: CompanyProfileUpdate, _: CompanyUser) -> CompanyProfile:
     """Поля из тела сохраняются как ручные; остальные ручные поля остаются как были."""
     return company_service.put_profile(company_id, profile)
 
 
-@router.get("/{company_id}/insights", response_model=InsightPage, responses=NOT_FOUND)
+@router.get("/{company_id}/insights", response_model=InsightPage, responses={**NOT_FOUND, **AUTH})
 def list_insights(
     company_id: str,
+    _: CompanyUser,
     insight_type: Annotated[InsightType | None, Query(alias="type")] = None,
     min_importance: Annotated[int | None, Query(ge=0, le=100)] = None,
     date_from: Annotated[date | None, Query(description="YYYY-MM-DD, включительно")] = None,
@@ -97,8 +109,8 @@ def list_insights(
     )
 
 
-@router.get("/{company_id}/digest", response_model=Digest, responses=NOT_FOUND)
-def get_digest(company_id: str, period: DigestPeriod) -> Digest:
+@router.get("/{company_id}/digest", response_model=Digest, responses={**NOT_FOUND, **AUTH})
+def get_digest(company_id: str, period: DigestPeriod, _: CompanyUser) -> Digest:
     """Самые важные инсайты за сутки или неделю (до 10) и их краткая сводка."""
     return insight_service.get_digest(company_id, period)
 
@@ -107,14 +119,20 @@ def get_digest(company_id: str, period: DigestPeriod) -> Digest:
     "/{company_id}/insights/refresh",
     response_model=JobAccepted,
     status_code=202,
-    responses=NOT_FOUND,
+    responses={**NOT_FOUND, **AUTH},
 )
 def refresh_insights(
     company_id: str,
-    role: Annotated[Role | None, Query(description="Роль читателя; по умолчанию ceo")] = None,
+    user: CompanyUser,
+    role: Annotated[
+        Role | None,
+        Query(description="Роль читателя; по умолчанию роль пользователя, у admin — ceo"),
+    ] = None,
 ) -> JobAccepted:
     """Поставить задачу агенту: новые инсайты компании заменят старые (выполняет worker).
 
     Если у компании уже есть задача pending/running, возвращается её job_id.
     """
-    return JobAccepted(job_id=job_service.request_refresh(company_id, role))
+    if role is None and user.role in ROLES:
+        role = user.role  # type: ignore[assignment]
+    return JobAccepted(job_id=job_service.request_refresh(company_id, role, user.id))

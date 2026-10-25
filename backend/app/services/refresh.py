@@ -2,7 +2,8 @@
 
 Многошаговую оркестрацию делает агент (agent/, зона тимлида), здесь её нет. refresh только:
   1. создаёт запись pipeline_runs (status=running);
-  2. вызывает генератор по ML_MODE: real — agent_port (агент), fake — fake_port (заглушка);
+  2. вызывает генератор по ML_MODE (ml_ports/loader): real — агент через real.py (таймаут,
+     повтор, MLError), fake — fake_port (заглушка);
   3. проверяет карточки схемой Insight и находит в них ссылки на документы (N:doc-<id>);
   4. в одной транзакции удаляет старые инсайты компании и сохраняет новые;
   5. пишет в pipeline_runs статус и шаги — трейс, который прислал генератор, как есть, —
@@ -23,7 +24,7 @@ from typing import Any
 from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import NotFoundError
-from app.ml_ports import agent_port, fake_port
+from app.ml_ports import loader
 from app.repositories import document_repo, insight_repo, pipeline_run_repo
 from app.schemas.insight import Insight
 from app.services import company_service
@@ -135,9 +136,8 @@ def run_for_company(
     steps: list[dict[str, Any]] = []
     run_summary: dict[str, Any] | None = None
     try:
-        # модуль берём при вызове: в тестах generate_insights подменяется
-        port = fake_port if settings.ml_mode == "fake" else agent_port
-        cards, summary = port.generate_insights(company_id, role, period=period)
+        # функции берём при вызове по ML_MODE (loader): в тестах их подменяют
+        cards, summary = loader.get_ports().generate_insights(company_id, role, period=period)
         steps = _jsonable(summary.get("trace"))
         run_summary = _summary(summary)
         validated = _validate(company_id, cards)
@@ -174,6 +174,7 @@ def run_for_company(
                     "generated_by": generated_by or ins.generated_by or "rules",
                     "prompt_version": ins.prompt_version,
                     "created_at": ins.created_at,
+                    "run_id": run_id,
                 }
                 for ins, _ in validated
             ]

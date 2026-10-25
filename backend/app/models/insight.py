@@ -57,6 +57,10 @@ class InsightRow(Base):
     generated_by: Mapped[str] = mapped_column(String(10))
     prompt_version: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # запуск refresh, который сделал инсайт (миграция 0007) — для GET /insights/{id}/trace
+    run_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("pipeline_runs.id", ondelete="SET NULL"), index=True
+    )
 
 
 class PipelineRun(Base):

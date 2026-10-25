@@ -25,6 +25,12 @@ def gateway() -> tuple[Callable[..., str], str]:
     return Gateway(s).complete, s.llm_mode
 
 
+def tokens_spent(complete: Callable[..., str]) -> int:
+    """Сколько токенов потратил шлюз, чей complete передали в llm/ (0 — модель не вызывалась)."""
+    gw = getattr(complete, "__self__", None)
+    return int((getattr(gw, "stats", None) or {}).get("tokens") or 0)
+
+
 def unavailable_errors() -> tuple[type[Exception], ...]:
     """Ошибки «модель недоступна или ответ не прошёл проверку» — на них порт берёт заглушку."""
     ensure_repo_on_path()

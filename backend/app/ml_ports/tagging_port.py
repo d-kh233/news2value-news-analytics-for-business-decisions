@@ -7,6 +7,8 @@ docs/llm-fixes-handoff.md). Здесь только стык: путь к пак
 
 from typing import Any
 
+from app.ml_ports.audit import audited
+
 
 def _tagging() -> Any:
     from app.ml_ports.agent_port import ensure_repo_on_path
@@ -17,13 +19,23 @@ def _tagging() -> Any:
     return tagging
 
 
-def industry_tags(title: str, text: str) -> list[str]:
+def _refs(*args: Any, ref: str | None = None, **_: Any) -> tuple[None, dict[str, Any]]:
+    return None, {"document": ref} if ref else {}
+
+
+@audited("llm.okved.industry_tags", _refs)
+def industry_tags(title: str, text: str, *, ref: str | None = None) -> list[str]:
     """Теги отраслей новости: ["okved:41", ...] (может быть пусто)."""
     return _tagging().industry_tags(title, text)
 
 
-def with_industry_tags(tags: list[str], title: str, text: str) -> list[str]:
-    """Теги документа после разметки: старые без okved:* плюс новые okved:*."""
+@audited("llm.okved.industry_tags", _refs)
+def with_industry_tags(
+    tags: list[str], title: str, text: str, *, ref: str | None = None
+) -> list[str]:
+    """Теги документа после разметки: старые без okved:* плюс новые okved:*.
+
+    ref — id документа для журнала audit_log (doc-N или начало хеша ещё не сохранённого)."""
     t = _tagging()
     return t.merge_tags(tags, t.industry_tags(title, text))
 
