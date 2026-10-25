@@ -1,0 +1,94 @@
+.panel {
+  padding: 24px;
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.panelHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panelTitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.more {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.more:hover {
+  color: var(--text);
+}
+
+.accounts,
+.actions {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.account:first-child {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+.accountName {
+  font-size: 15px;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.balance {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: grid;
+  gap: 8px;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: var(--radius-m);
+  background: var(--surface-raised);
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+
+.action:hover {
+  background: #2c2c33;
+}
+
+.actionIcon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-s);
+  background: var(--bg);
+  color: var(--text-muted);
+}

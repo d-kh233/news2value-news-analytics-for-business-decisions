@@ -1,0 +1,80 @@
+.box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 18px 24px;
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.button {
+  min-height: 40px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--surface-raised);
+}
+
+.button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.reasons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex-basis: 100%;
+}
+
+.reasonsLabel {
+  margin-right: 4px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.reason {
+  min-height: 34px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.reason:hover {
+  background: var(--surface-raised);
+}
+
+.reason[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.note {
+  flex-basis: 100%;
+  font-size: 14px;
+  color: var(--text-muted);
+}

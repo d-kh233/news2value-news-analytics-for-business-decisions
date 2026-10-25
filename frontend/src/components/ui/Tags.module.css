@@ -1,0 +1,62 @@
+.chip,
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.fact {
+  color: var(--source-fact);
+  background: var(--source-fact-bg);
+}
+
+.bank {
+  color: var(--source-bank);
+  background: var(--source-bank-bg);
+}
+
+.ai {
+  color: var(--source-ai);
+  background: var(--source-ai-bg);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.impact-high {
+  color: var(--impact-high);
+  background: var(--impact-high-bg);
+}
+
+.impact-medium {
+  color: var(--impact-medium);
+  background: var(--impact-medium-bg);
+}
+
+.impact-low {
+  color: var(--impact-low);
+  background: var(--impact-low-bg);
+}
+
+.type-risk,
+.type-opportunity,
+.type-event {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.type-opportunity {
+  color: #8fe3b0;
+  border-color: rgba(143, 227, 176, 0.35);
+}

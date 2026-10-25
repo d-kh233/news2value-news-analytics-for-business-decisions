@@ -1,0 +1,128 @@
+.panel {
+  position: sticky;
+  top: calc(var(--header-height) + 24px);
+  align-self: flex-start;
+  width: 260px;
+  flex-shrink: 0;
+  padding: 20px;
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.summary {
+  font-size: 16px;
+  font-weight: 700;
+  list-style: none;
+  cursor: default;
+  pointer-events: none;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.search,
+.select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.search::placeholder {
+  color: #8a8a94;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent-strong);
+  cursor: pointer;
+}
+
+.reset {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reset:hover:not(:disabled) {
+  background: var(--surface-raised);
+}
+
+.reset:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+@media (max-width: 1000px) {
+  .panel {
+    position: static;
+    width: 100%;
+    padding: 16px;
+  }
+
+  .summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .summary::after {
+    content: '▾';
+    color: var(--text-muted);
+  }
+
+  .details[open] .summary::after {
+    content: '▴';
+  }
+}

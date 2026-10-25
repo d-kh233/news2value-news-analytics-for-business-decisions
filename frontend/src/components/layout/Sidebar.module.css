@@ -1,0 +1,186 @@
+.sidebar {
+  position: sticky;
+  top: var(--header-height);
+  align-self: flex-start;
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  height: calc(100vh - var(--header-height));
+  padding: 20px 12px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+}
+
+.link:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.active {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.divider {
+  height: 1px;
+  margin: 16px 12px;
+  background: var(--border);
+}
+
+.insights {
+  color: var(--text);
+  background: var(--accent-soft);
+  border: 1px solid rgba(239, 49, 36, 0.35);
+}
+
+.insights:hover {
+  background: rgba(239, 49, 36, 0.22);
+}
+
+.insightsText {
+  flex: 1;
+  font-weight: 600;
+}
+
+.badge {
+  min-width: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Кнопка «Меню» и короткая подпись нужны только на узком экране */
+.toggle,
+.shortLabel {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    position: sticky;
+    top: var(--header-height);
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: auto;
+    padding: 8px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    background: rgba(15, 15, 18, 0.96);
+    overflow: visible;
+  }
+
+  .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-s);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .toggle[aria-expanded='true'] {
+    background: var(--surface-raised);
+  }
+
+  .burger {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .burger span {
+    display: block;
+    width: 16px;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+  }
+
+  /* Выпадающий список пунктов меню */
+  .list {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 16px;
+    right: 16px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    background: var(--surface);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  }
+
+  .listOpen {
+    display: flex;
+  }
+
+  .divider {
+    display: none;
+  }
+
+  /* Точка входа в аналитику — рядом с кнопкой меню, видна всегда */
+  .insights {
+    order: -1;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .insightsText {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Совсем узкий экран (iPhone SE): короткая подпись вместо обрезанной */
+  @media (max-width: 420px) {
+    .longLabel {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    .shortLabel {
+      display: inline;
+    }
+  }
+}

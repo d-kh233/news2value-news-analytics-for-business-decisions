@@ -1,0 +1,146 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 24px;
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: border-color 0.15s;
+}
+
+.card:hover {
+  border-color: #3d3d47;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.date {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.title {
+  font-size: 19px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.titleLink {
+  text-decoration: none;
+}
+
+.titleLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.summary {
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.why {
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  background: var(--surface-raised);
+  font-size: 15px;
+}
+
+.whyLabel {
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--source-bank);
+}
+
+.bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.origins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.more:hover {
+  color: var(--source-bank);
+}
+
+.sources {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  font-size: 14px;
+}
+
+.sourcesSummary {
+  width: fit-content;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.sourcesSummary:hover {
+  color: var(--text);
+}
+
+.sourceList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sourceList li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.sourceKind {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.sourceLink {
+  color: var(--text);
+  text-underline-offset: 3px;
+}
+
+.sourceDate {
+  font-size: 12px;
+  color: var(--text-muted);
+}

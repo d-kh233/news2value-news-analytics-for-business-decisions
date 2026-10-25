@@ -1,0 +1,91 @@
+import { Link } from 'react-router';
+import type { Company, CompanyProfile, Insight } from '../../types';
+import { formatDate, formatRevenue, pluralEvents } from '../../utils/format';
+
+/** «КИТАЙ» → «Китай» (страны ВЭД в данных банка записаны заглавными). */
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+}
+import { impactLevel, insightOrigins } from '../../utils/insight';
+import { whyItMattersText } from '../../utils/labels';
+import { Icon } from '../ui/Icon';
+import { ImpactPill, OriginChip } from '../ui/Tags';
+import styles from './InsightsEntryCard.module.css';
+
+interface Props {
+  company: Company;
+  profile: CompanyProfile;
+  topInsights: Insight[];
+  total: number;
+}
+
+/** Главная точка входа в сервис на главном экране Альфа-Бизнеса (критерий 09). */
+export function InsightsEntryCard({ company, profile, topInsights, total }: Props) {
+  const countries = profile.foreign_trade_countries ?? [];
+  const profileFacts = [
+    company.industry,
+    formatRevenue(company),
+    ...profile.bank_products.slice(0, 2),
+    countries.length > 0 ? `ВЭД: ${countries.slice(0, 2).map(capitalize).join(', ')}` : profile.currency_risks[0],
+  ].filter(Boolean);
+
+  return (
+    <section className={styles.card} aria-labelledby="insights-title">
+      <div className={styles.head}>
+        <p className={styles.eyebrow}>
+          <Icon name="spark" size={16} />
+          Новостная аналитика · AI + эксперты Альфа-Банка
+        </p>
+        <h2 id="insights-title" className={styles.title}>
+          {total > 0
+            ? `${pluralEvents(total)}, которые могут повлиять на ваш бизнес`
+            : 'Узнайте, какие события на рынке повлияют на ваш бизнес'}
+        </h2>
+        <p className={styles.subtitle}>
+          Не пересказ новостей, а объяснение: что это значит именно для вашей компании, какие риски
+          и возможности, и что думает банк.
+        </p>
+        <p className={styles.profile}>
+          <span className={styles.profileLabel}>Подобрано под профиль:</span> {profileFacts.join(' · ')}
+        </p>
+      </div>
+
+      {topInsights.length > 0 ? (
+        <ol className={styles.list}>
+          {topInsights.map((insight) => (
+            <li key={insight.id} className={styles.item}>
+              <div className={styles.itemTop}>
+                <ImpactPill level={impactLevel(insight.importance)} />
+                <time className={styles.date} dateTime={insight.created_at}>
+                  {formatDate(insight.created_at)}
+                </time>
+              </div>
+              <h3 className={styles.itemTitle}>{insight.title}</h3>
+              <p className={styles.why}>
+                <span className={styles.whyLabel}>Почему важно вам: </span>
+                {whyItMattersText(insight)}
+              </p>
+              <div className={styles.sources} aria-label="Происхождение выводов">
+                {insightOrigins(insight).map((kind) => (
+                  <OriginChip key={kind} kind={kind} />
+                ))}
+              </div>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className={styles.empty}>
+          AI-агент ещё не собирал события для компании. Откройте аналитику и нажмите «Обновить анализ».
+        </p>
+      )}
+
+      <div className={styles.footer}>
+        <Link to="/analytics" className={styles.cta}>
+          Открыть аналитику
+          <Icon name="arrowRight" size={18} />
+        </Link>
+        <p className={styles.updated}>Каждый вывод со ссылкой на источник</p>
+      </div>
+    </section>
+  );
+}

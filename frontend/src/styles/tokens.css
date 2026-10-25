@@ -1,0 +1,44 @@
+/*
+  Дизайн-токены. Контраст текста к фону — не ниже 4.5:1
+  (ГОСТ Р 52872-2019, п. 1.4.3 / WCAG 2.1 AA).
+*/
+:root {
+  --bg: #0f0f12;
+  --surface: #1a1a1f;
+  --surface-raised: #232329;
+  --border: #2e2e36;
+
+  --text: #f2f2f4;
+  --text-muted: #a3a3ad;
+
+  /* Красный Альфы: --accent для декора и крупных элементов,
+     --accent-strong — фон кнопок с белым текстом (контраст 5.3:1) */
+  --accent: #ef3124;
+  --accent-strong: #d21e12;
+  --accent-soft: rgba(239, 49, 36, 0.14);
+
+  --impact-high: #ff8a80;
+  --impact-high-bg: rgba(255, 82, 70, 0.16);
+  --impact-medium: #ffcc66;
+  --impact-medium-bg: rgba(255, 196, 77, 0.14);
+  --impact-low: #b8b8c2;
+  --impact-low-bg: rgba(184, 184, 194, 0.12);
+
+  /* Метки происхождения вывода: факт / банк / AI */
+  --source-fact: #c9c9d1;
+  --source-fact-bg: rgba(201, 201, 209, 0.12);
+  --source-bank: #ff9a92;
+  --source-bank-bg: rgba(239, 49, 36, 0.16);
+  --source-ai: #b9a8ff;
+  --source-ai-bg: rgba(140, 115, 255, 0.18);
+
+  --focus-ring: #ffffff;
+
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 20px;
+
+  --font: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --header-height: 64px;
+  --sidebar-width: 248px;
+}
