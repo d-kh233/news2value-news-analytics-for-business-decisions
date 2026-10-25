@@ -48,7 +48,9 @@ def to_backend_insight(ins: Insight, insight_id: str, resolve_source: SourceReso
         seen.add(sid)
         doc = resolve_source(sid)
         if doc:
-            sources.append({k: doc[k] for k in ("title", "url", "published_at", "source_kind")})
+            # ПРАВКА feat/llm-fixes-daria: id источника (N:doc-12, A:BA-03:0) — поле id в схеме бэкенда
+            # уже есть; по нему бэкенд связывает источник с документом (расхождение 2)
+            sources.append({"id": sid, **{k: doc[k] for k in ("title", "url", "published_at", "source_kind")}})
 
     action = next((a.text for a in ins.actions if a.type == "action"), None) \
         or (ins.actions[0].text if ins.actions else "Отслеживать развитие ситуации")

@@ -41,7 +41,7 @@ def period_to_days(period: str | None) -> int:
     return PERIOD_DAYS[period]
 
 
-def _ensure_repo_on_path() -> None:
+def ensure_repo_on_path() -> None:
     here = Path(__file__).resolve()
     for root in here.parents[2:4]:
         if (root / "agent").is_dir() and (root / "llm").is_dir():
@@ -53,7 +53,7 @@ def _ensure_repo_on_path() -> None:
 
 def row_from_profile(company: dict[str, Any], profile: dict[str, Any]) -> dict[str, Any]:
     """Строка в формате df_Uid_data_hack из Company + CompanyProfile (моки и ручной ввод)."""
-    _ensure_repo_on_path()
+    ensure_repo_on_path()
     from agent.profiles import row_from_backend_profile
 
     return row_from_backend_profile(company, profile)
@@ -78,12 +78,30 @@ def row_from_db(company_id: str) -> dict[str, Any] | None:
         profile = profile_repo.get(session, company_id)
         if profile is not None and profile.manual_data:
             row["manual_data"] = dict(profile.manual_data)
+        row["counterparties"] = counterparties(session, company_id)
         return row
+
+
+def counterparties(session: Any, company_id: str) -> list[dict[str, Any]]:
+    """Крупнейшие покупатели и поставщики по платежам в формате llm.insight (P:<id>).
+
+    Агент передаёт их модели (agent/generator.py counterparties_of). Доли в оборотах нет: общий
+    оборот компании неизвестен, а доля среди пяти крупнейших ввела бы модель в заблуждение.
+    """
+    from app.repositories import profile_repo
+
+    out = []
+    for side, direction in (("buyers", "покупатель"), ("suppliers", "поставщик")):
+        for r in profile_repo.top_counterparties(session, company_id, side):
+            out.append(
+                {"id": f"P:{r['company_id']}", "direction": direction, "okved_name": r["industry"]}
+            )
+    return out
 
 
 def prompt_version() -> str:
     """Версия промптов LLM-части (llm/backend_adapter.py): по ней сбрасывается кэш llm_cache."""
-    _ensure_repo_on_path()
+    ensure_repo_on_path()
     from llm.backend_adapter import PROMPT_VERSION
 
     return PROMPT_VERSION
@@ -115,7 +133,7 @@ def generate_insights(
     """
     if period is not None:
         period_days = period_to_days(period)
-    _ensure_repo_on_path()
+    ensure_repo_on_path()
     from agent.orchestrator import Orchestrator
     from agent.schemas import CompanyProfile
 

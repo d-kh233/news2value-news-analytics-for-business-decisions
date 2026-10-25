@@ -3,8 +3,8 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, select, update
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import Text, cast, func, literal_column, select, update
+from sqlalchemy.dialects.postgresql import aggregate_order_by, insert
 from sqlalchemy.orm import Session
 
 from app.models import Document
@@ -92,14 +92,40 @@ def existing_ids(session: Session, ids: list[int]) -> set[int]:
 
 
 def news_fingerprint(session: Session) -> str:
-    """Отпечаток внешних новостей: «число:последний id» строк external_news со статусом ok.
+    """Отпечаток внешних новостей (external_news, ok): «число:последний id:хеш тегов».
 
-    Меняется, когда добавилась новость или документ стал ok, — по нему кэш get_relevant_news
-    понимает, что выборка могла измениться (services/llm_cache.py).
+    Меняется, когда добавилась новость, документ стал ok или поменялась разметка отраслей, —
+    по нему кэш get_relevant_news понимает, что выборка могла измениться (services/llm_cache.py).
     """
-    count, last = session.execute(
-        select(func.count(), func.max(Document.id)).where(
+    tags = func.md5(
+        func.coalesce(
+            func.string_agg(
+                cast(Document.tags, Text), aggregate_order_by(literal_column("','"), Document.id)
+            ),
+            "",
+        )
+    )
+    count, last, tags_hash = session.execute(
+        select(func.count(), func.max(Document.id), tags).where(
             Document.kind == "external_news", Document.status == "ok"
         )
     ).one()
-    return f"{count}:{last or 0}"
+    return f"{count}:{last or 0}:{tags_hash[:8]}"
+
+
+def get_many(session: Session, ids: list[int]) -> dict[int, Document]:
+    """Документы по id (источники инсайта); отсутствующих в ответе нет."""
+    if not ids:
+        return {}
+    return {d.id: d for d in session.scalars(select(Document).where(Document.id.in_(ids)))}
+
+
+def ok_documents(session: Session) -> list[Document]:
+    """Все документы с текстом — для разметки отраслей (документов сотни, читаем целиком)."""
+    return list(
+        session.scalars(select(Document).where(Document.status == "ok").order_by(Document.id))
+    )
+
+
+def set_tags(session: Session, doc_id: int, tags: list[str]) -> None:
+    session.execute(update(Document).where(Document.id == doc_id).values(tags=tags))

@@ -11,6 +11,7 @@ from app.ml_ports import agent_port
 from app.repositories import insight_repo, pipeline_run_repo, profile_repo
 from app.schemas.insight import Insight
 from app.services.refresh import document_ids, run_for_company
+from tests.conftest import add_news
 
 DRINKS = "U_2"  # Торговля оптовая напитками, ВЭД: Китай, Турция
 SOFTWARE = "U_4"  # Разработка программного обеспечения
@@ -155,22 +156,34 @@ def test_unknown_company_not_found(news, modes):
 # ---------- ML_MODE=real (агент в LLM_MODE=stub) ----------
 
 
-def test_real_agent_on_db_news_without_labels_is_empty_not_silent(news, modes):
-    """Неразмеченные новости из documents: прогон не падает, карточек 0, причина в pipeline_runs."""
-    modes("fake", "db")
-    run_for_company(DRINKS, "cfo", "week")
-    before = _snapshot(DRINKS)
+def test_real_agent_on_db_news_without_labels_labels_by_keywords(news, modes):
+    """Неразмеченные новости из documents (LLM_MODE=stub): агент размечает их по словарю
+    (agent/heuristic_extract.py, feat/llm-fixes-daria) и делает карточку, а не тихий 0."""
+    modes("real", "db")
+    result = run_for_company(DRINKS, "cfo", "week")
+    assert result.status == "done", result.error
+    rows = _saved(DRINKS)
+    assert news["drinks"] in {i for r in rows for i in r.document_ids}
+    run = _run_row(result.run_id)
+    marking = next(s for s in run.steps if s["name"] == "Разметка новостей")
+    assert marking["status"] == "skipped" and "LLM_MODE=stub" in marking["note"]
+    rules = next(s for s in run.steps if s["tool"] == "heuristic_extract")
+    assert rules["status"] == "fallback" and "по словарю" in rules["note"]
+    search = next(s for s in run.steps if s["name"] == "Поиск новостей")
+    assert search["output"]["source"] == "provider" and search["output"]["n"] == 3
+
+
+def test_real_agent_on_db_news_nothing_relevant_is_empty_with_numbers(db, bank_client, modes):
+    """Ни одна новость не подошла: empty, причина — числами (сколько размечено, лучший скор)."""
+    add_news(
+        db, 1, "Даниил Медведев стал финалистом турнира", "Теннисист вышел в финал турнира.", 21
+    )
     modes("real", "db")
     result = run_for_company(DRINKS, "cfo", "week")
     assert result.status == "empty" and result.insights == []
-    assert "NEWS_SOURCE=db" in result.error and "неразмеченные новости" in result.error
-    assert _snapshot(DRINKS) == before  # лента не опустела
-    run = _run_row(result.run_id)
-    assert run.status == "empty" and run.error == result.error
-    marking = next(s for s in run.steps if s["name"] == "Разметка новостей")
-    assert marking["status"] == "skipped" and "LLM_MODE=stub" in marking["note"]
-    search = next(s for s in run.steps if s["name"] == "Поиск новостей")
-    assert search["output"]["source"] == "provider" and search["output"]["n"] == 3
+    assert "NEWS_SOURCE=db" in result.error
+    assert "по ключевым словам 1" in result.error and "лучший скор" in result.error
+    assert _run_row(result.run_id).error == result.error
 
 
 def test_real_agent_on_mock_news_saves_cards(news, modes):
@@ -201,7 +214,7 @@ def test_period_to_days():
 
 
 def test_generate_insights_passes_period_days(news, monkeypatch):
-    agent_port._ensure_repo_on_path()
+    agent_port.ensure_repo_on_path()
     import agent.orchestrator as orchestrator
 
     seen = {}

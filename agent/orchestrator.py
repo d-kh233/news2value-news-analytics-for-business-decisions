@@ -12,7 +12,7 @@ from __future__ import annotations
 import time
 import uuid
 from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
@@ -23,6 +23,7 @@ from llm.okved.sensitivity import RU as FACTOR_RU
 
 from .config import Settings
 from .gateway import Gateway, LLMUnavailable
+from .heuristic_extract import HEURISTIC_VERSION, heuristic_event
 from .generator import InsightContext, generate, mark_insufficient, to_backend
 from .profiles import ProfileStore
 from .roles import Role, get_role
@@ -46,7 +47,10 @@ class Orchestrator:
     def __init__(self, settings: Settings | None = None, news_provider: Optional[NewsProvider] = None):
         self.s = settings or Settings.from_env()
         llm_client.CACHE_DIR = Path(self.s.llm_cache_dir)   # общий кэш call_json — его же читает replay
-        self.today = date.fromisoformat(self.s.today) if self.s.today else date.today()
+        # ПРАВКА feat/llm-fixes-daria: «сегодня» по UTC, как у news_provider бэкенда (расхождение 4
+        # из docs/ml-integration-notes.md); раньше date.today() — местная дата, около полуночи окна
+        # агента и бэкенда расходились на день. AGENT_TODAY по-прежнему главнее.
+        self.today = date.fromisoformat(self.s.today) if self.s.today else datetime.now(timezone.utc).date()
         self.tools = Tools(self.today, news_provider)
         self._profiles: ProfileStore | None = None
 
@@ -97,6 +101,7 @@ class Orchestrator:
         terms = company_terms(profile.row)
         sims = self._prefilter(trace, profile, news, terms)
         self._extract_missing(trace, news, sims, gw, llm_trace)
+        self._extract_heuristic(trace, news)   # ПРАВКА feat/llm-fixes-daria: см. _extract_heuristic
 
         with self._step(trace, "Скоринг и отбор", "score_news", n_candidates=len(news), top_k=top_k,
                         min_relevance=self.s.min_relevance, role=r.key) as st:
@@ -113,7 +118,7 @@ class Orchestrator:
                 dups.update(more)
                 st.status = "fallback" if selected else "skipped"
                 st.note = ("ни одна новость не прошла порог; показаны общие макрособытия" if selected
-                           else "ни одна новость не прошла порог релевантности")
+                           else _empty_note(ranked, self.s.min_relevance))
             chosen = {n.news_id for n, _ in selected}
             st.output = [{"news_id": n.news_id, "title": n.title, "score": b.score, "parts": b.parts,
                           "macro_sign": b.macro.get("sign"), "entities": [t.text for t in b.entities],
@@ -145,12 +150,19 @@ class Orchestrator:
         ]
 
     def _retrieve(self, trace: list[TraceStep], company_id: str, period: int) -> tuple[list[NewsItem], int]:
+        asked = period
         while True:
             with self._step(trace, "Поиск новостей", "get_relevant_news", company_id=company_id, period=period) as st:
                 news, src = self.tools.get_relevant_news(company_id, period)
                 st.output = {"n": len(news), "source": src, "ids": [n.news_id for n in news]}
                 if src.startswith("mock"):
                     st.status, st.note = "fallback", src
+                if period > asked:
+                    # ПРАВКА feat/llm-fixes-daria: расширение окна видно в трейсе (расхождение 5)
+                    st.status = "fallback"
+                    st.note = "; ".join(x for x in (
+                        st.note if src.startswith("mock") else None,
+                        f"за {asked} дн. новостей нет — окно расширено до {period} дн.") if x)
             if news or period >= MAX_PERIOD_DAYS:
                 return news, period
             period = min(period * 2, MAX_PERIOD_DAYS)   # повторный поиск с расширенным окном
@@ -190,7 +202,8 @@ class Orchestrator:
             return
         with self._step(trace, "Разметка новостей", "extract_event", n=len(todo)) as st:
             if self.s.llm_mode == "stub":
-                st.status, st.note = "skipped", "LLM_MODE=stub: неразмеченные новости не ранжируются"
+                # ПРАВКА feat/llm-fixes-daria: дальше их размечает _extract_heuristic, а не пропускает
+                st.status, st.note = "skipped", "LLM_MODE=stub: модель не вызывается, разметка по словарю (следующий шаг)"
                 return
             done, failed = [], []
             for n in todo[: self.s.max_extract_per_run]:
@@ -205,6 +218,25 @@ class Orchestrator:
                          "skipped_over_limit": len(todo) - len(done) - len(failed)}
             if failed:
                 st.status = "fallback"
+
+    def _extract_heuristic(self, trace: list[TraceStep], news: list[NewsItem]) -> None:
+        """ПРАВКА feat/llm-fixes-daria: новости, которые остались без разметки (stub, промах replay,
+        сбой модели, сверх лимита), размечаются по ключевым словам (agent/heuristic_extract.py).
+        Иначе их скор 0, и при NEWS_SOURCE=db прогон молча давал 0 карточек."""
+        todo = [n for n in news if n.event is None]
+        if not todo:
+            return
+        with self._step(trace, "Разметка по ключевым словам", "heuristic_extract", n=len(todo),
+                        version=HEURISTIC_VERSION) as st:
+            for n in todo:
+                n.event = heuristic_event(n)
+            labeled = [n for n in todo if not n.event.is_noise]
+            st.status = "fallback"
+            st.note = (f"{len(todo)} новостей без разметки моделью размечены по словарю (грубо: отрасль и "
+                       f"факторы без направления); шум: {len(todo) - len(labeled)}")
+            st.output = [{"news_id": n.news_id, "event_type": n.event.event_type.value,
+                          "okved_hints": n.event.okved_hints, "factors": [m.factor.value for m in n.event.factor_moves],
+                          "is_noise": n.event.is_noise} for n in todo]
 
     def _analyze(self, trace: list[TraceStep], gw: Gateway, llm_trace: list, profile: CompanyProfile,
                  news: NewsItem, b: ScoreBreakdown, role: Role, run_id: str, pool: list[NewsItem] = ()) -> dict:
@@ -323,6 +355,19 @@ class Orchestrator:
             (d / f"{result.run_id}.json").write_text(result.model_dump_json(indent=2), encoding="utf-8")
         except OSError:
             pass   # в контейнере с read-only файловой системой прогон не сохраняем — это не ошибка агента
+
+
+def _empty_note(ranked: list, threshold: float) -> str:
+    """ПРАВКА feat/llm-fixes-daria: почему отбор пуст — числами, а не одной фразой (иначе 0 карточек
+    в pipeline_runs выглядел как сбой без причины)."""
+    total = len(ranked)
+    by_model = sum(1 for n, _ in ranked if n.event and n.event.model != "rules")
+    by_rules = sum(1 for n, _ in ranked if n.event and n.event.model == "rules")
+    noise = sum(1 for n, _ in ranked if n.event and n.event.is_noise)
+    best = max((b.score for _, b in ranked), default=0.0)
+    return (f"ни одна новость не прошла порог релевантности {threshold}: новостей {total}, размечено моделью "
+            f"{by_model}, по ключевым словам {by_rules}, без разметки {total - by_model - by_rules}, шум {noise}; "
+            f"лучший скор {best:.2f}")
 
 
 def _query_of(step: dict) -> str:

@@ -95,9 +95,12 @@ def finalize(ins: Insight, ctx: InsightContext) -> list[str]:
 def _interpret(ctx: InsightContext, gw: Gateway, model: str, llm_trace: list, use_critic: bool):
     """→ (Insight, review | None). Критик не ответил (нет в кэше replay, лимит, кривой JSON) — берём
     карточку без критика: тот же первый вызов уже в кэше call_json, повторно он не оплачивается."""
+    # ПРАВКА feat/llm-fixes-daria: контрагенты из платежей (расхождение 7) — бэкенд кладёт их в строку
+    # профиля (COUNTERPARTIES, backend/app/ml_ports/agent_port.py); llm.insight уже умеет их показывать
+    # модели как P:<id>. Без бэкенда (CLI на CSV) колонки нет — список пустой, как раньше.
     kw = dict(bank_chunks=[t.as_chunk() for t in ctx.theses], related_news=ctx.related_news(),
               role=ctx.role.key, complete=gw.complete, model=model, trace=llm_trace,
-              extra_check=strict_check(ctx))
+              extra_check=strict_check(ctx), counterparties=counterparties_of(ctx.profile))
     review = None
     if use_critic:
         try:
@@ -107,6 +110,16 @@ def _interpret(ctx: InsightContext, gw: Gateway, model: str, llm_trace: list, us
             review = {"version": CRITIC_VERSION, "verdict": "skipped", "error": str(e)[:300]}
     ins, _impact = interpret(ctx.news.event, ctx.news.text, ctx.profile.row, **kw)
     return ins, review
+
+
+def counterparties_of(profile: CompanyProfile) -> list[dict]:
+    """ПРАВКА feat/llm-fixes-daria: COUNTERPARTIES из строки профиля -> формат llm.insight.build_context
+    [{id, direction, okved_name, share_pct}]. Битые записи пропускаем."""
+    out = []
+    for cp in profile.row.get("COUNTERPARTIES") or []:
+        if isinstance(cp, dict) and cp.get("id"):
+            out.append({k: cp.get(k) for k in ("id", "direction", "okved_name", "share_pct")})
+    return out
 
 
 def generate(ctx: InsightContext, gw: Gateway, use_smart: bool, llm_trace: list,

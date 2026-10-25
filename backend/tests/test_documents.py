@@ -159,7 +159,7 @@ def test_news_provider_window_and_format(news_db):
 def test_news_provider_items_parse_as_agent_news(news_db):
     """Элементы читает агент: agent.schemas.NewsItem.from_dict и Tools.get_relevant_news."""
     doc_id = _add(news_db, 1, _utc(2026, 10, 21, 7, 15))
-    agent_port._ensure_repo_on_path()
+    agent_port.ensure_repo_on_path()
     from datetime import date
 
     from agent.schemas import NewsItem

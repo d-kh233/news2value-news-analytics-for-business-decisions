@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 from app.ingestion import pdf_parser, rss_parser
 from app.ingestion.normalizer import Draft, normalize, parse_offset
 from app.ingestion.rss_parser import PoliteClient
+from app.ml_ports import tagging_port
 from app.repositories import document_repo
 
 logger = logging.getLogger(__name__)
@@ -136,6 +137,11 @@ def _already_ok(session: Session, url: str) -> bool:
 
 def _store(session: Session, report: SourceReport, draft: Draft, tz: timezone) -> None:
     values = normalize(draft, tz)
+    if values["status"] == "ok":
+        # отрасли по ключевым словам (okved:NN) дописываются к тегам источника
+        values["tags"] = tagging_port.with_industry_tags(
+            values["tags"], values["title"], values["text"]
+        )
     outcome = _save(session, values)
     session.commit()
     setattr(report, outcome, getattr(report, outcome) + 1)

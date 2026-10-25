@@ -2,6 +2,8 @@
 
 Обновлено 25.10.2026. Код агента (`agent/`) и LLM-части (`llm/`) бэкенд не меняет. Всё, что нужно поправить там, собрано в разделе «Расхождения» для тимлида и промпт-инженера.
 
+**Исключение — ветка `feat/llm-fixes-daria`:** в ней бэкенд временно сделал часть ML-работы (дайджест, ответ на вопрос, разметка новостей по отраслям, разметка без модели) и закрыл часть расхождений ниже. Что сделано и что осталось — в [llm-fixes-handoff.md](llm-fixes-handoff.md), раздел 5.
+
 ## Как бэкенд вызывает агента
 
 ```
@@ -56,5 +58,5 @@ scripts/run_pipeline.py --company U_10 --role cfo --period week
 
 ## Что бэкенд не делал (по договорённости)
 
-- Не трогал `agent/` и `llm/`, не вызывал модель напрямую.
-- Эндпоинты инсайтов (B1) по-прежнему на моках (`mock_store`), переход на таблицу `insights` — в B7. `POST /companies/{id}/insights/refresh` с B6 — фоновая задача: таблица `jobs`, выполняет сервис `worker` (`services/job_service.py` → `refresh.run_for_company`), карточки пишутся в `insights`.
+- В `test-backend` не трогал `agent/` и `llm/`, не вызывал модель напрямую (правки ветки `feat/llm-fixes-daria` — см. [llm-fixes-handoff.md](llm-fixes-handoff.md)).
+- `POST /companies/{id}/insights/refresh` с B6 — фоновая задача: таблица `jobs`, выполняет сервис `worker` (`services/job_service.py` → `refresh.run_for_company`), карточки пишутся в `insights`. С B7 лента, карточка и дайджест читают `insights` (моки — только при `USE_MOCKS=true`).
