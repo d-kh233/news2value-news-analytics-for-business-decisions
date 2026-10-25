@@ -9,7 +9,7 @@
 - Адрес локально: `http://localhost:8000`
 - Интерактивная документация (можно нажимать и пробовать): `http://localhost:8000/docs`
 - Полная машинная схема: [openapi.json](openapi.json) (из неё можно сгенерировать типы для TypeScript)
-- Авторизации пока нет (вход — модуль B8+B9). Все запросы идут от пользователя `demo`, у него права администратора. Если на сервере включить `AUTH_ENABLED=true` до B8+B9, эндпоинты вопросов и оценок ответят 401.
+- Вход (B8+B9): `POST /auth/login` → токен, дальше заголовок `Authorization: Bearer <токен>` (см. раздел «Вход и права»). По умолчанию на сервере `AUTH_ENABLED=false`: токен не нужен, все запросы идут от пользователя `demo` с правами администратора.
 - CORS (разрешение браузеру ходить в API с другого адреса) включён для `http://localhost:3000` и `http://localhost:5173`. Другие адреса добавляются в настройке `CORS_ORIGINS`.
 
 **Демо-компании** с готовыми инсайтами (после `scripts/seed_demo.py`): `U_67064` (строительство жилья), `U_19717` (сеть АЗС), `U_16346` (интернет-торговля). У остальных компаний лента пустая, пока для них не нажали «Обновить» (`refresh`): `GET /companies/{id}/insights` отвечает 200 с `"items": []` и подсказкой в поле `hint`. Это нормальное состояние, а не ошибка.
@@ -32,8 +32,9 @@
 | `POST /insights/{id}/feedback` | 201 — первая оценка пользователя на инсайт, 200 — оценка обновлена |
 | `GET /insights/{id}/feedback` | 200 и оценка или `null`, если пользователь ещё не оценивал |
 | `DELETE /companies/{id}` | 204, тела нет; 409 — компания из данных банка |
-| Инсайт чужой компании; `/feedback/stats` не администратором | 403 |
-| Авторизация включена, а пользователь не определён | 401 |
+| Чужая компания (её профиль, лента, инсайт, задача); служебные эндпоинты и `POST`/`DELETE /companies` не администратором | 403 |
+| Вход включён (`AUTH_ENABLED=true`), а токена нет, он неверный или истёк | 401 |
+| `POST /auth/login`: неверный email или пароль | 401 |
 | Несуществующий id | 404 |
 | Неверные параметры или тело запроса | 422 |
 | Неожиданный сбой сервера | 500 |
@@ -61,7 +62,7 @@
 {"error": "код_ошибки", "detail": "понятное описание"}
 ```
 
-Коды: `unauthorized` (401), `forbidden` (403), `not_found` (404), `conflict` (409), `validation_error` (422), `method_not_allowed` (405), `internal_error` (500). Текст ошибки показывать пользователю не нужно — ориентируйтесь на код ответа и поле `error`.
+Коды: `unauthorized` (401), `forbidden` (403), `not_found` (404), `conflict` (409), `validation_error` (422), `method_not_allowed` (405), `internal_error` (500), `service_unavailable` (503 — на сервере не настроен вход). Текст ошибки показывать пользователю не нужно — ориентируйтесь на код ответа и поле `error`.
 
 Пример 404:
 ```json
@@ -83,6 +84,38 @@
 Следующие схемы не входили в исходный список от лида, их добавили для ask, feedback и общих правил: `AskRequest`, `AskResult`, `FeedbackRequest`, `Feedback`, `ErrorResponse`. Кроме них добавлены вспомогательные `CompanyCreate` (тело `POST /companies`), `JobAccepted` (ответ 202 `{job_id}`) и `Page` (форма списка). Поле `manual_data` в `CompanyProfile` тоже добавлено по отдельному решению (см. «Профиль компании»). Также добавлен эндпоинт `GET /jobs/{job_id}/result`. Для агента (22.10) добавлены параметр `role` у `refresh`, необязательные поля инсайта (`details`, `used_profile_fields`, `role`, `generated_by`, `prompt_version`) и `GET /jobs/{job_id}/run`. В модуле B3 (24.10) добавлены необязательные поля `revenue_known` и `source` в `Company`, параметр поиска `q` у `GET /companies`, ответ 409 у `DELETE`, поля профиля из данных банка и `field_sources`. Старые поля не менялись. В модуле B4 (24.10) добавлен служебный `GET /documents` (см. последний раздел) — фронтенду он не нужен.
 
 **B7 и B7b (25.10), только добавления:** параметр `industry` и поля `hint`, `refresh_job_id` у ленты; поле `question_id` в ответе ask; эндпоинты `GET /insights/{id}/questions`, `GET /insights/{id}/feedback`, `GET /feedback/stats`; поля `reason` и `updated_at` у оценки; коды 401, 403 и 409 (лимит вопросов). Изменился только порядок ленты: раньше «свежие первыми», теперь «важные первыми». Совместимость с B1 проверяет тест `backend/tests/test_openapi_compat.py`. **Если вы генерируете типы TypeScript из `openapi.json`:** схема ответа ленты теперь называется `InsightPage` (была `Page_Insight_`; поля те же плюс два новых), ответ ask — `AskAccepted` (`JobAccepted` плюс `question_id`).
+
+**B8+B9 (25.10), только добавления:** `POST /auth/login`, `GET /auth/me`, `GET /insights/{id}/trace`; коды 401 и 403 у всех эндпоинтов компаний, инсайтов и задач; 503 у входа. Без включённого входа всё работает как раньше.
+
+---
+
+## Вход и права (B8+B9)
+
+### POST /auth/login — вход (200)
+```json
+{"email": "cfo.stroy@news2value.demo", "password": "..."}
+```
+Ответ:
+```json
+{
+  "access_token": "eyJhbGciOi...",
+  "token_type": "bearer",
+  "expires_in": 43200,
+  "user": {"id": "3", "email": "cfo.stroy@news2value.demo", "role": "cfo", "company_id": "U_67064", "is_admin": false, "auth_enabled": true}
+}
+```
+Токен передаётся во всех запросах: `Authorization: Bearer <access_token>`, живёт `expires_in` секунд (12 часов). На неверный email и на неверный пароль ответ одинаковый: 401 `Неверный email или пароль`. Регистрации и восстановления пароля нет — тестовых пользователей создаёт сервер (см. README).
+
+### GET /auth/me — кто я (200)
+Тот же объект, что `user` в ответе входа. При `AUTH_ENABLED=false` — `{"id": "demo", "role": "admin", "is_admin": true, "auth_enabled": false, ...}`. По `auth_enabled` фронтенд понимает, показывать ли форму входа.
+
+### Права
+- Роли: `owner`, `ceo`, `cfo`, `treasurer` — видят только свою компанию (`company_id`); `admin` — все компании.
+- `GET /companies` у не-администратора возвращает только его компанию.
+- Профиль, лента, дайджест, refresh чужой компании, её инсайт (карточка, трассировка, вопросы, оценка) и задача (`/jobs/{id}`) → 403.
+- Только admin: `POST /companies`, `DELETE /companies/{id}`, `GET /documents`, `GET /feedback/stats`.
+- `refresh` без `role` берёт роль пользователя (у admin — `ceo`).
+- Открыты всегда: `/health`, `/docs`, `/openapi.json`, `POST /auth/login`.
 
 ---
 
@@ -287,6 +320,28 @@
 
 Метки «факт / банк / ИИ» для интерфейса — это `origin` в `details`. Источник утверждения находится по `source_ids`: `N:<id>` — новость, `A:<док>:<фрагмент>` — аналитика банка, обе есть в `sources`.
 
+### GET /insights/{id}/trace — как сделан инсайт (B8+B9)
+Запуск `refresh`, который создал инсайт, его шаги со временем каждого (`duration_ms`), источники (у собранных документов — `document_id` и `source_name`), признаки профиля и версия промптов. Шаги — те же, что в `GET /jobs/{job_id}/run`, но доступны и без `job_id`. `used_profile_fields` и `prompt_version` равны `null`, если генератор их не отдал. `generated_by`: `llm` — модель, `rules` — шаблоны агента, `fake` — заглушка `ML_MODE=fake`. `run_id` — `null` у моковых инсайтов (`USE_MOCKS=true`) и у инсайтов, запуск которых удалён. 404 — нет инсайта, 403 — чужая компания.
+```json
+{
+  "insight_id": "U_67064-doc-12-cfo",
+  "company_id": "U_67064",
+  "run_id": 41,
+  "generator_run_id": "U_67064-cfo-20261025-101500-1a2b",
+  "run_status": "done",
+  "role": "cfo",
+  "llm_mode": "stub",
+  "started_at": "2026-10-25T10:15:00Z",
+  "finished_at": "2026-10-25T10:15:03Z",
+  "duration_ms": 3120,
+  "steps": [{"step": 1, "name": "Профиль компании", "tool": "get_company_profile", "status": "ok", "duration_ms": 4, "note": null, "input": {}, "output": {}}],
+  "sources": [{"id": "N:doc-12", "document_id": 12, "title": "...", "url": "https://...", "published_at": "2026-10-24T07:00:00Z", "source_kind": "external", "source_name": "interfax"}],
+  "used_profile_fields": ["F:MAINOKVED_NAME", "F:REGION"],
+  "prompt_version": "insight@v3",
+  "generated_by": "rules"
+}
+```
+
 ---
 
 ## Дайджест
@@ -317,7 +372,7 @@
 
 Новые инсайты сразу видны в `GET .../insights` и в дайджесте. Моковые компании `c-001`…`c-003` в БД не хранятся, и `refresh` для них возвращает 404.
 
-Тело не нужно. Параметр `role` (необязательный, по умолчанию `ceo`) — роль читателя: меняет и отбор новостей, и акценты в тексте. Значения: `owner` (собственник), `ceo` (гендиректор), `cfo` (финдиректор), `treasurer` (казначейство), `accountant` (главный бухгалтер), `procurement` (закупки и логистика). Для переключателя роли: `POST .../refresh?role=cfo` → ждать `done` → заново `GET .../insights`.
+Тело не нужно. Параметр `role` (необязательный; по умолчанию роль вошедшего пользователя, у admin и при выключенном входе — `ceo`) — роль читателя: меняет и отбор новостей, и акценты в тексте. Значения: `owner` (собственник), `ceo` (гендиректор), `cfo` (финдиректор), `treasurer` (казначейство), `accountant` (главный бухгалтер), `procurement` (закупки и логистика). Для переключателя роли: `POST .../refresh?role=cfo` → ждать `done` → заново `GET .../insights`.
 
 404, если нет компании; 422, если роль неизвестна.
 ```json
