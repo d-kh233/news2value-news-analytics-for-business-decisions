@@ -130,7 +130,34 @@
     display: none;
   }
 
+  /* Правая часть сжимается, чтобы шапка не была шире экрана телефона */
+  .right {
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  .company {
+    min-width: 0;
+  }
+
   .select {
-    max-width: 170px;
+    width: 100%;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 420px) {
+  .brandCaption,
+  .avatar {
+    display: none;
+  }
+
+  .header {
+    gap: 12px;
   }
 }

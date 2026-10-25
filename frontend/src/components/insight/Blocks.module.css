@@ -45,7 +45,7 @@
 
 .statement {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-columns: 124px minmax(0, 1fr);
   align-items: start;
   gap: 12px;
 }

@@ -55,17 +55,18 @@ export function HomePage() {
         <h1 className={styles.title}>{greeting}</h1>
       </header>
 
+      {/* Сначала привычное интернет-банку — счета и действия, затем аналитика по компании */}
+      <div className={styles.grid}>
+        <AccountsWidget accounts={accounts} />
+        <QuickActions />
+      </div>
+
       <InsightsEntryCard
         company={company}
         profile={profile}
         topInsights={topByImportance(insights.items, 3)}
         total={insights.total}
       />
-
-      <div className={styles.grid}>
-        <AccountsWidget accounts={accounts} />
-        <QuickActions />
-      </div>
     </div>
   );
 }

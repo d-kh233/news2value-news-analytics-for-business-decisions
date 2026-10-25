@@ -75,39 +75,112 @@
   text-align: center;
 }
 
+/* Кнопка «Меню» и короткая подпись нужны только на узком экране */
+.toggle,
+.shortLabel {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .sidebar {
-    position: static;
+    position: sticky;
+    top: var(--header-height);
+    z-index: 9;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
     width: 100%;
     height: auto;
     padding: 8px 16px;
     border-right: 0;
     border-bottom: 1px solid var(--border);
-    overflow-x: auto;
+    background: rgba(15, 15, 18, 0.96);
+    overflow: visible;
   }
 
+  .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-s);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .toggle[aria-expanded='true'] {
+    background: var(--surface-raised);
+  }
+
+  .burger {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .burger span {
+    display: block;
+    width: 16px;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+  }
+
+  /* Выпадающий список пунктов меню */
   .list {
-    flex-direction: row;
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 16px;
+    right: 16px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    background: var(--surface);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
   }
 
-  .link {
-    white-space: nowrap;
+  .listOpen {
+    display: flex;
   }
 
   .divider {
     display: none;
   }
 
-  /* На узком экране точка входа идёт первой, чтобы не уезжать за край прокрутки */
+  /* Точка входа в аналитику — рядом с кнопкой меню, видна всегда */
   .insights {
     order: -1;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 0;
   }
 
   .insightsText {
-    flex: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Совсем узкий экран (iPhone SE): короткая подпись вместо обрезанной */
+  @media (max-width: 420px) {
+    .longLabel {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    .shortLabel {
+      display: inline;
+    }
   }
 }

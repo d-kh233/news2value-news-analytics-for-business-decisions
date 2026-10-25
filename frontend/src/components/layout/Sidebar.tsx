@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router';
+import { useEffect, useState } from 'react';
+import { NavLink, useLocation } from 'react-router';
 import { Icon, type IconName } from '../ui/Icon';
 import styles from './Sidebar.module.css';
 
@@ -14,10 +15,41 @@ function linkClass({ isActive }: { isActive: boolean }) {
   return isActive ? `${styles.link} ${styles.active}` : styles.link;
 }
 
+/**
+ * Основное меню. На широком экране — колонка слева, на телефоне — кнопка «Меню»
+ * с выпадающим списком. «Новостная аналитика» видна всегда (критерий 09).
+ */
 export function Sidebar({ insightsCount }: { insightsCount: number }) {
+  const [open, setOpen] = useState(false);
+  const location = useLocation();
+
+  // Закрываем выпадающее меню после перехода и по Escape
+  useEffect(() => setOpen(false), [location.pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
   return (
     <nav className={styles.sidebar} aria-label="Основное меню">
-      <ul className={styles.list}>
+      <button
+        type="button"
+        className={styles.toggle}
+        aria-expanded={open}
+        aria-controls="main-menu"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className={styles.burger} aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </span>
+        Меню
+      </button>
+
+      <ul id="main-menu" className={`${styles.list} ${open ? styles.listOpen : ''}`}>
         {items.map((item) => (
           <li key={item.to}>
             <NavLink to={item.to} end={item.to === '/'} className={linkClass}>
@@ -28,11 +60,16 @@ export function Sidebar({ insightsCount }: { insightsCount: number }) {
         ))}
       </ul>
 
-      {/* Постоянная точка входа в сервис — видна в меню на любом экране (критерий 09) */}
+      {/* Постоянная точка входа в сервис — видна на любом экране (критерий 09) */}
       <div className={styles.divider} role="presentation" />
       <NavLink to="/analytics" className={({ isActive }) => `${linkClass({ isActive })} ${styles.insights}`}>
         <Icon name="spark" />
-        <span className={styles.insightsText}>Новостная аналитика</span>
+        <span className={styles.insightsText}>
+          <span className={styles.longLabel}>Новостная аналитика</span>
+          <span className={styles.shortLabel} aria-hidden="true">
+            Аналитика
+          </span>
+        </span>
         {insightsCount > 0 ? (
           <span className={styles.badge}>
             {insightsCount}
