@@ -1,0 +1,18 @@
+# Обратный прокси для docker-compose.prod.yml: всё, что пришло на сайт, — в API (api:8000).
+# SITE_ADDRESS — из DOMAIN в .env: домен (api.example.ru) — HTTPS с сертификатом Let's Encrypt,
+# по умолчанию :80 — обычный http по IP сервера.
+{$SITE_ADDRESS::80} {
+	encode gzip
+	reverse_proxy api:8000 {
+		# ответ агента бывает долгим, но refresh — фоновая задача, так что хватает минуты
+		transport http {
+			read_timeout 120s
+		}
+	}
+	# не сообщать наружу, какой сервер стоит
+	header -Server
+	log {
+		output stdout
+		format console
+	}
+}
