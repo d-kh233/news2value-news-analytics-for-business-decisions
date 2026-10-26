@@ -5,11 +5,14 @@ ML_MODE=fake|real и NEWS_SOURCE=mock|db задаются фикстурой mod
 """
 
 import pytest
+from sqlalchemy import text
 
 from app.core.errors import NotFoundError
+from app.ingestion.runner import IngestReport
 from app.ml_ports import agent_port
 from app.repositories import insight_repo, pipeline_run_repo, profile_repo
 from app.schemas.insight import Insight
+from app.services import refresh
 from app.services.refresh import document_ids, run_for_company
 from tests.conftest import add_news
 
@@ -252,3 +255,70 @@ def test_document_ids_from_card():
         "sources": [{"id": "N:doc-12"}, {"id": "N:M01"}, {"id": "A:BA-1:0"}],
     }
     assert document_ids(card) == [7, 12]
+
+
+# ---------- свежие новости перед refresh (AUTO_INGEST_HOURS) ----------
+
+
+@pytest.fixture
+def ingest_calls(monkeypatch) -> list[bool]:
+    """Подмена сбора: в сеть не ходит, запоминает pdf= каждого вызова."""
+    calls: list[bool] = []
+
+    def fake_ingestion(engine, config, *, pdf=True, rss=True, client=None):
+        calls.append(pdf)
+        return IngestReport()
+
+    monkeypatch.setattr(refresh, "_last_ingest_try", None)
+    monkeypatch.setattr(refresh, "run_ingestion", fake_ingestion)
+    return calls
+
+
+def _age_news(db, hours: int) -> None:
+    with db.begin() as conn:
+        conn.execute(
+            text("UPDATE documents SET fetched_at = now() - make_interval(hours => :h)"),
+            {"h": hours},
+        )
+
+
+def test_auto_ingest_off_by_default(db, news, modes, ingest_calls):
+    modes("fake", "db")
+    _age_news(db, 100)
+    assert run_for_company(DRINKS, "cfo", "week").status == "done"
+    assert ingest_calls == []
+
+
+def test_auto_ingest_when_news_stale(db, news, modes, env, ingest_calls):
+    modes("fake", "db")
+    env(AUTO_INGEST_HOURS=3)
+    _age_news(db, 5)
+    assert run_for_company(DRINKS, "cfo", "week").status == "done"
+    assert ingest_calls == [False]  # только RSS, PDF не трогаем
+    # в лентах ничего нового — fetched_at прежний, но повтор в пределах 3 часов не собирает
+    run_for_company(DRINKS, "cfo", "week")
+    assert ingest_calls == [False]
+
+
+def test_auto_ingest_skips_fresh_news_and_mock_source(db, news, modes, env, ingest_calls):
+    env(AUTO_INGEST_HOURS=3)
+    modes("fake", "db")
+    run_for_company(DRINKS, "cfo", "week")  # новости только что собраны
+    modes("fake", "mock")
+    _age_news(db, 5)
+    run_for_company(DRINKS, "cfo", "week")  # новости агенту не из базы
+    assert ingest_calls == []
+
+
+def test_auto_ingest_failure_keeps_refresh(db, news, modes, env, monkeypatch):
+    def broken(*args, **kwargs):
+        raise RuntimeError("нет сети")
+
+    monkeypatch.setattr(refresh, "_last_ingest_try", None)
+    monkeypatch.setattr(refresh, "run_ingestion", broken)
+    modes("fake", "db")
+    env(AUTO_INGEST_HOURS=3)
+    _age_news(db, 5)
+    result = run_for_company(DRINKS, "cfo", "week")
+    assert result.status == "done", result.error
+    assert [r.document_ids for r in _saved(DRINKS)] == [[news["drinks"]]]

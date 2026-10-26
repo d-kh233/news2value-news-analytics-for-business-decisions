@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     ml_mode: Literal["fake", "real"] = "real"
     # «Сегодня» агента (YYYY-MM-DD); пусто — текущая дата. Им же пользуется news_provider
     agent_today: str = ""
+    # NEWS_SOURCE=db: если новости собирались дольше стольких часов назад, refresh сначала
+    # собирает RSS из config/sources.yaml. 0 — не собирать (новости только через ingest.py)
+    auto_ingest_hours: float = 0.0
     # Кэш ответов generate_insight / get_relevant_news в таблице llm_cache (1 — включён)
     cache_enabled: bool = False
     # Пауза заглушки (ML_MODE=fake) на каждую карточку, секунды — имитация ответа модели

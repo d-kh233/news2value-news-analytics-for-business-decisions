@@ -84,6 +84,13 @@ def recent_news(session: Session, since: datetime, before: datetime, limit: int)
     return list(session.scalars(stmt))
 
 
+def last_news_fetched_at(session: Session) -> datetime | None:
+    """Когда собрана самая свежая внешняя новость (None — новостей нет)."""
+    return session.scalar(
+        select(func.max(Document.fetched_at)).where(Document.kind == "external_news")
+    )
+
+
 def existing_ids(session: Session, ids: list[int]) -> set[int]:
     """Какие из id есть в documents (проверка ссылок инсайтов на документы)."""
     if not ids:

@@ -1,6 +1,7 @@
 """Обновление инсайтов компании из БД (B5): вызвать генератор, сохранить итог, записать запуск.
 
 Многошаговую оркестрацию делает агент (agent/, зона тимлида), здесь её нет. refresh только:
+  0. при AUTO_INGEST_HOURS > 0 и NEWS_SOURCE=db собирает RSS, если новости устарели;
   1. создаёт запись pipeline_runs (status=running);
   2. вызывает генератор по ML_MODE (ml_ports/loader): real — агент через real.py (таймаут,
      повтор, MLError), fake — fake_port (заглушка);
@@ -17,13 +18,17 @@
 import json
 import logging
 import re
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from app.core.config import get_settings
-from app.core.db import get_session
+from app.core.db import get_engine, get_session
 from app.core.errors import NotFoundError
+from app.ingestion.runner import load_sources, run_ingestion
 from app.ml_ports import loader
 from app.repositories import document_repo, insight_repo, pipeline_run_repo
 from app.schemas.insight import Insight
@@ -35,6 +40,11 @@ ERROR_MAX_LEN = 2000
 # поля сводки генератора, которые хранятся в pipeline_runs.summary (трейс — в steps)
 SUMMARY_KEYS = ("run_id", "role", "llm_mode", "plan", "llm_usage")
 _DOC_REF = re.compile(r"N:doc-(\d+)\b")
+# app/services -> корень репозитория; в контейнере /app/app/services -> / (там /config)
+SOURCES_PATH = Path(__file__).resolve().parents[3] / "config" / "sources.yaml"
+# когда этот процесс последний раз пробовал собрать новости (time.monotonic): если в лентах
+# нет нового, fetched_at не меняется — без этой отметки сбор повторялся бы на каждом refresh
+_last_ingest_try: float | None = None
 
 
 @dataclass
@@ -98,6 +108,39 @@ def _validate(company_id: str, cards: list[dict[str, Any]]) -> list[tuple[Insigh
     return out
 
 
+def ingest_if_stale() -> None:
+    """Свежие новости перед refresh: RSS из sources.yaml, если последний сбор старше
+    AUTO_INGEST_HOURS (только NEWS_SOURCE=db). Сбой сбора не останавливает refresh —
+    агент работает на новостях, которые уже есть в базе."""
+    global _last_ingest_try
+    settings = get_settings()
+    if settings.news_source != "db" or settings.auto_ingest_hours <= 0:
+        return
+    max_age = timedelta(hours=settings.auto_ingest_hours)
+    if (
+        _last_ingest_try is not None
+        and time.monotonic() - _last_ingest_try < max_age.total_seconds()
+    ):
+        return
+    with get_session() as session:
+        last = document_repo.last_news_fetched_at(session)
+    if last is not None and datetime.now(UTC) - last < max_age:
+        return
+    _last_ingest_try = time.monotonic()
+    started = time.monotonic()
+    try:
+        report = run_ingestion(get_engine(), load_sources(SOURCES_PATH), pdf=False)
+    except Exception:  # noqa: BLE001 — refresh важнее свежести ленты
+        logger.exception("сбор новостей перед refresh не удался, новости — из базы")
+        return
+    logger.info(
+        "сбор новостей перед refresh: новых %d, упало источников %d, %.0f с",
+        report.total("new"),
+        len(report.failed_sources),
+        time.monotonic() - started,
+    )
+
+
 def _finish(
     run_id: int,
     status: str,
@@ -126,6 +169,7 @@ def run_for_company(
     """
     if not company_service.company_exists(company_id):
         raise NotFoundError(f"Компания {company_id} не найдена")
+    ingest_if_stale()
     settings = get_settings()
     with get_session() as session:
         run_id = pipeline_run_repo.create(session, company_id)
