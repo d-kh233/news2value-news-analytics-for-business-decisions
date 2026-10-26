@@ -1,0 +1,84 @@
+{
+ "cost_rub_est": 24.9725,
+ "tokens": 49945,
+ "log": [
+  {
+   "ts": "06:49:14",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3861,
+   "who": ""
+  },
+  {
+   "ts": "06:49:20",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3783,
+   "who": ""
+  },
+  {
+   "ts": "06:49:25",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3736,
+   "who": ""
+  },
+  {
+   "ts": "06:49:34",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 4085,
+   "who": ""
+  },
+  {
+   "ts": "06:49:42",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 4012,
+   "who": ""
+  },
+  {
+   "ts": "06:49:51",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 4038,
+   "who": ""
+  },
+  {
+   "ts": "06:49:57",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3910,
+   "who": ""
+  },
+  {
+   "ts": "06:50:11",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3792,
+   "who": ""
+  },
+  {
+   "ts": "06:50:23",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3806,
+   "who": ""
+  },
+  {
+   "ts": "06:50:29",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3732,
+   "who": ""
+  },
+  {
+   "ts": "06:50:36",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3840,
+   "who": ""
+  },
+  {
+   "ts": "06:50:49",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3682,
+   "who": ""
+  },
+  {
+   "ts": "06:51:00",
+   "model": "google/gemma-4-26b-a4b-it",
+   "tokens": 3668,
+   "who": ""
+  }
+ ]
+}

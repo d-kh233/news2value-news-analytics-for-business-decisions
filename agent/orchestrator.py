@@ -9,8 +9,10 @@
 """
 from __future__ import annotations
 
+import re
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -37,6 +39,8 @@ MAX_PERIOD_DAYS = 90
 MACRO_FALLBACK_N = 2
 RELATED_NEWS_N = 2      # сколько связанных новостей добавляет повторный поиск
 DUP_JACCARD = 0.35      # общая доля основ заголовка+текста, выше — считаем перепечаткой одного события
+DUP_DAYS = 3            # одно событие в разных лентах: публикации не дальше этого числа дней
+_NUM = re.compile(r"\d+(?:[.,]\d+)?")
 
 
 class CompanyNotFound(LookupError):
@@ -181,14 +185,16 @@ class Orchestrator:
         return sims
 
     def _select(self, ranked: list, k: int, min_score: float | None = None) -> tuple[list, dict[str, str]]:
-        """Top-k с порогом и подавлением дублей: одно событие от двух изданий — одна карточка."""
+        """Top-k с порогом и подавлением дублей: одно событие от двух изданий — одна карточка.
+        Дубль — почти тот же текст (jaccard) или то же событие, пересказанное другими словами (same_event)."""
         thr = self.s.min_relevance if min_score is None else min_score
         chosen: list = []
         dups: dict[str, str] = {}
         for n, b in ranked:
             if b.score < thr or len(chosen) >= k:
                 continue
-            twin = next((c for c, _ in chosen if jaccard(f"{n.title} {n.text}", f"{c.title} {c.text}") >= DUP_JACCARD), None)
+            twin = next((c for c, _ in chosen if same_event(n, c)
+                         or jaccard(f"{n.title} {n.text}", f"{c.title} {c.text}") >= DUP_JACCARD), None)
             if twin is not None:
                 dups[n.news_id] = twin.news_id
                 continue
@@ -205,16 +211,24 @@ class Orchestrator:
                 # ПРАВКА feat/llm-fixes-daria: дальше их размечает _extract_heuristic, а не пропускает
                 st.status, st.note = "skipped", "LLM_MODE=stub: модель не вызывается, разметка по словарю (следующий шаг)"
                 return
-            done, failed = [], []
-            for n in todo[: self.s.max_extract_per_run]:
+            batch = todo[: self.s.max_extract_per_run]
+
+            def one(n: NewsItem) -> dict | None:
                 try:
                     n.event = extract_event({"id": n.news_id, "title": n.title, "text": n.text, "source": n.source,
                                              "url": n.url, "published_at": n.published_at.isoformat()},
                                             complete=gw.complete, trace=llm_trace)
-                    done.append(n.news_id)
+                    return None
                 except (LLMUnavailable, LLMCallError) as e:
-                    failed.append({"news_id": n.news_id, "error": str(e)[:200]})
-            st.output = {"extracted": done, "failed": failed,
+                    return {"news_id": n.news_id, "error": str(e)[:200]}
+
+            # Запросы к модели независимы: шлём параллельно (LLM_PARALLEL), иначе 20 новостей × 20–30 с —
+            # это 10 минут. Ключи записи replay от порядка не зависят, кэш демо остаётся валидным.
+            with ThreadPoolExecutor(max_workers=max(1, self.s.llm_parallel)) as pool:
+                errors = list(pool.map(one, batch))
+            failed = [e for e in errors if e]
+            done = [n.news_id for n, e in zip(batch, errors) if not e]
+            st.output = {"extracted": done, "failed": failed, "parallel": self.s.llm_parallel,
                          "skipped_over_limit": len(todo) - len(done) - len(failed)}
             if failed:
                 st.status = "fallback"
@@ -368,6 +382,36 @@ def _empty_note(ranked: list, threshold: float) -> str:
     return (f"ни одна новость не прошла порог релевантности {threshold}: новостей {total}, размечено моделью "
             f"{by_model}, по ключевым словам {by_rules}, без разметки {total - by_model - by_rules}, шум {noise}; "
             f"лучший скор {best:.2f}")
+
+
+def _numbers(n: NewsItem) -> set[str]:
+    """Значимые числа события: из разметки модели и из заголовка (годы отбрасываем)."""
+    vals = [k.value for k in (n.event.key_numbers if n.event else [])] + _NUM.findall(n.title)
+    out = set()
+    for v in vals:
+        for x in _NUM.findall(str(v)):
+            x = x.replace(",", ".")
+            x = x.rstrip("0").rstrip(".") if "." in x else x
+            if x and not (len(x) == 4 and x.isdigit() and 1900 <= int(x) <= 2100):
+                out.add(x)
+    return out
+
+
+def same_event(a: NewsItem, b: NewsItem) -> bool:
+    """Одно событие из разных лент («ЦБ сохранил ставку 14%» в трёх изданиях): тот же тип события,
+    публикации рядом по дате, общее ключевое число и общий фактор (или инструмент). Тексты при этом
+    могут почти не совпадать, поэтому jaccard такие пары не ловит."""
+    ea, eb = a.event, b.event
+    if not ea or not eb or ea.is_noise or eb.is_noise or ea.event_type != eb.event_type:
+        return False
+    if abs((a.published_at - b.published_at).days) > DUP_DAYS:
+        return False
+    if not (_numbers(a) & _numbers(b)):
+        return False
+    fa, fb = {m.factor for m in ea.factor_moves}, {m.factor for m in eb.factor_moves}
+    ia = {x.lower().strip() for x in ea.instruments}
+    ib = {x.lower().strip() for x in eb.instruments}
+    return bool(fa & fb) or bool(ia & ib) or (not fa and not fb)
 
 
 def _query_of(step: dict) -> str:

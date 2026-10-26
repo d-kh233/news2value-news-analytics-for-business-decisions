@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -41,6 +42,7 @@ class Gateway:
         self.s = s
         self.dir = Path(s.llm_cache_dir)
         self.stats = {"calls": 0, "replayed": 0, "tokens": 0, "cost_rub_est": 0.0, "errors": 0, "missed": 0}
+        self._lock = threading.Lock()   # разметка идёт в несколько потоков: файл расхода и счётчики под замком
 
     # ---------- запись ответов ----------
     def _record_path(self, model: str, messages: list[dict], params: dict) -> Path:
@@ -54,9 +56,14 @@ class Gateway:
 
     def spent_today(self) -> float:
         p = self._usage_path()
-        return json.loads(p.read_text())["cost_rub_est"] if p.exists() else 0.0
+        with self._lock:
+            return json.loads(p.read_text())["cost_rub_est"] if p.exists() else 0.0
 
     def _record(self, model: str, tokens: int) -> None:
+        with self._lock:
+            self._record_locked(model, tokens)
+
+    def _record_locked(self, model: str, tokens: int) -> None:
         cost = tokens / 1000 * self.s.llm_price_rub_per_1k_tokens
         p = self._usage_path()
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -70,6 +77,10 @@ class Gateway:
         self.stats["tokens"] += tokens
         self.stats["cost_rub_est"] = round(self.stats["cost_rub_est"] + cost, 4)
 
+    def _inc(self, key: str) -> None:
+        with self._lock:
+            self.stats[key] += 1
+
     # ---------- вызов ----------
     def complete(self, model: str, messages: list[dict], temperature: float = 0.1,
                  max_tokens: int = 1500, **_: object) -> str:
@@ -77,10 +88,10 @@ class Gateway:
             raise LLMUnavailable("LLM_MODE=stub")
         rec = self._record_path(model, messages, {"t": temperature, "max": max_tokens})
         if rec.exists():
-            self.stats["replayed"] += 1
+            self._inc("replayed")
             return json.loads(rec.read_text(encoding="utf-8"))["reply"]
         if self.s.llm_mode == "replay":
-            self.stats["missed"] += 1
+            self._inc("missed")
             raise LLMUnavailable("нет записанного ответа, а в replay новые вызовы запрещены")
         if not (self.s.llm_base_url and self.s.llm_api_key):
             raise LLMUnavailable("LLM_BASE_URL / LLM_API_KEY не заданы")
@@ -97,21 +108,21 @@ class Gateway:
             resp = self._post(body)
         except urllib.error.HTTPError as e:
             if e.code != 400 or "reasoning" not in body:
-                self.stats["errors"] += 1
+                self._inc("errors")
                 raise LLMUnavailable(f"ошибка вызова модели: {e}") from e
             body.pop("reasoning")                      # API не принял параметр — повтор без него
             try:
                 resp = self._post(body)
             except Exception as e2:  # noqa: BLE001
-                self.stats["errors"] += 1
+                self._inc("errors")
                 raise LLMUnavailable(f"ошибка вызова модели: {e2}") from e2
         except Exception as e:  # noqa: BLE001
-            self.stats["errors"] += 1
+            self._inc("errors")
             raise LLMUnavailable(f"ошибка вызова модели: {e}") from e
         reply = (resp["choices"][0]["message"].get("content") or "").strip()
         if not reply:
             # пустой ответ не записываем: повторный запуск вызовет модель заново
-            self.stats["errors"] += 1
+            self._inc("errors")
             raise LLMUnavailable(f"пустой ответ модели {model}")
         tokens = (resp.get("usage") or {}).get("total_tokens") or \
             (sum(len(m.get("content", "")) for m in messages) + len(reply)) // 3

@@ -1,0 +1,1 @@
+{"content": "{\"verdict\": \"pass\", \"scores\": {\"grounding\": 5, \"personalization\": 5, \"depth\": 4, \"actionability\": 4, \"bank_separation\": 5}, \"issues\": [{\"field\": \"actions[2]\", \"problem\": \"generic\", \"comment\": \"Связка пошлин на китайские потребительские товары с лирой слабая, но действие сформулировано как проверка, а не утверждение — не критично.\"}]}"}

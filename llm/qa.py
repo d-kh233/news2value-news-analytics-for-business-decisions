@@ -23,7 +23,7 @@ from .client import MODELS, CompleteFn, call_json
 from .insight import company_facts
 from .schemas import ChatAnswer
 
-PROMPT_VERSION = "qa@v0"
+PROMPT_VERSION = "qa@v1"   # v1: категории продуктов банка под профиль, без служебных id в тексте
 SYSTEM = (Path(__file__).parent / "prompts" / "qa.system.md").read_text(encoding="utf-8")
 HISTORY_TURNS = 5
 ORIGIN_RU = {"fact": "факт", "bank": "позиция банка", "ai": "вывод ИИ"}
@@ -51,7 +51,8 @@ def _details_lines(details: Mapping[str, Any]) -> tuple[list[str], set[str]]:
             sids = list(it.get("source_ids") or [])
             ids |= set(sids)
             origin = ORIGIN_RU.get(it.get("origin"), it.get("type") or "")
-            lines.append(f"- ({origin}) {it.get('text', '')} [{', '.join(sids)}]".replace(" []", ""))
+            product = f" (продукт банка: {it['bank_product']})" if it.get("bank_product") else ""
+            lines.append(f"- ({origin}) {it.get('text', '')}{product} [{', '.join(sids)}]".replace(" []", ""))
     for gap in details.get("data_gaps") or []:
         lines.append(f"Пробел в данных: {gap}")
     return lines, ids | set(details.get("company_features_used") or [])

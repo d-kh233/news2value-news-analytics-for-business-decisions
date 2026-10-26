@@ -1,0 +1,1 @@
+{"content": "{\"verdict\": \"pass\", \"scores\": {\"grounding\": 5, \"personalization\": 5, \"depth\": 4, \"actionability\": 4, \"bank_separation\": 5}, \"issues\": [{\"field\": \"consequences[1]\", \"problem\": \"other\", \"comment\": \"Стилистическая опечатка «располагающие расходы» (вероятно, «располагаемый доход»); на смысл и показ не влияет.\"}], \"extra_search\": []}"}
