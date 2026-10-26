@@ -282,8 +282,9 @@ def _age_news(db, hours: int) -> None:
         )
 
 
-def test_auto_ingest_off_by_default(db, news, modes, ingest_calls):
+def test_auto_ingest_off_when_zero(db, news, modes, env, ingest_calls):
     modes("fake", "db")
+    env(AUTO_INGEST_HOURS=0)  # явно: в локальном .env может стоять своё значение
     _age_news(db, 100)
     assert run_for_company(DRINKS, "cfo", "week").status == "done"
     assert ingest_calls == []
