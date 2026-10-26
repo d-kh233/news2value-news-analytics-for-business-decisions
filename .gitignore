@@ -227,9 +227,6 @@ CLAUDE.md
 
 # LLM: кэш ответов моделей (может содержать данные кейса)
 .llm_cache/
-# ответы моделей и журнал расходов из локальных прогонов LLM_MODE=live; .gitkeep остаётся.
-# Записанный кэш для replay (жюри) добавлять явно: git add -f replay_cache/llm
-replay_cache/llm/**/*.json
 
 # Прогоны агента (python -m agent run): локальные, в репозиторий не нужны
 runs/
