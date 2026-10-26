@@ -43,6 +43,7 @@ class Settings:
     min_relevance: float = 0.5          # на моках: чужие отрасли 0.3–0.45, общие макро 0.5–0.9, своя отрасль 0.75+
     theses_per_news: int = 2
     max_extract_per_run: int = 20       # сколько неразмеченных новостей агент размечает сам за прогон
+    llm_parallel: int = 4               # сколько новостей размечать одновременно (LLM_PARALLEL)
     runs_dir: str = str(REPO_ROOT / "runs")
     today: str = ""                     # YYYY-MM-DD; в replay — та же дата, что при записи кэша
 
@@ -62,6 +63,7 @@ class Settings:
         s.llm_price_rub_per_1k_tokens = float(e("LLM_PRICE_RUB_PER_1K", s.llm_price_rub_per_1k_tokens))
         s.top_k_news = int(e("TOP_K_NEWS", s.top_k_news))
         s.min_relevance = float(e("MIN_RELEVANCE", s.min_relevance))
+        s.llm_parallel = int(e("LLM_PARALLEL", s.llm_parallel))
         s.runs_dir = e("RUNS_DIR", s.runs_dir)
         s.today = e("AGENT_TODAY", s.today)
         if s.llm_mode not in ("stub", "live", "replay"):
