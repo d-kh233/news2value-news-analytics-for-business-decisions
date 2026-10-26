@@ -261,12 +261,13 @@ def test_document_ids_from_card():
 
 
 @pytest.fixture
-def ingest_calls(monkeypatch) -> list[bool]:
+def ingest_calls(db, monkeypatch) -> list:
     """Подмена сбора: в сеть не ходит, запоминает pdf= каждого вызова."""
-    calls: list[bool] = []
+    calls: list = []
 
     def fake_ingestion(engine, config, *, pdf=True, rss=True, client=None):
-        calls.append(pdf)
+        # пишет в ту же (тестовую) БД, что и refresh, а не в рабочую
+        calls.append(pdf if engine is db else "чужая БД")
         return IngestReport()
 
     monkeypatch.setattr(refresh, "_last_ingest_try", None)
@@ -282,9 +283,8 @@ def _age_news(db, hours: int) -> None:
         )
 
 
-def test_auto_ingest_off_when_zero(db, news, modes, env, ingest_calls):
+def test_auto_ingest_off_by_default(db, news, modes, ingest_calls):
     modes("fake", "db")
-    env(AUTO_INGEST_HOURS=0)  # явно: в локальном .env может стоять своё значение
     _age_news(db, 100)
     assert run_for_company(DRINKS, "cfo", "week").status == "done"
     assert ingest_calls == []

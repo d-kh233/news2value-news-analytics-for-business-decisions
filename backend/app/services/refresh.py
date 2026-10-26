@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import get_settings
-from app.core.db import get_engine, get_session
+from app.core.db import get_session
 from app.core.errors import NotFoundError
 from app.ingestion.runner import load_sources, run_ingestion
 from app.ml_ports import loader
@@ -124,12 +124,14 @@ def ingest_if_stale() -> None:
         return
     with get_session() as session:
         last = document_repo.last_news_fetched_at(session)
+        # движок той же сессии: в тестах get_engine подменяют на тестовую БД
+        engine = session.get_bind()
     if last is not None and datetime.now(UTC) - last < max_age:
         return
     _last_ingest_try = time.monotonic()
     started = time.monotonic()
     try:
-        report = run_ingestion(get_engine(), load_sources(SOURCES_PATH), pdf=False)
+        report = run_ingestion(engine, load_sources(SOURCES_PATH), pdf=False)
     except Exception:  # noqa: BLE001 — refresh важнее свежести ленты
         logger.exception("сбор новостей перед refresh не удался, новости — из базы")
         return

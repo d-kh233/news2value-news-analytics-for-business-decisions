@@ -130,6 +130,8 @@ def _agent_offline(monkeypatch, tmp_path):
     monkeypatch.setenv("LLM_MODE", "stub")
     monkeypatch.setenv("AGENT_TODAY", "2026-10-22")
     monkeypatch.setenv("RUNS_DIR", str(tmp_path / "runs"))
+    # refresh не собирает RSS из сети, даже если в локальном .env включён AUTO_INGEST_HOURS
+    monkeypatch.setenv("AUTO_INGEST_HOURS", "0")
 
 
 @pytest.fixture(autouse=True)
