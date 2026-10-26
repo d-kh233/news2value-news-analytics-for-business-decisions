@@ -46,6 +46,9 @@ services:
         value: real
       - key: NEWS_SOURCE
         value: db
+      # без сбора RSS при refresh: новых новостей нет в кэше ответов модели (LLM_MODE=replay)
+      - key: AUTO_INGEST_HOURS
+        value: "0"
       - key: USE_MOCKS
         value: "false"
       # те же настройки, с которыми записан кэш ответов модели (.env.example) — иначе карточки по шаблонам
